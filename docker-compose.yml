@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: chesshub
+      POSTGRES_USER: chesshub
+      POSTGRES_PASSWORD: chesshub
+    ports:
+      - "5432:5432"
+    volumes:
+      - chesshub_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chesshub -d chesshub"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://chesshub:chesshub@db:5432/chesshub
+      JWT_SECRET: ${JWT_SECRET:-local-only-change-this-secret-1234567890}
+      CORS_ORIGIN: http://localhost:4173
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  web:
+    image: nginx:alpine
+    ports:
+      - "4173:80"
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./styles.css:/usr/share/nginx/html/styles.css:ro
+      - ./app.js:/usr/share/nginx/html/app.js:ro
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  chesshub_data:
