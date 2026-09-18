@@ -19,7 +19,9 @@ services:
     build: ./backend
     environment:
       PORT: 3000
-      DATABASE_URL: postgres://chesshub:chesshub@db:5432/chesshub
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/chesshub
+      SPRING_DATASOURCE_USERNAME: chesshub
+      SPRING_DATASOURCE_PASSWORD: chesshub
       JWT_SECRET: ${JWT_SECRET:-local-only-change-this-secret-1234567890}
       CORS_ORIGIN: http://localhost:4173
     ports:
@@ -28,19 +30,15 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      test: [ "CMD", "wget", "-qO-", "http://127.0.0.1:3000/health" ]
       interval: 10s
       timeout: 3s
       retries: 5
 
   web:
-    image: nginx:alpine
+    build: ./frontend
     ports:
       - "4173:80"
-    volumes:
-      - ./index.html:/usr/share/nginx/html/index.html:ro
-      - ./styles.css:/usr/share/nginx/html/styles.css:ro
-      - ./app.js:/usr/share/nginx/html/app.js:ro
     depends_on:
       api:
         condition: service_healthy

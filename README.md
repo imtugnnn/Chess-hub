@@ -1,42 +1,25 @@
 # ChessHub
 
-Ứng dụng quản lý trung tâm cờ vua với bốn giao diện tách biệt: phụ huynh, học viên, giáo viên và trung tâm. Frontend hiện là bản MVP responsive; backend là API TypeScript kết nối PostgreSQL/PostGIS.
+Codebase mới cho ứng dụng quản lý trung tâm cờ vua. Frontend React và backend Spring Boot được dựng dưới dạng skeleton sạch; các migration SQL cũ được lưu lại để tham chiếu nhưng không còn được chạy.
 
 ## Tech stack
 
-- Frontend MVP: HTML, CSS, JavaScript thuần, chạy tốt trên máy tính và điện thoại.
-- Backend: Node.js 22+ / TypeScript / Fastify 5.
+- Frontend: React + Vite, tách component, page, service và hook.
+- Backend: Java 21 / Spring Boot 3 theo các tầng controller, service, repository / Spring Data JPA (Hibernate).
 - Database: PostgreSQL 17 + PostGIS 3.5.
-- Xác thực: email/mật khẩu băm bằng `pgcrypto`, access token JWT hết hạn sau 1 giờ.
-- Kiến trúc: modular monolith. Một API và một database là đủ cho quy mô một trung tâm; chưa cần microservice, Redis hay message queue.
+- Kiến trúc: modular monolith, tách rõ controller → service → repository.
 
-PostGIS được dùng để tính khoảng cách bằng mét và kiểm tra geofence ở máy chủ. Database cũng có ràng buộc chặn giáo viên bị xếp hai buổi trùng giờ.
+PostGIS, ràng buộc lịch giáo viên và dữ liệu mẫu vẫn được định nghĩa trong migration SQL. API nghiệp vụ sẽ được xây lại dần trên cấu trúc mới.
 
-## Chức năng đã dựng
+## Phạm vi skeleton hiện tại
 
-| Vai trò | Giao diện và API chính |
-|---|---|
-| Phụ huynh | Chuyển hồ sơ nhiều con, lịch tuần/tháng, chuyên cần, học phí, giải đấu, xin nghỉ |
-| Học viên | Lịch tuần/tháng, nội dung buổi học, tự điểm danh bằng vị trí, chuyên cần, giải đấu |
-| Giáo viên | Lịch dạy, điểm danh thủ công, cập nhật chủ đề/mục tiêu/tài liệu, danh sách học viên |
-| Trung tâm | Lịch toàn trung tâm, tạo/sửa buổi học, tạo lớp, phân công giáo viên, quản lý học viên |
-
-## Quy tắc điểm danh vị trí
-
-`POST /api/v1/sessions/:sessionId/check-in` chỉ ghi nhận khi:
-
-- Tài khoản học viên hoặc phụ huynh có quyền với học viên đó.
-- Học viên đang được ghi danh trong lớp của buổi học.
-- Buổi học không bị hủy và đang trong cửa sổ điểm danh.
-- Vị trí được lấy trong vòng 120 giây, độ chính xác GPS không quá 30 m.
-- Khoảng cách do PostGIS tính không vượt quá bán kính cấu hình của địa điểm: từ `10–30 m`, mặc định `30 m`.
-- Chưa tồn tại kết quả điểm danh của học viên trong buổi đó.
-
-Tọa độ, độ chính xác và khoảng cách được lưu để kiểm tra khi có khiếu nại. GPS trên web vẫn có thể bị giả lập; nếu điểm danh có giá trị cao, nên bổ sung QR đổi theo phút, BLE tại cơ sở hoặc device attestation cho ứng dụng native.
+- React homepage gọi health check của API qua một custom hook.
+- Spring Boot có health check và API đọc danh sách người dùng mẫu qua JPA/Hibernate.
+- Hibernate tự đồng bộ các entity mới với database (`ddl-auto=update`).
 
 ## Chạy toàn bộ bằng Docker
 
-Docker chạy ba container: `web` (giao diện), `api` (Fastify) và `db` (PostgreSQL/PostGIS). Máy chỉ cần cài và mở Docker Desktop.
+Docker chạy ba container: `web` (React), `api` (Spring Boot) và `db` (PostgreSQL/PostGIS). Máy chỉ cần cài Java 21 và Node.js khi chạy từng phần ngoài Docker, hoặc chỉ cần mở Docker Desktop khi chạy toàn bộ hệ thống.
 
 Tại thư mục `ChessHub`, chạy:
 
@@ -69,7 +52,7 @@ Chỉ dùng lệnh sau khi muốn xóa toàn bộ database và tạo lại từ 
 docker compose down -v
 ```
 
-Khi API khởi động, các migration và dữ liệu demo được áp dụng tự động. Bộ chọn “Giao diện” trên thanh đầu trang dùng để xem bốn vai trò.
+Các migration cũ trong `src/main/resources/db/migration/` không còn được Spring Boot chạy. Hibernate sẽ tạo/cập nhật bảng của các entity mới khi API khởi động.
 
 ## Chạy backend trực tiếp để phát triển
 
@@ -78,56 +61,40 @@ Giữ database Docker đang chạy, sau đó:
 ```powershell
 docker compose up -d db
 cd backend
-Copy-Item .env.example .env
+mvn spring-boot:run
+```
+
+Chạy frontend React ngoài Docker ở một terminal khác:
+
+```powershell
+cd frontend
 npm install
-npm run db:setup
 npm run dev
 ```
 
-## Tài khoản demo
-
-Mật khẩu chung chỉ dành cho local: `ChessHub@123`.
-
-- `admin@chesshub.vn`
-- `teacher@chesshub.vn`
-- `parent@chesshub.vn`
-- `student@chesshub.vn`
-
-Đăng nhập API:
-
-```powershell
-$login = Invoke-RestMethod -Method Post -Uri http://localhost:3000/api/v1/auth/login `
-  -ContentType 'application/json' `
-  -Body '{"email":"student@chesshub.vn","password":"ChessHub@123"}'
-
-$login.access_token
-```
-
-Để nút điểm danh trên frontend gọi API thật, lưu token vào trình duyệt bằng `localStorage.setItem('chesshub-token', '<token>')`. Ở production, màn hình đăng nhập sẽ thực hiện bước này và nên lưu token bằng cookie `HttpOnly` nếu triển khai dạng web.
-
 ## API chính
 
-- `POST /api/v1/auth/login`
-- `GET /api/v1/me`
-- `GET /api/v1/students/:studentId/schedule?from=...&to=...`
-- `POST /api/v1/sessions/:sessionId/check-in`
-- `GET /api/v1/teacher/sessions?from=...&to=...`
-- `PATCH /api/v1/teacher/sessions/:sessionId/content`
-- `PUT /api/v1/teacher/sessions/:sessionId/attendance`
-- `POST /api/v1/center/classes`
-- `POST /api/v1/center/sessions`
-- `PUT /api/v1/center/sessions/:sessionId`
-- `GET /api/v1/center/calendar?from=...&to=...`
+- `GET /health`
+- `GET /api/v1/users`
 
 ## Cấu trúc
 
 ```text
 ChessHub/
-├── index.html, styles.css, app.js   # frontend đa vai trò
-├── docker-compose.yml               # PostgreSQL + PostGIS
+├── docker-compose.yml
 └── backend/
-    ├── migrations/                  # schema và dữ liệu demo
-    ├── src/server.ts                # API, RBAC và truy vấn dữ liệu
-    ├── src/geofence.ts              # luật điểm danh thuần, dễ kiểm thử
-    └── src/geofence.test.ts         # kiểm tra biên 30 m
+    ├── pom.xml                       # Maven/Spring Boot dependencies
+    └── src/main/
+        ├── java/vn/chesshub/
+        │   ├── controller/            # HTTP API
+        │   ├── service/               # nghiệp vụ
+        │   ├── repository/            # truy cập dữ liệu JPA
+        │   └── entity/                # Hibernate entities
+        └── resources/db/migration/   # Flyway schema và dữ liệu demo
+└── frontend/
+    └── src/
+        ├── components/
+        ├── pages/
+        ├── services/
+        └── hooks/
 ```

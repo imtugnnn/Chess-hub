@@ -1,0 +1,13 @@
+server:
+  port: ${PORT:3000}
+spring:
+  application:
+    name: chesshub-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/chesshub}
+    username: ${SPRING_DATASOURCE_USERNAME:chesshub}
+    password: ${SPRING_DATASOURCE_PASSWORD:chesshub}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false

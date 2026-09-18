@@ -1,17 +1,13 @@
-FROM node:22-alpine AS build
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY tsconfig.json ./
+FROM maven:3.9-eclipse-temurin-21-alpine AS build
+WORKDIR /workspace
+COPY pom.xml .
+RUN mvn -q -DskipTests dependency:go-offline
 COPY src ./src
-RUN npm run build
+RUN mvn -q -DskipTests package
 
-FROM node:22-alpine
-ENV NODE_ENV=production
+FROM eclipse-temurin:21-jre-alpine
+RUN apk add --no-cache wget
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --omit=dev
-COPY --from=build /app/dist ./dist
-COPY migrations ./migrations
+COPY --from=build /workspace/target/chesshub-api.jar /app/app.jar
 EXPOSE 3000
-CMD ["sh", "-c", "node dist/db-setup.js && node dist/server.js"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
