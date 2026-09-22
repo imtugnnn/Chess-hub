@@ -1,14 +1,26 @@
 import { useState } from "react";
 import { Brand } from "../components/Brand";
+import { login } from "../services/api";
 
 export function LoginPage({ onNavigate, onAuthenticated }) {
-  const [email, setEmail] = useState("minhanh@chesshub.vn");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
-    onAuthenticated("Minh Anh");
+    setError("");
+    setSubmitting(true);
+    try {
+      const account = await login({ email, password });
+      onAuthenticated(account);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -38,7 +50,8 @@ export function LoginPage({ onNavigate, onAuthenticated }) {
             <label>Email<span className="input-wrap"><span aria-hidden="true">✉</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ban@example.com" required /></span></label>
             <label>Mật khẩu<span className="input-wrap"><span aria-hidden="true">⌑</span><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nhập mật khẩu" required /></span></label>
             <div className="form-row"><label className="check-label"><input type="checkbox" /> <span>Ghi nhớ đăng nhập</span></label><button type="button" className="text-button" onClick={() => setShowPassword(!showPassword)}>Hiện mật khẩu</button></div>
-            <button className="primary-button" type="submit">Đăng nhập <span aria-hidden="true">→</span></button>
+            {error && <p className="form-error" role="alert">{error}</p>}
+            <button className="primary-button" type="submit" disabled={submitting}>{submitting ? "Đang kiểm tra…" : <>Đăng nhập <span aria-hidden="true">→</span></>}</button>
           </form>
           <p className="auth-switch">Chưa có tài khoản? <button type="button" className="text-button text-button--strong" onClick={() => onNavigate("/register")}>Đăng ký ngay</button></p>
         </div>

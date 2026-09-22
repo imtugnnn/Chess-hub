@@ -1,14 +1,25 @@
 import { useState } from "react";
 import { Brand } from "../components/Brand";
+import { registerAccount } from "../services/api";
 
 export function RegisterPage({ onNavigate, onRegistered }) {
   const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const update = (key) => (event) => setForm({ ...form, [key]: event.target.value });
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     if (form.password !== form.confirmPassword) return setError("Mật khẩu xác nhận chưa khớp.");
-    onRegistered(form.name || "Giáo viên mới");
+    setError("");
+    setSubmitting(true);
+    try {
+      const account = await registerAccount({ fullName: form.name, email: form.email, password: form.password });
+      onRegistered(account);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSubmitting(false);
+    }
   }
   return (
     <main className="auth-page auth-page--register">
@@ -31,7 +42,7 @@ export function RegisterPage({ onNavigate, onRegistered }) {
             <div className="form-grid"><label>Mật khẩu<span className="input-wrap"><span aria-hidden="true">⌑</span><input type="password" value={form.password} onChange={update("password")} placeholder="Tối thiểu 8 ký tự" minLength="8" required /></span></label><label>Xác nhận mật khẩu<span className="input-wrap"><span aria-hidden="true">⌑</span><input type="password" value={form.confirmPassword} onChange={update("confirmPassword")} placeholder="Nhập lại mật khẩu" minLength="8" required /></span></label></div>
             {error && <p className="form-error" role="alert">{error}</p>}
             <label className="check-label check-label--terms"><input type="checkbox" required /><span>Tôi đồng ý với <button type="button" className="text-button">Điều khoản sử dụng</button> và <button type="button" className="text-button">Chính sách bảo mật</button>.</span></label>
-            <button className="primary-button" type="submit">Tạo tài khoản <span aria-hidden="true">→</span></button>
+            <button className="primary-button" type="submit" disabled={submitting}>{submitting ? "Đang tạo tài khoản…" : <>Tạo tài khoản <span aria-hidden="true">→</span></>}</button>
           </form>
           <p className="auth-switch">Đã có tài khoản? <button type="button" className="text-button text-button--strong" onClick={() => onNavigate("/login")}>Đăng nhập</button></p>
         </div>
