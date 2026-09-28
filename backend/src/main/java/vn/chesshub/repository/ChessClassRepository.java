@@ -11,5 +11,8 @@ public interface ChessClassRepository extends JpaRepository<ChessClass, UUID> {
   List<ChessClass> findByTeacherIdOrderByName(UUID teacherId);
 
   @EntityGraph(attributePaths = "students")
+  List<ChessClass> findWithStudentsByTeacherIdOrderByName(UUID teacherId);
+
+  @EntityGraph(attributePaths = "students")
   Optional<ChessClass> findByIdAndTeacherId(UUID id, UUID teacherId);
 }

@@ -59,9 +59,9 @@ public class TournamentController {
       return new SessionResponse(session.getId(), session.getChessClass().getName(), session.getSessionDate(), session.getStartTime(), session.getEndTime());
     }
   }
-  public record StudentResponse(UUID id, String fullName, String phoneNumber, String attendanceStatus, boolean preselected) {
+  public record StudentResponse(UUID id, String fullName, String parentPhoneNumber, String attendanceStatus, boolean preselected) {
     static StudentResponse from(Student student, String attendanceStatus) {
-      return new StudentResponse(student.getId(), student.getFullName(), student.getPhoneNumber(), attendanceStatus,
+      return new StudentResponse(student.getId(), student.getFullName(), student.getParentPhoneNumber(), attendanceStatus,
         attendanceStatus != null && PRESELECTED_ATTENDANCE.contains(attendanceStatus));
     }
   }

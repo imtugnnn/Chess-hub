@@ -25,6 +25,7 @@ export function AppSidebar({ activeSection, teacherId, teacherName, onLogout, on
     <nav aria-label="Điều hướng chính">
       <button className={`nav-item ${activeSection === "home" ? "nav-item--active" : ""}`} type="button" onClick={() => onNavigate("/homepage")}><span>⌂</span>Màn hình chính</button>
       <button className={`nav-item ${activeSection === "calendar" ? "nav-item--active" : ""}`} type="button" onClick={() => onNavigate("/calendar")}><span>□</span>Lịch</button>
+      <button className={`nav-item ${activeSection === "attendance" ? "nav-item--active" : ""}`} type="button" onClick={() => onNavigate("/attendance-summary")}><span>✓</span>Điểm danh</button>
       <div className="class-menu">
         <button className={`nav-item class-menu__trigger ${classesOpen ? "class-menu__trigger--open" : ""} ${activeSection === "classes" ? "nav-item--active" : ""}`} type="button" onClick={() => setClassesOpen((open) => !open)} aria-expanded={classesOpen} aria-controls="teacher-classes"><span>♙</span>Lớp học <b>{classes.length}</b><i aria-hidden="true">⌄</i></button>
         {classesOpen && <div className="class-menu__list" id="teacher-classes">{classes.length ? classes.map((classroom) => <a key={classroom.id} href={`/classes/${classroom.id}`} onClick={(event) => { event.preventDefault(); setClassesOpen(false); onNavigate(`/classes/${classroom.id}`); }}><span>{classroom.name}</span><small>{classroom.studentCount} học sinh</small></a>) : <p>Chưa có lớp học</p>}</div>}

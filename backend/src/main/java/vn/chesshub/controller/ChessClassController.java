@@ -2,6 +2,7 @@ package vn.chesshub.controller;
 
 import java.util.List;
 import java.util.UUID;
+import java.math.BigDecimal;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
@@ -53,13 +54,13 @@ public class ChessClassController {
   @PostMapping
   public CreateClassResponse create(@PathVariable UUID teacherId, @RequestBody CreateClassRequest request) {
     ChessClassService.CreatedClass created = classService.create(teacherId,
-      new ChessClassService.CreateClassCommand(request.name(), request.students() == null ? List.of() : request.students().stream().map(StudentRequest::toCommand).toList(), ScheduleRequest.toCommand(request.schedule())));
+      new ChessClassService.CreateClassCommand(request.name(), request.feePerSession(), request.students() == null ? List.of() : request.students().stream().map(StudentRequest::toCommand).toList(), ScheduleRequest.toCommand(request.schedule())));
     return new CreateClassResponse(ClassResponse.from(created.chessClass()));
   }
 
   @PutMapping("/{classId}")
   public ClassResponse update(@PathVariable UUID teacherId, @PathVariable UUID classId, @RequestBody UpdateClassRequest request) {
-    return ClassResponse.from(classService.updateDetails(teacherId, classId, request == null ? null : request.name()));
+    return ClassResponse.from(classService.updateDetails(teacherId, classId, request == null ? null : request.name(), request == null ? null : request.feePerSession()));
   }
 
   @PostMapping("/{classId}/students")
@@ -73,15 +74,15 @@ public class ChessClassController {
     return ClassResponse.from(classService.updateFutureSchedule(teacherId, classId, ScheduleRequest.toCommand(request)));
   }
 
-  public record ClassResponse(UUID id, String name, String schedule, int studentCount, String tone) {
+  public record ClassResponse(UUID id, String name, String schedule, int studentCount, String tone, BigDecimal feePerSession) {
     static ClassResponse from(ChessClass chessClass) {
-      return new ClassResponse(chessClass.getId(), chessClass.getName(), chessClass.getSchedule(), chessClass.getStudentCount(), chessClass.getTone());
+      return new ClassResponse(chessClass.getId(), chessClass.getName(), chessClass.getSchedule(), chessClass.getStudentCount(), chessClass.getTone(), chessClass.getFeePerSession());
     }
   }
-  public record CreateClassRequest(String name, List<StudentRequest> students, ScheduleRequest schedule) { }
-  public record UpdateClassRequest(String name) { }
-  public record StudentRequest(String fullName, String phoneNumber, String parentPhoneNumber) {
-    ChessClassService.StudentCommand toCommand() { return new ChessClassService.StudentCommand(fullName, phoneNumber, parentPhoneNumber); }
+  public record CreateClassRequest(String name, BigDecimal feePerSession, List<StudentRequest> students, ScheduleRequest schedule) { }
+  public record UpdateClassRequest(String name, BigDecimal feePerSession) { }
+  public record StudentRequest(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber) {
+    ChessClassService.StudentCommand toCommand() { return new ChessClassService.StudentCommand(fullName, birthDate, parentName, parentPhoneNumber); }
   }
   public record ScheduleRequest(String mode, List<SessionRequest> sessions, List<Integer> weekdays, LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime) {
     static ChessClassService.ScheduleCommand toCommand(ScheduleRequest schedule) {
@@ -93,9 +94,9 @@ public class ChessClassController {
   }
   public record SessionRequest(LocalDate date, LocalTime startTime, LocalTime endTime) { }
   public record CreateClassResponse(ClassResponse chessClass) { }
-  public record StudentResponse(UUID id, String fullName, String phoneNumber) {
+  public record StudentResponse(UUID id, String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber) {
     static StudentResponse from(vn.chesshub.entity.Student student) {
-      return new StudentResponse(student.getId(), student.getFullName(), student.getPhoneNumber());
+      return new StudentResponse(student.getId(), student.getFullName(), student.getBirthDate(), student.getParentName(), student.getParentPhoneNumber());
     }
   }
   public record SessionResponse(UUID id, LocalDate date, LocalTime startTime, LocalTime endTime) {

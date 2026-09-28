@@ -1,6 +1,7 @@
 package vn.chesshub.service;
 
 import java.time.DayOfWeek;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -44,9 +45,10 @@ public class ChessClassService {
     String className = required(command.name(), "Tên lớp");
     User teacher = users.findById(teacherId)
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên."));
-    List<Student> classStudents = resolveStudents(command.students());
+    List<Student> classStudents = resolveStudents(teacher, command.students());
     List<SessionSlot> plannedSessions = createSessions(command.schedule());
-    ChessClass chessClass = new ChessClass(teacher, className, scheduleSummary(command.schedule(), plannedSessions), 0, "blue");
+    validateNoScheduleConflicts(teacherId, plannedSessions, null);
+    ChessClass chessClass = new ChessClass(teacher, className, scheduleSummary(command.schedule(), plannedSessions), 0, "blue", validFee(command.feePerSession()));
     classStudents.forEach(chessClass::addStudent);
     ChessClass savedClass = classes.save(chessClass);
     sessions.saveAll(plannedSessions.stream()
@@ -55,16 +57,18 @@ public class ChessClassService {
   }
 
   @Transactional
-  public ChessClass updateDetails(UUID teacherId, UUID classId, String name) {
+  public ChessClass updateDetails(UUID teacherId, UUID classId, String name, BigDecimal feePerSession) {
     ChessClass chessClass = findClass(teacherId, classId);
     chessClass.updateName(required(name, "Tên lớp"));
+    chessClass.updateFeePerSession(validFee(feePerSession));
     return chessClass;
   }
 
   @Transactional
   public Student addStudent(UUID teacherId, UUID classId, StudentCommand command) {
     ChessClass chessClass = findClass(teacherId, classId);
-    Student student = resolveStudents(List.of(command)).getFirst();
+    Student student = resolveStudents(users.findById(teacherId)
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên.")), List.of(command)).getFirst();
     if (chessClass.getStudents().stream().anyMatch(existing -> existing.getId().equals(student.getId()))) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Học sinh này đã thuộc lớp.");
     }
@@ -78,6 +82,7 @@ public class ChessClassService {
     LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
     List<SessionSlot> replacements = createSessions(schedule).stream().filter(slot -> slot.date().isAfter(today)).toList();
     if (replacements.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lịch mới cần có ít nhất một buổi học trong tương lai.");
+    validateNoScheduleConflicts(teacherId, replacements, classId);
     sessions.deleteByChessClassIdAndSessionDateAfter(classId, today);
     sessions.saveAll(replacements.stream().map(slot -> new ClassSession(chessClass, slot.date(), slot.startTime(), slot.endTime())).toList());
     chessClass.updateSchedule(scheduleSummary(schedule, replacements));
@@ -89,19 +94,29 @@ public class ChessClassService {
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
   }
 
-  private List<Student> resolveStudents(List<StudentCommand> studentCommands) {
+  private List<Student> resolveStudents(User teacher, List<StudentCommand> studentCommands) {
     if (studentCommands == null || studentCommands.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hãy thêm ít nhất một học sinh.");
     Map<String, Student> resolved = new LinkedHashMap<>();
     for (StudentCommand command : studentCommands) {
       if (command == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thông tin học sinh không hợp lệ.");
       String name = required(command.fullName(), "Họ tên học sinh");
-      String phone = normalizedPhone(command.phoneNumber(), "Số điện thoại học sinh");
+      LocalDate birthDate = requiredDate(command.birthDate(), "Ngày sinh");
+      String parentName = required(command.parentName(), "Họ tên phụ huynh");
       String parentPhone = normalizedPhone(command.parentPhoneNumber(), "Số điện thoại phụ huynh");
-      if (resolved.containsKey(phone)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Một học sinh chỉ được thêm một lần.");
-      Student student = students.findByPhoneNumber(phone).orElseGet(() -> students.save(new Student(name, phone, parentPhone)));
-      resolved.put(phone, student);
+      String identity = name.toLowerCase() + "|" + birthDate + "|" + parentPhone;
+      if (resolved.containsKey(identity)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Một học sinh chỉ được thêm một lần.");
+      Student student = findStudentInScope(teacher, name, birthDate, parentPhone)
+        .orElseGet(() -> students.save(new Student(name, birthDate, parentName, parentPhone,
+          teacher.getCenterId(), teacher.getCenterId() == null ? teacher.getId() : null)));
+      resolved.put(identity, student);
     }
     return List.copyOf(resolved.values());
+  }
+
+  private Optional<Student> findStudentInScope(User teacher, String name, LocalDate birthDate, String parentPhone) {
+    return teacher.getCenterId() == null
+      ? students.findByOwnerUserIdAndFullNameAndBirthDateAndParentPhoneNumber(teacher.getId(), name, birthDate, parentPhone)
+      : students.findByCenterIdAndFullNameAndBirthDateAndParentPhoneNumber(teacher.getCenterId(), name, birthDate, parentPhone);
   }
 
   private static String required(String value, String fieldName) {
@@ -117,6 +132,18 @@ public class ChessClassService {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " chưa hợp lệ.");
     }
     return phone;
+  }
+
+  private static LocalDate requiredDate(LocalDate value, String fieldName) {
+    if (value == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " là bắt buộc.");
+    return value;
+  }
+
+  private static BigDecimal validFee(BigDecimal value) {
+    if (value == null || value.signum() < 0 || value.scale() > 0) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Học phí mỗi buổi phải là số tiền nguyên không âm.");
+    }
+    return value;
   }
 
   private static List<SessionSlot> createSessions(ScheduleCommand schedule) {
@@ -170,6 +197,33 @@ public class ChessClassService {
     return time;
   }
 
+  private void validateNoScheduleConflicts(UUID teacherId, List<SessionSlot> plannedSessions, UUID excludedClassId) {
+    LocalDate firstDate = plannedSessions.stream().map(SessionSlot::date).min(Comparator.naturalOrder()).orElseThrow();
+    LocalDate lastDate = plannedSessions.stream().map(SessionSlot::date).max(Comparator.naturalOrder()).orElseThrow();
+    List<SessionSlot> existingSessions = sessions
+      .findByChessClassTeacherIdAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(teacherId, firstDate, lastDate)
+      .stream()
+      .filter(session -> excludedClassId == null || !session.getChessClass().getId().equals(excludedClassId))
+      .map(session -> new SessionSlot(session.getSessionDate(), session.getStartTime(), session.getEndTime()))
+      .toList();
+
+    for (int index = 0; index < plannedSessions.size(); index++) {
+      SessionSlot planned = plannedSessions.get(index);
+      boolean conflictsWithExisting = existingSessions.stream().anyMatch(existing -> overlaps(planned, existing));
+      boolean conflictsWithinRequest = plannedSessions.subList(0, index).stream().anyMatch(other -> overlaps(planned, other));
+      if (conflictsWithExisting || conflictsWithinRequest) {
+        throw new ResponseStatusException(HttpStatus.CONFLICT,
+          "Thời gian dạy bị trùng với một buổi học khác vào ngày " + planned.date() + ".");
+      }
+    }
+  }
+
+  private static boolean overlaps(SessionSlot first, SessionSlot second) {
+    return first.date().equals(second.date())
+      && first.startTime().isBefore(second.endTime())
+      && second.startTime().isBefore(first.endTime());
+  }
+
   private static String scheduleSummary(ScheduleCommand schedule, List<SessionSlot> sessions) {
     String time = sessions.getFirst().startTime() + " – " + sessions.getFirst().endTime();
     if ("RECURRING".equals(schedule.mode())) {
@@ -190,8 +244,8 @@ public class ChessClassService {
     };
   }
 
-  public record CreateClassCommand(String name, List<StudentCommand> students, ScheduleCommand schedule) { }
-  public record StudentCommand(String fullName, String phoneNumber, String parentPhoneNumber) { }
+  public record CreateClassCommand(String name, BigDecimal feePerSession, List<StudentCommand> students, ScheduleCommand schedule) { }
+  public record StudentCommand(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber) { }
   public record ScheduleCommand(String mode, List<SessionCommand> sessions, List<Integer> weekdays, LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime) { }
   public record SessionCommand(LocalDate date, LocalTime startTime, LocalTime endTime) { }
   public record CreatedClass(ChessClass chessClass) { }

@@ -26,12 +26,10 @@ export async function getTeacherClasses(teacherId) {
   return response.json();
 }
 
-export async function findStudentByPhone(phone) {
-  const response = await fetch(`${API_BASE_URL}/api/v1/students/search?phone=${encodeURIComponent(phone)}`);
-  if (response.status === 404) throw new Error("STUDENT_NOT_FOUND");
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.message ?? "Không thể tìm học sinh.");
-  return body;
+export async function getStudentNameSuggestions(teacherId, query) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/teachers/${teacherId}/students/name-suggestions?query=${encodeURIComponent(query)}`);
+  if (!response.ok) throw new Error("Không thể tải gợi ý học sinh.");
+  return response.json();
 }
 
 export async function createTeacherClass(teacherId, classroom) {
@@ -69,6 +67,12 @@ export async function updateFutureClassSchedule(teacherId, classId, schedule) {
 export async function getTeacherSessions(teacherId, from, to) {
   const response = await fetch(`${API_BASE_URL}/api/v1/teachers/${teacherId}/sessions?from=${from}&to=${to}`);
   if (!response.ok) throw new Error("Không thể tải lịch dạy.");
+  return response.json();
+}
+
+export async function getAttendanceSummary(teacherId, month) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/teachers/${teacherId}/attendance-summary?month=${encodeURIComponent(month)}`);
+  if (!response.ok) throw new Error("Không thể tải tổng hợp điểm danh.");
   return response.json();
 }
 

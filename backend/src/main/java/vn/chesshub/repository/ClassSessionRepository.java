@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import vn.chesshub.entity.ClassSession;
 
 public interface ClassSessionRepository extends JpaRepository<ClassSession, UUID> {
-  @EntityGraph(attributePaths = "chessClass")
+  @EntityGraph(attributePaths = {"chessClass", "chessClass.students"})
   List<ClassSession> findByChessClassTeacherIdAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(UUID teacherId, LocalDate from, LocalDate to);
 
   List<ClassSession> findByChessClassIdOrderBySessionDateAscStartTimeAsc(UUID classId);

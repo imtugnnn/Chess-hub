@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AppPageHeader } from "../components/layout/AppPageHeader";
 import { AppSidebar } from "../components/layout/AppSidebar";
-import { createTeacherClass, findStudentByPhone } from "../services/api";
+import { createTeacherClass, getStudentNameSuggestions } from "../services/api";
 
 const emptyForm = {
-  name: "", students: [emptyStudent()],
+  name: "", feePerSession: "", students: [emptyStudent()],
   scheduleMode: "MANUAL", manualSessions: [{ date: "", startTime: "", endTime: "" }],
   weekdays: [], startDate: "", endDate: "", startTime: "", endTime: "",
 };
@@ -16,9 +16,11 @@ const weekdays = [
 
 export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }) {
   const [form, setForm] = useState(emptyForm);
-  const [searching, setSearching] = useState(false);
+  const [nameSuggestions, setNameSuggestions] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+  const suggestionTimer = useRef(null);
+  const suggestionRequest = useRef(0);
   const recurringSessionCount = useMemo(() => countRecurringSessions(form), [form]);
 
   function update(key) {
@@ -29,11 +31,41 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
   }
 
   function updateStudent(index, key) {
-    return (event) => setForm((current) => ({ ...current, students: current.students.map((student, itemIndex) => itemIndex === index ? { ...student, [key]: event.target.value, ...(key === "phoneNumber" ? { found: false } : {}) } : student) }));
+    return (event) => {
+      const value = event.target.value;
+      setForm((current) => ({ ...current, students: current.students.map((student, itemIndex) => itemIndex === index ? { ...student, [key]: value } : student) }));
+      if (key === "fullName") scheduleNameSuggestions(index, value);
+    };
   }
 
-  function addStudent() { setForm((current) => ({ ...current, students: [...current.students, emptyStudent()] })); }
-  function removeStudent(index) { setForm((current) => ({ ...current, students: current.students.filter((_, itemIndex) => itemIndex !== index) })); }
+  function addStudent() { setForm((current) => ({ ...current, students: [...current.students, emptyStudent()] })); setNameSuggestions({}); }
+  function removeStudent(index) { setForm((current) => ({ ...current, students: current.students.filter((_, itemIndex) => itemIndex !== index) })); setNameSuggestions({}); }
+
+  function scheduleNameSuggestions(index, value) {
+    window.clearTimeout(suggestionTimer.current);
+    const query = value.trim();
+    if (query.length < 2) { setNameSuggestions((current) => ({ ...current, [index]: [] })); return; }
+    const request = ++suggestionRequest.current;
+    suggestionTimer.current = window.setTimeout(async () => {
+      try {
+        const suggestions = await getStudentNameSuggestions(teacherId, query);
+        if (request === suggestionRequest.current) setNameSuggestions((current) => ({ ...current, [index]: suggestions }));
+      } catch {
+        if (request === suggestionRequest.current) setNameSuggestions((current) => ({ ...current, [index]: [] }));
+      }
+    }, 220);
+  }
+
+  function selectNameSuggestion(index, suggestion) {
+    setForm((current) => ({ ...current, students: current.students.map((student, itemIndex) => itemIndex === index ? {
+      ...student,
+      fullName: suggestion.fullName,
+      birthDate: suggestion.birthDate ?? "",
+      parentName: suggestion.parentName ?? "",
+      parentPhoneNumber: suggestion.parentPhoneNumber ?? "",
+    } : student) }));
+    setNameSuggestions((current) => ({ ...current, [index]: [] }));
+  }
 
   function updateManualSession(index, key) {
     return (event) => setForm((current) => ({ ...current, manualSessions: current.manualSessions.map((session, itemIndex) => itemIndex === index ? { ...session, [key]: event.target.value } : session) }));
@@ -51,43 +83,16 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
     setForm((current) => ({ ...current, weekdays: current.weekdays.includes(day) ? current.weekdays.filter((value) => value !== day) : [...current.weekdays, day] }));
   }
 
-  async function searchStudent(index) {
-    const draft = form.students[index];
-    if (!draft.phoneNumber.trim()) {
-      setMessage("Nhập số điện thoại học sinh để tìm kiếm.");
-      return;
-    }
-    setSearching(true);
-    setMessage("");
-    try {
-      const student = await findStudentByPhone(draft.phoneNumber);
-      setForm((current) => ({
-        ...current,
-        students: current.students.map((item, itemIndex) => itemIndex === index ? { fullName: student.fullName, phoneNumber: student.phoneNumber, parentPhoneNumber: student.parentPhoneNumber, found: true } : item),
-      }));
-    } catch (error) {
-      if (error.message === "STUDENT_NOT_FOUND") {
-        setForm((current) => ({ ...current, students: current.students.map((item, itemIndex) => itemIndex === index ? { ...item, found: false } : item) }));
-        setMessage("Chưa có học sinh này. Thông tin sẽ được tạo khi bạn tạo lớp.");
-      } else {
-        setMessage(error.message);
-      }
-    } finally {
-      setSearching(false);
-    }
-  }
-
   async function submit(event) {
     event.preventDefault();
-    const duplicatePhone = findDuplicatePhone(form.students);
-    if (duplicatePhone) { setMessage(`Số điện thoại ${duplicatePhone} được nhập cho nhiều học sinh. Mỗi học sinh chỉ được thêm một lần.`); return; }
+    if (hasDuplicateStudent(form.students)) { setMessage("Một học sinh được nhập nhiều lần. Hãy kiểm tra họ tên, ngày sinh và số điện thoại phụ huynh."); return; }
     setMessage("");
     setSubmitting(true);
     try {
       const schedule = form.scheduleMode === "MANUAL"
         ? { mode: "MANUAL", sessions: form.manualSessions }
         : { mode: "RECURRING", weekdays: form.weekdays, startDate: form.startDate, endDate: form.endDate, startTime: form.startTime, endTime: form.endTime };
-      await createTeacherClass(teacherId, { name: form.name, students: form.students.map(({ fullName, phoneNumber, parentPhoneNumber }) => ({ fullName, phoneNumber, parentPhoneNumber })), schedule });
+      await createTeacherClass(teacherId, { name: form.name, feePerSession: Number(form.feePerSession), students: form.students.map(({ fullName, birthDate, parentName, parentPhoneNumber }) => ({ fullName, birthDate, parentName, parentPhoneNumber })), schedule });
       onNavigate("/homepage");
     } catch (error) {
       setMessage(error.message);
@@ -104,10 +109,13 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
       <section className="create-class-card" aria-labelledby="create-class-title">
         <p className="eyebrow">Thiết lập lớp học</p>
         <h2 id="create-class-title">Tạo lớp mới</h2>
-        <p className="create-class-lede">Thêm một hoặc nhiều học sinh. Hệ thống sẽ tự nhận diện học sinh đã có bằng số điện thoại.</p>
+        <p className="create-class-lede">Thêm một hoặc nhiều học sinh cùng thông tin liên hệ của phụ huynh.</p>
         <form className="create-class-form" onSubmit={submit}>
           <label>Tên lớp
             <input value={form.name} onChange={update("name")} placeholder="Ví dụ: Lớp Căn bản A" required />
+          </label>
+          <label>Học phí mỗi buổi (VNĐ)
+            <input type="number" min="0" step="1000" value={form.feePerSession} onChange={update("feePerSession")} placeholder="Ví dụ: 100000" required />
           </label>
           <fieldset className="schedule-section">
             <legend><span>◷</span> Lịch học</legend>
@@ -130,11 +138,10 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
               {!!recurringSessionCount && <p className="schedule-preview" role="status">✓ Sẽ tự tạo {recurringSessionCount} buổi học theo lịch này.</p>}
             </div>}
           </fieldset>
-          <div className="form-section-heading"><span>♙</span><div><strong>Học sinh trong lớp</strong><small>Tìm học sinh đã có hoặc nhập mới; bạn có thể thêm nhiều học sinh.</small></div></div>
+          <div className="form-section-heading"><span>♙</span><div><strong>Học sinh trong lớp</strong><small>Nhập hồ sơ học sinh và thông tin liên hệ của phụ huynh.</small></div></div>
           <div className="student-drafts">{form.students.map((student, index) => <fieldset className="student-draft" key={index}><legend>Học sinh {index + 1}</legend>
-            <label>Số điện thoại học sinh<span className="search-input"><input type="tel" value={student.phoneNumber} onChange={updateStudent(index, "phoneNumber")} placeholder="Ví dụ: 0912 345 678" required /><button type="button" onClick={() => searchStudent(index)} disabled={searching}>{searching ? "Đang tìm…" : "Tìm"}</button></span></label>
-            {student.found && <p className="student-found" role="status">✓ Đã tìm thấy học sinh trong hệ thống.</p>}
-            <div className="student-draft__fields"><label>Họ và tên<input value={student.fullName} onChange={updateStudent(index, "fullName")} placeholder="Nguyễn Minh Khang" readOnly={student.found} required /></label><label>Số điện thoại phụ huynh<input type="tel" value={student.parentPhoneNumber} onChange={updateStudent(index, "parentPhoneNumber")} placeholder="0987 654 321" readOnly={student.found} required /></label></div>
+            <label className="student-draft__name">Họ và tên học sinh<span className="student-name-autocomplete"><input value={student.fullName} onChange={updateStudent(index, "fullName")} placeholder="Nguyễn Minh Khang" autoComplete="off" required />{nameSuggestions[index]?.length > 0 && <span className="student-name-suggestions" role="listbox" aria-label="Gợi ý học sinh">{nameSuggestions[index].map((suggestion) => <button type="button" role="option" key={suggestion.id} onClick={() => selectNameSuggestion(index, suggestion)}><strong>{suggestion.fullName}</strong><small>{formatBirthDate(suggestion.birthDate)} · PH: {suggestion.parentName || "Chưa có tên"} · {suggestion.parentPhoneNumber || "Chưa có SĐT"}</small></button>)}</span>}</span></label>
+            <div className="student-draft__fields"><label>Ngày sinh<input type="date" value={student.birthDate} onChange={updateStudent(index, "birthDate")} required /></label><label>Họ và tên phụ huynh<input value={student.parentName} onChange={updateStudent(index, "parentName")} placeholder="Nguyễn Minh Anh" required /></label><label>Số điện thoại phụ huynh<input type="tel" value={student.parentPhoneNumber} onChange={updateStudent(index, "parentPhoneNumber")} placeholder="0987 654 321" required /></label></div>
             {form.students.length > 1 && <button type="button" className="remove-student" onClick={() => removeStudent(index)}>Xóa học sinh</button>}
           </fieldset>)}</div>
           <button type="button" className="add-session" onClick={addStudent}>＋ Thêm học sinh</button>
@@ -147,15 +154,20 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
   );
 }
 
-function emptyStudent() { return { fullName: "", phoneNumber: "", parentPhoneNumber: "", found: false }; }
-function findDuplicatePhone(students) {
+function emptyStudent() { return { fullName: "", birthDate: "", parentName: "", parentPhoneNumber: "" }; }
+function hasDuplicateStudent(students) {
   const seen = new Set();
   for (const student of students) {
-    const phone = student.phoneNumber.replaceAll(/[ .()-]/g, "");
-    if (seen.has(phone)) return student.phoneNumber;
-    seen.add(phone);
+    const identity = `${student.fullName.trim().toLocaleLowerCase("vi-VN")}|${student.birthDate}|${student.parentPhoneNumber.replaceAll(/[ .()-]/g, "")}`;
+    if (seen.has(identity)) return true;
+    seen.add(identity);
   }
-  return null;
+  return false;
+}
+
+function formatBirthDate(value) {
+  if (!value) return "Chưa có ngày sinh";
+  return new Date(`${value}T12:00:00`).toLocaleDateString("vi-VN");
 }
 
 function countRecurringSessions({ weekdays: selectedDays, startDate, endDate }) {

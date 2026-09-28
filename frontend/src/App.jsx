@@ -9,8 +9,9 @@ import { ClassDetailPage } from "./pages/ClassDetailPage";
 import { CreateTournamentPage } from "./pages/CreateTournamentPage";
 import { ClassManagementPage } from "./pages/ClassManagementPage";
 import { TournamentDetailPage } from "./pages/TournamentDetailPage";
+import { AttendanceSummaryPage } from "./pages/AttendanceSummaryPage";
 
-const VALID_PATHS = new Set(["/", "/login", "/register", "/homepage", "/classes/new", "/calendar"]);
+const VALID_PATHS = new Set(["/", "/login", "/register", "/homepage", "/classes/new", "/calendar", "/attendance-summary"]);
 const TOURNAMENT_CREATION_PATH = /^\/classes\/([0-9a-f-]{36})\/sessions\/([0-9a-f-]{36})\/tournaments\/new$/i;
 const CLASS_MANAGEMENT_PATH = /^\/classes\/([0-9a-f-]{36})\/manage$/i;
 const TOURNAMENT_DETAIL_PATH = /^\/tournaments\/([0-9a-f-]{36})$/i;
@@ -40,7 +41,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if ((path === "/homepage" || path === "/classes/new" || path === "/calendar" || path.startsWith("/classes/") || path.startsWith("/tournaments/")) && !teacher) {
+    if ((path === "/homepage" || path === "/classes/new" || path === "/calendar" || path === "/attendance-summary" || path.startsWith("/classes/") || path.startsWith("/tournaments/")) && !teacher) {
       window.history.replaceState({}, "", "/login");
       setPath("/login");
     }
@@ -69,6 +70,7 @@ export default function App() {
   if (path === "/homepage" && teacher) return <Homepage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   if (path === "/classes/new" && teacher) return <CreateClassPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   if (path === "/calendar" && teacher) return <CalendarPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
+  if (path === "/attendance-summary" && teacher) return <AttendanceSummaryPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   const tournamentPath = path.match(TOURNAMENT_CREATION_PATH);
   if (tournamentPath && teacher) return <CreateTournamentPage classId={tournamentPath[1]} sessionId={tournamentPath[2]} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   const managementPath = path.match(CLASS_MANAGEMENT_PATH);
