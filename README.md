@@ -24,9 +24,12 @@ Docker chạy ba container: `web` (React), `api` (Spring Boot) và `db` (Postgre
 Tại thư mục `ChessHub`, chạy:
 
 ```powershell
+Copy-Item .env.example .env
 docker compose up --build -d
 docker compose ps
 ```
+
+Chỉ cần copy `.env.example` khi chưa có `.env`. File mẫu được lưu trong Git để người khác có thể cấu hình sau khi clone; `.env` riêng của mỗi máy được bỏ qua bởi Git. Cấu hình mặc định đủ để chạy local. Hai biến `GOOGLE_OAUTH_CLIENT_ID` và `GOOGLE_OAUTH_CLIENT_SECRET` có thể để trống nếu chưa dùng đăng nhập Google. `JWT_SECRET` mẫu chỉ dành cho local; khi triển khai, thay bằng giá trị bí mật riêng.
 
 Sau khi cả ba dịch vụ ở trạng thái `healthy` hoặc `running`:
 

@@ -45,7 +45,8 @@ public class ChessClassService {
     String className = required(command.name(), "Tên lớp");
     User teacher = users.findById(teacherId)
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên."));
-    List<Student> classStudents = resolveStudents(teacher, command.students());
+    List<Student> classStudents = command.students() == null || command.students().isEmpty()
+      ? List.of() : resolveStudents(teacher, command.students());
     List<SessionSlot> plannedSessions = createSessions(command.schedule());
     validateNoScheduleConflicts(teacherId, plannedSessions, null);
     ChessClass chessClass = new ChessClass(teacher, className, scheduleSummary(command.schedule(), plannedSessions), 0, "blue", validFee(command.feePerSession()));

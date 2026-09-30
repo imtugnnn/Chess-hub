@@ -85,14 +85,15 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
 
   async function submit(event) {
     event.preventDefault();
-    if (hasDuplicateStudent(form.students)) { setMessage("Một học sinh được nhập nhiều lần. Hãy kiểm tra họ tên, ngày sinh và số điện thoại phụ huynh."); return; }
+    const students = form.students.filter(hasStudentDetails);
+    if (hasDuplicateStudent(students)) { setMessage("Một học sinh được nhập nhiều lần. Hãy kiểm tra họ tên, ngày sinh và số điện thoại phụ huynh."); return; }
     setMessage("");
     setSubmitting(true);
     try {
       const schedule = form.scheduleMode === "MANUAL"
         ? { mode: "MANUAL", sessions: form.manualSessions }
         : { mode: "RECURRING", weekdays: form.weekdays, startDate: form.startDate, endDate: form.endDate, startTime: form.startTime, endTime: form.endTime };
-      await createTeacherClass(teacherId, { name: form.name, feePerSession: Number(form.feePerSession), students: form.students.map(({ fullName, birthDate, parentName, parentPhoneNumber }) => ({ fullName, birthDate, parentName, parentPhoneNumber })), schedule });
+      await createTeacherClass(teacherId, { name: form.name, feePerSession: Number(form.feePerSession), students: students.map(({ fullName, birthDate, parentName, parentPhoneNumber }) => ({ fullName, birthDate, parentName, parentPhoneNumber })), schedule });
       onNavigate("/homepage");
     } catch (error) {
       setMessage(error.message);
@@ -109,8 +110,10 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
       <section className="create-class-card" aria-labelledby="create-class-title">
         <p className="eyebrow">Thiết lập lớp học</p>
         <h2 id="create-class-title">Tạo lớp mới</h2>
-        <p className="create-class-lede">Thêm một hoặc nhiều học sinh cùng thông tin liên hệ của phụ huynh.</p>
+        <p className="create-class-lede">Nhập thông tin lớp và lịch học. Bạn có thể thêm học sinh ngay hoặc bổ sung sau.</p>
         <form className="create-class-form" onSubmit={submit}>
+          <section className="create-class-column" aria-labelledby="class-information-title">
+          <div className="form-section-heading"><span aria-hidden="true">🏫</span><div><strong id="class-information-title">Thông tin lớp</strong><small>Thiết lập tên lớp, học phí và lịch học.</small></div></div>
           <label>Tên lớp
             <input value={form.name} onChange={update("name")} placeholder="Ví dụ: Lớp Căn bản A" required />
           </label>
@@ -138,13 +141,16 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
               {!!recurringSessionCount && <p className="schedule-preview" role="status">✓ Sẽ tự tạo {recurringSessionCount} buổi học theo lịch này.</p>}
             </div>}
           </fieldset>
-          <div className="form-section-heading"><span>♙</span><div><strong>Học sinh trong lớp</strong><small>Nhập hồ sơ học sinh và thông tin liên hệ của phụ huynh.</small></div></div>
+          </section>
+          <section className="create-class-column" aria-labelledby="student-information-title">
+          <div className="form-section-heading"><span aria-hidden="true">♙</span><div><strong id="student-information-title">Thông tin học sinh · Không bắt buộc</strong><small>Có thể để trống và thêm học sinh sau khi tạo lớp.</small></div></div>
           <div className="student-drafts">{form.students.map((student, index) => <fieldset className="student-draft" key={index}><legend>Học sinh {index + 1}</legend>
-            <label className="student-draft__name">Họ và tên học sinh<span className="student-name-autocomplete"><input value={student.fullName} onChange={updateStudent(index, "fullName")} placeholder="Nguyễn Minh Khang" autoComplete="off" required />{nameSuggestions[index]?.length > 0 && <span className="student-name-suggestions" role="listbox" aria-label="Gợi ý học sinh">{nameSuggestions[index].map((suggestion) => <button type="button" role="option" key={suggestion.id} onClick={() => selectNameSuggestion(index, suggestion)}><strong>{suggestion.fullName}</strong><small>{formatBirthDate(suggestion.birthDate)} · PH: {suggestion.parentName || "Chưa có tên"} · {suggestion.parentPhoneNumber || "Chưa có SĐT"}</small></button>)}</span>}</span></label>
-            <div className="student-draft__fields"><label>Ngày sinh<input type="date" value={student.birthDate} onChange={updateStudent(index, "birthDate")} required /></label><label>Họ và tên phụ huynh<input value={student.parentName} onChange={updateStudent(index, "parentName")} placeholder="Nguyễn Minh Anh" required /></label><label>Số điện thoại phụ huynh<input type="tel" value={student.parentPhoneNumber} onChange={updateStudent(index, "parentPhoneNumber")} placeholder="0987 654 321" required /></label></div>
-            {form.students.length > 1 && <button type="button" className="remove-student" onClick={() => removeStudent(index)}>Xóa học sinh</button>}
+            <label className="student-draft__name">Họ và tên học sinh<span className="student-name-autocomplete"><input value={student.fullName} onChange={updateStudent(index, "fullName")} placeholder="Nguyễn Minh Khang" autoComplete="off" required={hasStudentDetails(student)} />{nameSuggestions[index]?.length > 0 && <span className="student-name-suggestions" role="listbox" aria-label="Gợi ý học sinh">{nameSuggestions[index].map((suggestion) => <button type="button" role="option" key={suggestion.id} onClick={() => selectNameSuggestion(index, suggestion)}><strong>{suggestion.fullName}</strong><small>{formatBirthDate(suggestion.birthDate)} · PH: {suggestion.parentName || "Chưa có tên"} · {suggestion.parentPhoneNumber || "Chưa có SĐT"}</small></button>)}</span>}</span></label>
+            <div className="student-draft__fields"><label>Ngày sinh<input type="date" value={student.birthDate} onChange={updateStudent(index, "birthDate")} required={hasStudentDetails(student)} /></label><label>Họ và tên phụ huynh<input value={student.parentName} onChange={updateStudent(index, "parentName")} placeholder="Nguyễn Minh Anh" required={hasStudentDetails(student)} /></label><label>Số điện thoại phụ huynh<input type="tel" value={student.parentPhoneNumber} onChange={updateStudent(index, "parentPhoneNumber")} placeholder="0987 654 321" required={hasStudentDetails(student)} /></label></div>
+            <button type="button" className="remove-student" onClick={() => removeStudent(index)}>Xóa học sinh</button>
           </fieldset>)}</div>
           <button type="button" className="add-session" onClick={addStudent}>＋ Thêm học sinh</button>
+          </section>
           {message && <p className="form-error create-class-message" role="alert">{message}</p>}
           <div className="create-class-actions"><button type="button" className="cancel-button" onClick={() => onNavigate("/homepage")}>Hủy</button><button className="primary-button" type="submit" disabled={submitting}>{submitting ? "Đang tạo lớp…" : "Tạo lớp"}</button></div>
         </form>
@@ -155,6 +161,7 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
 }
 
 function emptyStudent() { return { fullName: "", birthDate: "", parentName: "", parentPhoneNumber: "" }; }
+function hasStudentDetails(student) { return Object.values(student).some((value) => value.trim() !== ""); }
 function hasDuplicateStudent(students) {
   const seen = new Set();
   for (const student of students) {
