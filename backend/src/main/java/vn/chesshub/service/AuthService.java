@@ -36,10 +36,35 @@ public class AuthService {
       throw invalidCredentials();
     }
     User account = accounts.findByEmail(normalizedEmail).orElseThrow(this::invalidCredentials);
-    if (!passwordEncoder.matches(password, account.getPasswordHash())) {
+    if (account.getPasswordHash() == null || !passwordEncoder.matches(password, account.getPasswordHash())) {
       throw invalidCredentials();
     }
     return account;
+  }
+
+  @Transactional
+  public User loginWithGoogle(String subject, String email, String fullName, boolean emailVerified) {
+    if (!emailVerified || subject == null || subject.isBlank()) {
+      throw new AuthException(HttpStatus.UNAUTHORIZED, "Tài khoản Google chưa xác minh email.");
+    }
+    String normalizedEmail = normalizeEmail(email);
+    User bySubject = accounts.findByGoogleSubject(subject).orElse(null);
+    if (bySubject != null) {
+      if (!bySubject.getEmail().equals(normalizedEmail)) {
+        throw new AuthException(HttpStatus.CONFLICT, "Email tài khoản Google đã thay đổi. Vui lòng liên hệ hỗ trợ.");
+      }
+      return bySubject;
+    }
+    User byEmail = accounts.findByEmail(normalizedEmail).orElse(null);
+    if (byEmail != null) {
+      if (byEmail.getGoogleSubject() != null) {
+        throw new AuthException(HttpStatus.CONFLICT, "Email đã liên kết với tài khoản Google khác.");
+      }
+      byEmail.linkGoogle(subject);
+      return accounts.save(byEmail);
+    }
+    String name = fullName == null || fullName.isBlank() ? normalizedEmail : fullName.trim();
+    return accounts.save(User.fromGoogle(name, normalizedEmail, subject));
   }
 
   private String normalizeEmail(String email) {

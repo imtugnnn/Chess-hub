@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Brand } from "../components/Brand";
-import { login } from "../services/api";
+import { getAuthProviders, login, startGoogleLogin } from "../services/api";
 
 export function LoginPage({ onNavigate, onAuthenticated }) {
   const [email, setEmail] = useState("");
@@ -8,6 +8,24 @@ export function LoginPage({ onNavigate, onAuthenticated }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [googleStatus, setGoogleStatus] = useState("loading");
+
+  useEffect(() => {
+    let active = true;
+    getAuthProviders().then((providers) => {
+      if (active) setGoogleStatus(providers.google === true ? "enabled" : "unavailable");
+    }).catch(() => {
+      if (active) setGoogleStatus("unavailable");
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("oauthError")) {
+      setError("Không thể đăng nhập bằng Google. Hãy thử lại hoặc dùng email và mật khẩu.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   async function submit(event) {
     event.preventDefault();
@@ -53,6 +71,13 @@ export function LoginPage({ onNavigate, onAuthenticated }) {
             {error && <p className="form-error" role="alert">{error}</p>}
             <button className="primary-button" type="submit" disabled={submitting}>{submitting ? "Đang kiểm tra…" : <>Đăng nhập <span aria-hidden="true">→</span></>}</button>
           </form>
+          <div className="auth-divider"><span>hoặc</span></div>
+          <button className="oauth-button" type="button" onClick={startGoogleLogin}
+            disabled={googleStatus !== "enabled"}
+            aria-describedby={googleStatus === "unavailable" ? "google-unavailable" : undefined}>
+            <span aria-hidden="true" className="google-mark">G</span> Đăng nhập bằng Google
+          </button>
+          {googleStatus === "unavailable" && <p className="oauth-note" id="google-unavailable">Đăng nhập bằng Google hiện chưa khả dụng.</p>}
           <p className="auth-switch">Chưa có tài khoản? <button type="button" className="text-button text-button--strong" onClick={() => onNavigate("/register")}>Đăng ký ngay</button></p>
         </div>
       </section>

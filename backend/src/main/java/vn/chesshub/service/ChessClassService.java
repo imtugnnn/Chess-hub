@@ -96,6 +96,8 @@ public class ChessClassService {
 
   private List<Student> resolveStudents(User teacher, List<StudentCommand> studentCommands) {
     if (studentCommands == null || studentCommands.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hãy thêm ít nhất một học sinh.");
+    UUID centerId = teacher.getCenterId() != null && users.hasActiveCenterMembershipInCenter(teacher.getId(), teacher.getCenterId())
+      ? teacher.getCenterId() : null;
     Map<String, Student> resolved = new LinkedHashMap<>();
     for (StudentCommand command : studentCommands) {
       if (command == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thông tin học sinh không hợp lệ.");
@@ -105,18 +107,18 @@ public class ChessClassService {
       String parentPhone = normalizedPhone(command.parentPhoneNumber(), "Số điện thoại phụ huynh");
       String identity = name.toLowerCase() + "|" + birthDate + "|" + parentPhone;
       if (resolved.containsKey(identity)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Một học sinh chỉ được thêm một lần.");
-      Student student = findStudentInScope(teacher, name, birthDate, parentPhone)
+      Student student = findStudentInScope(teacher, centerId, name, birthDate, parentPhone)
         .orElseGet(() -> students.save(new Student(name, birthDate, parentName, parentPhone,
-          teacher.getCenterId(), teacher.getCenterId() == null ? teacher.getId() : null)));
+          centerId, centerId == null ? teacher.getId() : null)));
       resolved.put(identity, student);
     }
     return List.copyOf(resolved.values());
   }
 
-  private Optional<Student> findStudentInScope(User teacher, String name, LocalDate birthDate, String parentPhone) {
-    return teacher.getCenterId() == null
+  private Optional<Student> findStudentInScope(User teacher, UUID centerId, String name, LocalDate birthDate, String parentPhone) {
+    return centerId == null
       ? students.findByOwnerUserIdAndFullNameAndBirthDateAndParentPhoneNumber(teacher.getId(), name, birthDate, parentPhone)
-      : students.findByCenterIdAndFullNameAndBirthDateAndParentPhoneNumber(teacher.getCenterId(), name, birthDate, parentPhone);
+      : students.findByCenterIdAndFullNameAndBirthDateAndParentPhoneNumber(centerId, name, birthDate, parentPhone);
   }
 
   private static String required(String value, String fieldName) {

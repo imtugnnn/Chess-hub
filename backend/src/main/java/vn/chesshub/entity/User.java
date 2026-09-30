@@ -23,8 +23,11 @@ public class User {
   @Column(nullable = false)
   private String role;
 
-  @Column(name = "password_hash", nullable = false)
+  @Column(name = "password_hash")
   private String passwordHash;
+
+  @Column(name = "google_subject", unique = true)
+  private String googleSubject;
 
   @Column(name = "created_at", nullable = false)
   private Instant createdAt = Instant.now();
@@ -38,10 +41,19 @@ public class User {
     this.role = "TEACHER";
   }
 
+  public static User fromGoogle(String fullName, String email, String googleSubject) {
+    User account = new User(fullName, email, null);
+    account.googleSubject = googleSubject;
+    return account;
+  }
+
+  public void linkGoogle(String googleSubject) { this.googleSubject = googleSubject; }
+
   public UUID getId() { return id; }
   public UUID getCenterId() { return centerId; }
   public String getEmail() { return email; }
   public String getFullName() { return fullName; }
   public String getRole() { return role; }
   public String getPasswordHash() { return passwordHash; }
+  public String getGoogleSubject() { return googleSubject; }
 }

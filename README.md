@@ -52,7 +52,7 @@ Chỉ dùng lệnh sau khi muốn xóa toàn bộ database và tạo lại từ 
 docker compose down -v
 ```
 
-Các migration cũ trong `src/main/resources/db/migration/` không còn được Spring Boot chạy. Hibernate sẽ tạo/cập nhật bảng của các entity mới khi API khởi động.
+Flyway chạy các migration trong `backend/src/main/resources/db/migration/` khi API khởi động. Hibernate tiếp tục đồng bộ các entity qua `ddl-auto=update`.
 
 ## Chạy backend trực tiếp để phát triển
 
@@ -72,10 +72,37 @@ npm install
 npm run dev
 ```
 
+### Đăng nhập bằng Google (OAuth 2.0)
+
+Trong [Google Auth Platform → Clients](https://console.cloud.google.com/auth/clients), tạo hoặc chọn dự án, hoàn tất thông tin ứng dụng nếu được yêu cầu, rồi chọn **Create client → Web application**. Thêm **Authorized redirect URI** chính xác là `http://localhost:3000/login/oauth2/code/google`. Sao lưu **Client ID** và **Client Secret** khi tạo client; Google có thể chỉ hiển thị secret lúc này. Nếu ứng dụng đang ở chế độ **Testing**, thêm tài khoản Gmail cần thử vào **Audience → Test users**.
+
+Cấu hình hai biến môi trường sau trước khi chạy API hoặc `docker compose up`:
+
+```powershell
+$env:GOOGLE_OAUTH_CLIENT_ID = "<client-id>"
+$env:GOOGLE_OAUTH_CLIENT_SECRET = "<client-secret>"
+```
+
+Nếu dùng Docker Compose thường xuyên, có thể tạo file `.env` tại thư mục gốc với hai dòng `GOOGLE_OAUTH_CLIENT_ID=<client-id>` và `GOOGLE_OAUTH_CLIENT_SECRET=<client-secret>`. File `.env` đã được thêm vào `.gitignore`; không đưa secret vào mã nguồn hoặc gửi công khai.
+
+Sau khi cấu hình, chạy `docker compose up -d --force-recreate api` để API nhận biến môi trường mới. Nút **Đăng nhập bằng Google** luôn hiển thị tại `http://localhost:4173/login` và chỉ bật khi API đã được cấu hình. Google phải trả về email đã xác minh. Nếu email trùng tài khoản hiện có, tài khoản đó được liên kết với Google và giữ nguyên dữ liệu; tài khoản mới dùng Google sẽ không có mật khẩu. Khi triển khai ở tên miền khác, đăng ký redirect URI tương ứng với API (`https://<api-domain>/login/oauth2/code/google`), đặt `CORS_ORIGIN` bằng origin của frontend và bật `SESSION_COOKIE_SECURE=true` trên HTTPS.
+
 ## API chính
 
 - `GET /health`
 - `GET /api/v1/users`
+- `GET /api/v1/users/{userId}/deletion-eligibility`
+- `DELETE /api/v1/users/{userId}` — chỉ xóa cứng tài khoản không còn lớp học, học viên riêng, trung tâm sở hữu hoặc lời mời trung tâm đã tạo.
+
+## Dọn dẹp dữ liệu
+
+Người dùng có thể vào **Cài đặt → Tài khoản & dữ liệu** để kiểm tra trước khi xóa vĩnh viễn tài khoản rỗng. Các tài khoản còn dữ liệu nghiệp vụ sẽ bị chặn để tránh mất lịch sử lớp học, học viên và trung tâm.
+
+Sau một đợt xóa số lượng lớn, PostgreSQL sẽ tự thu hồi vùng trống qua autovacuum. Nếu cần cập nhật thống kê ngay, quản trị viên có thể chạy lệnh bảo trì không phá hủy dữ liệu sau (không chạy `VACUUM FULL` trong giờ hoạt động):
+
+```powershell
+docker compose exec db psql -U chesshub -d chesshub -c "VACUUM (ANALYZE) users;"
+```
 
 ## Cấu trúc
 

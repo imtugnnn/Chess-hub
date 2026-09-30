@@ -10,6 +10,8 @@ import vn.chesshub.entity.ChessClass;
 public interface ChessClassRepository extends JpaRepository<ChessClass, UUID> {
   List<ChessClass> findByTeacherIdOrderByName(UUID teacherId);
 
+  boolean existsByTeacherId(UUID teacherId);
+
   @EntityGraph(attributePaths = "students")
   List<ChessClass> findWithStudentsByTeacherIdOrderByName(UUID teacherId);
 

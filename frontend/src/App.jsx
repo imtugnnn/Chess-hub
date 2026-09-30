@@ -10,8 +10,11 @@ import { CreateTournamentPage } from "./pages/CreateTournamentPage";
 import { ClassManagementPage } from "./pages/ClassManagementPage";
 import { TournamentDetailPage } from "./pages/TournamentDetailPage";
 import { AttendanceSummaryPage } from "./pages/AttendanceSummaryPage";
+import { AccountSettingsPage } from "./pages/AccountSettingsPage";
+import { CenterPage } from "./pages/CenterPage";
+import { getSessionUser, logoutSession } from "./services/api";
 
-const VALID_PATHS = new Set(["/", "/login", "/register", "/homepage", "/classes/new", "/calendar", "/attendance-summary"]);
+const VALID_PATHS = new Set(["/", "/login", "/register", "/homepage", "/classes/new", "/calendar", "/attendance-summary", "/settings", "/center"]);
 const TOURNAMENT_CREATION_PATH = /^\/classes\/([0-9a-f-]{36})\/sessions\/([0-9a-f-]{36})\/tournaments\/new$/i;
 const CLASS_MANAGEMENT_PATH = /^\/classes\/([0-9a-f-]{36})\/manage$/i;
 const TOURNAMENT_DETAIL_PATH = /^\/tournaments\/([0-9a-f-]{36})$/i;
@@ -29,10 +32,23 @@ function getPathname() {
 
 export default function App() {
   const [path, setPath] = useState(getPathname);
-  const [teacher, setTeacher] = useState(() => {
-    try { return JSON.parse(sessionStorage.getItem("chesshub_teacher")); }
-    catch { return null; }
-  });
+  const [teacher, setTeacher] = useState(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    getSessionUser()
+      .then((account) => { if (active) setTeacher(account); })
+      .catch(() => { if (active) setTeacher(null); })
+      .finally(() => { if (active) setSessionChecked(true); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    const expired = () => { setTeacher(null); navigate("/login"); };
+    window.addEventListener("chesshub-session-expired", expired);
+    return () => window.removeEventListener("chesshub-session-expired", expired);
+  }, []);
 
   useEffect(() => {
     const handlePopState = () => setPath(getPathname());
@@ -41,11 +57,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if ((path === "/homepage" || path === "/classes/new" || path === "/calendar" || path === "/attendance-summary" || path.startsWith("/classes/") || path.startsWith("/tournaments/")) && !teacher) {
+    if (sessionChecked && (path === "/homepage" || path === "/classes/new" || path === "/calendar" || path === "/attendance-summary" || path === "/settings" || path === "/center" || path.startsWith("/classes/") || path.startsWith("/tournaments/")) && !teacher) {
       window.history.replaceState({}, "", "/login");
       setPath("/login");
     }
-  }, [path, teacher]);
+  }, [path, teacher, sessionChecked]);
 
   function navigate(to) {
     const destination = new URL(to, window.location.origin);
@@ -55,22 +71,25 @@ export default function App() {
 
   function handleAuthenticated(account) {
     setTeacher(account);
-    sessionStorage.setItem("chesshub_teacher", JSON.stringify(account));
     navigate("/homepage");
   }
 
-  function logout() {
-    sessionStorage.removeItem("chesshub_teacher");
+  async function logout() {
+    try { await logoutSession(); }
+    catch (error) { window.alert(error.message); return; }
     setTeacher(null);
     navigate("/");
   }
 
+  if (!sessionChecked) return <main className="session-loading">Đang kiểm tra phiên đăng nhập…</main>;
   if (path === "/") return <LandingPage onNavigate={navigate} />;
   if (path === "/register") return <RegisterPage onNavigate={navigate} onRegistered={handleAuthenticated} />;
   if (path === "/homepage" && teacher) return <Homepage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   if (path === "/classes/new" && teacher) return <CreateClassPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   if (path === "/calendar" && teacher) return <CalendarPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   if (path === "/attendance-summary" && teacher) return <AttendanceSummaryPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
+  if (path === "/settings" && teacher) return <AccountSettingsPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
+  if (path === "/center" && teacher) return <CenterPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   const tournamentPath = path.match(TOURNAMENT_CREATION_PATH);
   if (tournamentPath && teacher) return <CreateTournamentPage classId={tournamentPath[1]} sessionId={tournamentPath[2]} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   const managementPath = path.match(CLASS_MANAGEMENT_PATH);

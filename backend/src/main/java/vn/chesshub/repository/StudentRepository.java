@@ -13,22 +13,27 @@ import vn.chesshub.entity.Student;
 public interface StudentRepository extends JpaRepository<Student, UUID> {
   Optional<Student> findByCenterIdAndFullNameAndBirthDateAndParentPhoneNumber(UUID centerId, String fullName, LocalDate birthDate, String parentPhoneNumber);
   Optional<Student> findByOwnerUserIdAndFullNameAndBirthDateAndParentPhoneNumber(UUID ownerUserId, String fullName, LocalDate birthDate, String parentPhoneNumber);
+  boolean existsByOwnerUserId(UUID ownerUserId);
 
-  @Query("""
-    select distinct student from Student student
-    where lower(student.fullName) like lower(concat('%', :query, '%'))
+  @Query(value = """
+    select distinct student.* from student
+    where lower(student.full_name) like lower(concat('%', :query, '%'))
       and (
-        student.centerId = (select user.centerId from User user where user.id = :teacherId)
-        or student.ownerUserId = :teacherId
+        (student.center_id = (select account.center_id from users account where account.id = :teacherId)
+          and exists (select 1 from center_memberships membership where membership.center_id = student.center_id and membership.user_id = :teacherId and membership.status = 'ACTIVE'))
+        or (student.owner_user_id = :teacherId and not exists (
+          select 1 from center_memberships membership join users account on account.id = membership.user_id and account.center_id = membership.center_id
+          where membership.user_id = :teacherId and membership.status = 'ACTIVE'
+        ))
         or (
-          student.centerId is null and student.ownerUserId is null
+          student.center_id is null and student.owner_user_id is null
           and exists (
-            select chessClass.id from ChessClass chessClass join chessClass.students classStudent
-            where chessClass.teacher.id = :teacherId and classStudent.id = student.id
+            select 1 from chess_class_students class_student join chess_classes chess_class on chess_class.id = class_student.chess_class_id
+            where chess_class.teacher_id = :teacherId and class_student.student_id = student.id
           )
         )
       )
-    order by student.fullName asc
-    """)
+    order by student.full_name asc
+    """, nativeQuery = true)
   List<Student> findNameSuggestionsForTeacher(@Param("teacherId") UUID teacherId, @Param("query") String query, Pageable pageable);
 }
