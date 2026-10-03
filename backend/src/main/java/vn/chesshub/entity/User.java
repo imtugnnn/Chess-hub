@@ -26,6 +26,13 @@ public class User {
   @Column(name = "password_hash")
   private String passwordHash;
 
+  @Column(name = "must_change_password", nullable = false)
+  private boolean mustChangePassword;
+
+  public boolean isMustChangePassword() { return mustChangePassword; }
+  public void requirePasswordChange() { mustChangePassword = true; }
+  public void completePasswordChange(String hash) { passwordHash = hash; mustChangePassword = false; }
+
   @Column(name = "google_subject", unique = true)
   private String googleSubject;
 

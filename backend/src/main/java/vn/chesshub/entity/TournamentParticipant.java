@@ -23,9 +23,12 @@ public class TournamentParticipant {
   @JoinColumn(name = "tournament_id", nullable = false)
   private Tournament tournament;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "student_id", nullable = false)
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "student_id")
   private Student student;
+
+  @Column(name = "full_name", nullable = false, length = 255)
+  private String fullName;
 
   @Column(name = "initial_seed", nullable = false)
   private int initialSeed;
@@ -35,10 +38,18 @@ public class TournamentParticipant {
   public TournamentParticipant(Tournament tournament, Student student, int initialSeed) {
     this.tournament = tournament;
     this.student = student;
+    this.fullName = student.getFullName();
+    this.initialSeed = initialSeed;
+  }
+
+  public TournamentParticipant(Tournament tournament, String fullName, int initialSeed) {
+    this.tournament = tournament;
+    this.fullName = fullName;
     this.initialSeed = initialSeed;
   }
 
   public UUID getId() { return id; }
   public Student getStudent() { return student; }
+  public String getFullName() { return fullName; }
   public int getInitialSeed() { return initialSeed; }
 }

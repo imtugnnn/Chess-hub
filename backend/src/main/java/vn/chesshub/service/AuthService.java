@@ -76,6 +76,8 @@ public class AuthService {
   }
 
   private void validatePassword(String password) {
+    if (password != null && password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72)
+      throw new AuthException(HttpStatus.BAD_REQUEST, "Mật khẩu không được vượt quá 72 byte.");
     if (password == null || password.length() < 8) {
       throw new AuthException(HttpStatus.BAD_REQUEST, "Mật khẩu cần có ít nhất 8 ký tự.");
     }
@@ -90,5 +92,17 @@ public class AuthService {
 
   private AuthException invalidCredentials() {
     return new AuthException(HttpStatus.UNAUTHORIZED, "Email hoặc mật khẩu không đúng.");
+  }
+
+  @Transactional
+  public User completeInitialPassword(java.util.UUID userId, String password) {
+    User account = accounts.findForPasswordChange(userId).orElseThrow(this::invalidCredentials);
+    if (!account.isMustChangePassword())
+      throw new AuthException(HttpStatus.CONFLICT, "Tài khoản đã hoàn tất tạo mật khẩu mới.");
+    validatePassword(password);
+    if (passwordEncoder.matches(password, account.getPasswordHash()))
+      throw new AuthException(HttpStatus.BAD_REQUEST, "Mật khẩu mới phải khác mật khẩu tạm thời.");
+    account.completePasswordChange(passwordEncoder.encode(password));
+    return accounts.saveAndFlush(account);
   }
 }

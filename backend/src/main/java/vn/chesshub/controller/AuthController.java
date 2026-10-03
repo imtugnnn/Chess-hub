@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import vn.chesshub.entity.User;
 import vn.chesshub.service.AuthException;
 import vn.chesshub.service.AuthService;
+import vn.chesshub.service.RememberLoginService;
 import vn.chesshub.repository.UserRepository;
 
 @RestController
@@ -34,13 +35,15 @@ import vn.chesshub.repository.UserRepository;
 @RequestMapping("/api/v1/auth")
 public class AuthController {
   private final AuthService auth;
+  private final RememberLoginService remember;
   private final UserRepository users;
   private final SecurityContextRepository contexts;
   private final ObjectProvider<ClientRegistrationRepository> oauthClients;
 
-  public AuthController(AuthService auth, UserRepository users, SecurityContextRepository contexts,
+  public AuthController(AuthService auth, RememberLoginService remember, UserRepository users, SecurityContextRepository contexts,
       ObjectProvider<ClientRegistrationRepository> oauthClients) {
     this.auth = auth;
+    this.remember = remember;
     this.users = users;
     this.contexts = contexts;
     this.oauthClients = oauthClients;
@@ -57,6 +60,7 @@ public class AuthController {
   @PostMapping("/register")
   public AccountResponse register(@RequestBody RegisterRequest body, HttpServletRequest request, HttpServletResponse response) {
     User account = auth.register(body.fullName(), body.email(), body.password());
+    remember.revoke(request, response);
     establishSession(account, request, response);
     return AccountResponse.from(account);
   }
@@ -65,6 +69,8 @@ public class AuthController {
   public AccountResponse login(@RequestBody LoginRequest body, HttpServletRequest request, HttpServletResponse response) {
     User account = auth.login(body.email(), body.password());
     establishSession(account, request, response);
+    if (body.rememberMe() && !account.isMustChangePassword()) remember.issue(account.getId(), request, response);
+    else remember.revoke(request, response);
     return AccountResponse.from(account);
   }
 
@@ -78,8 +84,19 @@ public class AuthController {
 
   @PostMapping("/logout")
   public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+    remember.revoke(request, response);
     new SecurityContextLogoutHandler().logout(request, response, authentication);
     return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/initial-password")
+  public AccountResponse initialPassword(@RequestBody InitialPasswordRequest body, Authentication authentication,
+      HttpServletRequest request, HttpServletResponse response) {
+    User account = auth.completeInitialPassword(UUID.fromString(authentication.getName()), body.password());
+    remember.revoke(request, response);
+    establishSession(account, request, response);
+    if (body.rememberMe()) remember.issue(account.getId(), request, response);
+    return AccountResponse.from(account);
   }
 
   private void establishSession(User account, HttpServletRequest request, HttpServletResponse response) {
@@ -99,10 +116,11 @@ public class AuthController {
   }
 
   public record RegisterRequest(String fullName, String email, String password) { }
-  public record LoginRequest(String email, String password) { }
-  public record AccountResponse(UUID id, String email, String fullName) {
+  public record LoginRequest(String email, String password, boolean rememberMe) { }
+  public record InitialPasswordRequest(String password, boolean rememberMe) { }
+  public record AccountResponse(UUID id, String email, String fullName, boolean mustChangePassword) {
     static AccountResponse from(User account) {
-      return new AccountResponse(account.getId(), account.getEmail(), account.getFullName());
+      return new AccountResponse(account.getId(), account.getEmail(), account.getFullName(), account.isMustChangePassword());
     }
   }
   public record ErrorResponse(String message) { }

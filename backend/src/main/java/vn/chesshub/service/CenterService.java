@@ -19,10 +19,12 @@ import vn.chesshub.repository.UserRepository;
 public class CenterService {
   private final JdbcTemplate db;
   private final UserRepository users;
+  private final InvitationMailService mail;
 
-  public CenterService(JdbcTemplate db, UserRepository users) {
+  public CenterService(JdbcTemplate db, UserRepository users, InvitationMailService mail) {
     this.db = db;
     this.users = users;
+    this.mail = mail;
   }
 
   @Transactional(readOnly = true)
@@ -105,19 +107,33 @@ public class CenterService {
   }
 
   @Transactional
-  public Dashboard invite(UUID ownerId, String email) {
+  public InviteResult invite(UUID ownerId, String email) {
     requireUser(ownerId);
     String normalizedEmail = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
     if (!normalizedEmail.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
       throw error(HttpStatus.BAD_REQUEST, "Email không hợp lệ.");
     }
-    User invitee = users.findByEmail(normalizedEmail)
-      .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Email này chưa có tài khoản ChessHub."));
-    if (invitee.getId().equals(ownerId)) throw error(HttpStatus.BAD_REQUEST, "Bạn không thể mời chính mình.");
+    lockUser(ownerId);
     Center center = activeCenter(ownerId, requireUser(ownerId).getCenterId());
     if (center == null || !center.ownerUserId().equals(ownerId)) {
       throw error(HttpStatus.FORBIDDEN, "Chỉ chủ trung tâm mới có thể gửi lời mời.");
     }
+    User invitee = users.findByEmail(normalizedEmail).orElse(null);
+    String temporaryPassword = null;
+    if (invitee == null) {
+      mail.requireConfigured();
+      byte[] secret = new byte[18];
+      new java.security.SecureRandom().nextBytes(secret);
+      temporaryPassword = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(secret);
+      invitee = new User(normalizedEmail.split("@", 2)[0], normalizedEmail,
+        new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode(temporaryPassword));
+      invitee.requirePasswordChange();
+      try { invitee = users.saveAndFlush(invitee); }
+      catch (DataIntegrityViolationException exception) {
+        throw error(HttpStatus.CONFLICT, "Email vừa được đăng ký. Vui lòng gửi lời mời lại.");
+      }
+    }
+    if (invitee.getId().equals(ownerId)) throw error(HttpStatus.BAD_REQUEST, "Bạn không thể mời chính mình.");
     if (hasActiveMembership(invitee.getId()) || users.ownsCenter(invitee.getId())) {
       throw error(HttpStatus.CONFLICT, "Người dùng này đã thuộc một trung tâm.");
     }
@@ -134,7 +150,20 @@ public class CenterService {
     } catch (DataIntegrityViolationException exception) {
       throw error(HttpStatus.CONFLICT, "Lời mời đang chờ phản hồi.");
     }
-    return dashboard(ownerId);
+    if (temporaryPassword != null) mail.send(normalizedEmail, temporaryPassword, center.name());
+    return new InviteResult(dashboard(ownerId), temporaryPassword != null ? "EMAIL" : "IN_APP");
+  }
+
+  @Transactional(readOnly = true)
+  public List<MemberClass> memberClasses(UUID ownerId, UUID memberId) {
+    User owner = requireUser(ownerId);
+    Center center = activeCenter(ownerId, owner.getCenterId());
+    if (center == null || !center.ownerUserId().equals(ownerId))
+      throw error(HttpStatus.FORBIDDEN, "Chỉ chủ trung tâm mới có thể xem lớp của thành viên.");
+    if (!users.hasActiveCenterMembershipInCenter(memberId, center.id()))
+      throw error(HttpStatus.NOT_FOUND, "Người dùng không phải thành viên của trung tâm.");
+    return db.query("select id, name, schedule, student_count from chess_classes where teacher_id = ? order by name, id",
+      (rs, row) -> new MemberClass(uuid(rs, "id"), rs.getString("name"), rs.getString("schedule"), rs.getInt("student_count")), memberId);
   }
 
   @Transactional
@@ -202,6 +231,8 @@ public class CenterService {
   }
 
   public record Center(UUID id, String name, UUID ownerUserId, String ownerName) { }
+  public record MemberClass(UUID id, String name, String schedule, int studentCount) { }
+  public record InviteResult(Dashboard dashboard, String delivery) { }
   public record Member(UUID id, String fullName, String email, String role) { }
   public record Invitation(UUID id, UUID centerId, String centerName, String personName, String personEmail, Instant createdAt) { }
   public record Dashboard(Center center, List<Member> members, List<Invitation> incomingInvitations, List<Invitation> outgoingInvitations) { }

@@ -74,6 +74,7 @@ public class ChessClass {
   }
 
   public UUID getId() { return id; }
+  public User getTeacher() { return teacher; }
   public String getName() { return name; }
   public String getSchedule() { return schedule; }
   public int getStudentCount() { return studentCount; }

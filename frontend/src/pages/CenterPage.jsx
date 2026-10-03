@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { AppSidebar } from "../components/layout/AppSidebar";
 import { AppPageHeader } from "../components/layout/AppPageHeader";
-import { createCenter, getCenterDashboard, inviteCenterMember, respondToCenterInvitation } from "../services/api";
+import { UiIcon } from "../components/UiIcon";
+import { createCenter, getCenterDashboard, getCenterMemberClasses, inviteCenterMember, respondToCenterInvitation } from "../services/api";
 import "./center.css";
 
 export function CenterPage({ teacherId, teacherName, onLogout, onNavigate }) {
@@ -11,6 +12,17 @@ export function CenterPage({ teacherId, teacherName, onLogout, onNavigate }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [memberClasses, setMemberClasses] = useState(null);
+  const [classesLoading, setClassesLoading] = useState(false);
+  const [classesError, setClassesError] = useState("");
+  const [section, setSection] = useState("members");
+
+  async function showClasses(member) {
+    setMemberClasses({ member, classes: [] }); setClassesLoading(true); setClassesError("");
+    try { const classes = await getCenterMemberClasses(teacherId, member.id); setMemberClasses({ member, classes }); }
+    catch (reason) { setClassesError(reason.message); }
+    finally { setClassesLoading(false); }
+  }
 
   useEffect(() => {
     let active = true;
@@ -45,7 +57,8 @@ export function CenterPage({ teacherId, teacherName, onLogout, onNavigate }) {
       {notice && <p className="settings-message settings-message--ready" role="status">{notice}</p>}
       {!data && !error && <p>Đang tải thông tin trung tâm…</p>}
 
-      {data?.incomingInvitations?.length > 0 && <section className="center-card" aria-labelledby="center-invites-title">
+      {data?.center && <nav className="class-workspace-nav" aria-label="Nội dung trung tâm"><button type="button" aria-pressed={section === "members"} onClick={() => setSection("members")}><UiIcon name="classes" size={18} />Thành viên <small>{data.members.length}</small></button><button type="button" aria-pressed={section === "invitations"} onClick={() => setSection("invitations")}><UiIcon name="center" size={18} />Lời mời <small>{data.incomingInvitations.length + data.outgoingInvitations.length}</small></button></nav>}
+      {(!data?.center || section === "invitations") && data?.incomingInvitations?.length > 0 && <section className="center-card" aria-labelledby="center-invites-title">
         <h2 id="center-invites-title">Lời mời của bạn <span className="center-count">{data.incomingInvitations.length}</span></h2>
         <div className="center-list">{data.incomingInvitations.map((invitation) => <div className="center-row" key={invitation.id}>
           <div><strong>{invitation.centerName}</strong><small>{invitation.personName} ({invitation.personEmail}) đã mời bạn tham gia.</small></div>
@@ -66,20 +79,26 @@ export function CenterPage({ teacherId, teacherName, onLogout, onNavigate }) {
         </form>
       </section>}
 
-      {data?.center && <section className="center-card" aria-labelledby="center-name-title">
+      {data?.center && section === "members" && <section className="center-card" aria-labelledby="center-name-title">
         <div className="center-card-heading"><div><span className="eyebrow">Dữ liệu học sinh dùng chung</span><h2 id="center-name-title">{data.center.name}</h2><p>Chủ trung tâm: {data.center.ownerName}</p></div><span className="center-count">{data.members.length} thành viên</span></div>
-        <div className="center-list">{data.members.map((member) => <div className="center-row" key={member.id}><div><strong>{member.fullName}</strong><small>{member.email}</small></div><span className="center-role">{member.role === "OWNER" ? "Chủ trung tâm" : "Giáo viên"}</span></div>)}</div>
+        <div className="center-list">{data.members.map((member) => <div className="center-row" key={member.id}><div><strong>{member.fullName}</strong><small>{member.email}</small></div><div className="center-row-actions"><span className="center-role">{member.role === "OWNER" ? "Chủ trung tâm" : "Giáo viên"}</span>{isOwner && <button type="button" className="center-secondary-button" disabled={classesLoading} onClick={() => showClasses(member)}>Xem lớp học</button>}</div></div>)}</div>
       </section>}
 
-      {isOwner && <section className="center-card" aria-labelledby="center-invite-title">
+      {isOwner && section === "members" && memberClasses && <section className="center-card" aria-labelledby="member-classes-title">
+        <div className="center-card-heading"><h2 id="member-classes-title">Lớp của {memberClasses.member.fullName}</h2><button type="button" className="text-button" disabled={classesLoading} onClick={() => setMemberClasses(null)}>Đóng</button></div>
+        {classesLoading ? <p role="status">Đang tải lớp học…</p> : classesError ? <p role="alert">{classesError}<button className="text-button" onClick={() => showClasses(memberClasses.member)}>Thử lại</button></p> : memberClasses.classes.length ? <div className="center-list">{memberClasses.classes.map((item) => <div className="center-row" key={item.id}><div><strong>{item.name}</strong><small>{item.schedule}</small></div><span className="center-role">{item.studentCount} học sinh</span></div>)}</div> : <p>Thành viên này chưa có lớp học.</p>}
+      </section>}
+
+      {isOwner && section === "invitations" && <section className="center-card" aria-labelledby="center-invite-title">
         <h2 id="center-invite-title">Mời giáo viên</h2>
-        <p>Nhập email của người đã có tài khoản ChessHub. Lời mời sẽ xuất hiện trong ứng dụng của họ.</p>
-        <form className="center-form" onSubmit={async (event) => { event.preventDefault(); setBusy(true); setError(""); setNotice(""); try { setData(await inviteCenterMember(teacherId, email)); setEmail(""); setNotice("Đã gửi lời mời trong ứng dụng."); } catch (reason) { setError(reason.message); } finally { setBusy(false); } }}>
+        <p>Nhập email giáo viên. Người đã có tài khoản nhận lời mời trong ứng dụng; người mới nhận email kèm tài khoản và mật khẩu tạm thời.</p>
+        <form className="center-form" onSubmit={async (event) => { event.preventDefault(); setBusy(true); setError(""); setNotice(""); try { const result = await inviteCenterMember(teacherId, email); setData(result.dashboard); setEmail(""); setNotice(result.delivery === "EMAIL" ? "Đã gửi email mời kèm tài khoản và mật khẩu tạm thời." : "Đã gửi lời mời trong ứng dụng."); } catch (reason) { setError(reason.message); } finally { setBusy(false); } }}>
           <label htmlFor="center-invite-email">Email</label>
           <div className="center-form-line"><input id="center-invite-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="giaovien@example.com" /><button type="submit" className="primary-button" disabled={busy}>Gửi lời mời</button></div>
         </form>
         {data.outgoingInvitations.length > 0 && <div className="center-pending"><h3>Đang chờ chấp nhận</h3><div className="center-list">{data.outgoingInvitations.map((invitation) => <div className="center-row" key={invitation.id}><div><strong>{invitation.personName}</strong><small>{invitation.personEmail}</small></div><span className="center-role">Đang chờ</span></div>)}</div></div>}
       </section>}
+      {data?.center && !isOwner && section === "invitations" && data.incomingInvitations.length === 0 && <section className="workspace-card workspace-empty"><UiIcon name="center" size={32} /><h3>Không có lời mời đang chờ</h3><p>Bạn đang là thành viên của {data.center.name}.</p></section>}
     </main>
   </div>;
 }

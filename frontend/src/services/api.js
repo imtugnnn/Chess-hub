@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:3000" : "");
 
 async function apiFetch(url, options = {}) {
   const method = (options.method ?? "GET").toUpperCase();
@@ -35,6 +35,7 @@ async function postAuth(path, payload) {
 
 export function login(credentials) { return postAuth("login", credentials); }
 export function registerAccount(account) { return postAuth("register", account); }
+export function completeInitialPassword(payload) { return postAuth("initial-password", payload); }
 
 export async function getAuthProviders() {
   const response = await apiFetch(`${API_BASE_URL}/api/v1/auth/providers`);
@@ -71,6 +72,7 @@ async function centerRequest(userId, path = "", payload) {
 }
 
 export function getCenterDashboard(userId) { return centerRequest(userId); }
+export function getCenterMemberClasses(userId, memberId) { return centerRequest(userId, `/members/${memberId}/classes`); }
 export function createCenter(userId, name) { return centerRequest(userId, "", { name }); }
 export function inviteCenterMember(userId, email) { return centerRequest(userId, "/invitations", { email }); }
 export function respondToCenterInvitation(userId, invitationId, accept) {
@@ -171,14 +173,16 @@ export async function saveSessionAttendance(teacherId, classId, sessionId, recor
 }
 
 export async function getTournamentCreation(teacherId, classId, sessionId) {
-  const response = await apiFetch(`${API_BASE_URL}/api/v1/teachers/${teacherId}/classes/${classId}/sessions/${sessionId}/tournaments/creation`);
+  const base = classId ? `/api/v1/teachers/${teacherId}/classes/${classId}${sessionId ? `/sessions/${sessionId}` : ""}/tournaments` : `/api/v1/teachers/${teacherId}/tournaments`;
+  const response = await apiFetch(`${API_BASE_URL}${base}/creation`);
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(body.message ?? "Không thể tải dữ liệu tạo giải đấu.");
   return body;
 }
 
 export async function createTournament(teacherId, classId, sessionId, tournament) {
-  const response = await apiFetch(`${API_BASE_URL}/api/v1/teachers/${teacherId}/classes/${classId}/sessions/${sessionId}/tournaments`, {
+  const base = classId ? `/api/v1/teachers/${teacherId}/classes/${classId}${sessionId ? `/sessions/${sessionId}` : ""}/tournaments` : `/api/v1/teachers/${teacherId}/tournaments`;
+  const response = await apiFetch(`${API_BASE_URL}${base}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(tournament),
@@ -227,4 +231,11 @@ export async function deleteTournament(teacherId, tournamentId) {
   if (response.status === 204 || response.ok) return;
   const body = await response.json().catch(() => ({}));
   throw new Error(body.message ?? "Không thể xóa giải đấu.");
+}
+
+export async function completeTournament(teacherId, tournamentId) {
+  const response = await apiFetch(`${API_BASE_URL}/api/v1/teachers/${teacherId}/tournaments/${tournamentId}/complete`, { method: "POST" });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.message ?? "Không thể kết thúc giải đấu.");
+  return body;
 }

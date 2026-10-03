@@ -24,13 +24,18 @@ public class CenterController {
   @GetMapping
   public CenterService.Dashboard dashboard(@PathVariable UUID userId) { return centers.dashboard(userId); }
 
+  @GetMapping("/members/{memberId}/classes")
+  public java.util.List<CenterService.MemberClass> memberClasses(@PathVariable UUID userId, @PathVariable UUID memberId) {
+    return centers.memberClasses(userId, memberId);
+  }
+
   @PostMapping
   public CenterService.Dashboard create(@PathVariable UUID userId, @RequestBody CreateRequest request) {
     return centers.create(userId, request.name());
   }
 
   @PostMapping("/invitations")
-  public CenterService.Dashboard invite(@PathVariable UUID userId, @RequestBody InviteRequest request) {
+  public CenterService.InviteResult invite(@PathVariable UUID userId, @RequestBody InviteRequest request) {
     return centers.invite(userId, request.email());
   }
 

@@ -176,9 +176,22 @@ public class ChessClassService {
       if (weekdays.stream().anyMatch(day -> day < 1 || day > 7)) {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thứ học không hợp lệ.");
       }
+      Map<LocalDate, SessionSlot> overrides = new LinkedHashMap<>();
+      if (schedule.sessions() != null) {
+        for (SessionCommand command : schedule.sessions()) {
+          SessionSlot slot = validateSession(command);
+          if (slot.date().isBefore(schedule.startDate()) || slot.date().isAfter(schedule.endDate())
+              || !weekdays.contains(slot.date().getDayOfWeek().getValue())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Buổi chỉnh giờ phải thuộc lịch định kỳ đã chọn.");
+          }
+          if (overrides.putIfAbsent(slot.date(), slot) != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Một buổi học được chỉnh giờ nhiều lần.");
+          }
+        }
+      }
       List<SessionSlot> generated = new ArrayList<>();
       for (LocalDate date = schedule.startDate(); !date.isAfter(schedule.endDate()); date = date.plusDays(1)) {
-        if (weekdays.contains(date.getDayOfWeek().getValue())) generated.add(new SessionSlot(date, startTime, endTime));
+        if (weekdays.contains(date.getDayOfWeek().getValue())) generated.add(overrides.getOrDefault(date, new SessionSlot(date, startTime, endTime)));
         if (generated.size() > 500) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Khoảng thời gian tạo lịch quá dài.");
       }
       if (generated.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không có buổi học nào trong khoảng ngày đã chọn.");
@@ -229,6 +242,8 @@ public class ChessClassService {
 
   private static String scheduleSummary(ScheduleCommand schedule, List<SessionSlot> sessions) {
     String time = sessions.getFirst().startTime() + " – " + sessions.getFirst().endTime();
+    if (sessions.stream().anyMatch(session -> !session.startTime().equals(sessions.getFirst().startTime())
+        || !session.endTime().equals(sessions.getFirst().endTime()))) time = "Giờ theo từng buổi";
     if ("RECURRING".equals(schedule.mode())) {
       return schedule.weekdays().stream().sorted().map(ChessClassService::weekdayLabel).reduce((left, right) -> left + ", " + right).orElse("") + " · " + time;
     }

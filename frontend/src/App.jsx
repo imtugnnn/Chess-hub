@@ -12,10 +12,12 @@ import { TournamentDetailPage } from "./pages/TournamentDetailPage";
 import { AttendanceSummaryPage } from "./pages/AttendanceSummaryPage";
 import { AccountSettingsPage } from "./pages/AccountSettingsPage";
 import { CenterPage } from "./pages/CenterPage";
+import { InitialPasswordPage } from "./pages/InitialPasswordPage";
 import { getSessionUser, logoutSession } from "./services/api";
 
-const VALID_PATHS = new Set(["/", "/login", "/register", "/homepage", "/classes/new", "/calendar", "/attendance-summary", "/settings", "/center"]);
+const VALID_PATHS = new Set(["/", "/login", "/register", "/homepage", "/classes/new", "/tournaments/new", "/calendar", "/attendance-summary", "/settings", "/center"]);
 const TOURNAMENT_CREATION_PATH = /^\/classes\/([0-9a-f-]{36})\/sessions\/([0-9a-f-]{36})\/tournaments\/new$/i;
+const CLASS_TOURNAMENT_CREATION_PATH = /^\/classes\/([0-9a-f-]{36})\/tournaments\/new$/i;
 const CLASS_MANAGEMENT_PATH = /^\/classes\/([0-9a-f-]{36})\/manage$/i;
 const TOURNAMENT_DETAIL_PATH = /^\/tournaments\/([0-9a-f-]{36})$/i;
 
@@ -23,6 +25,7 @@ function getPathname() {
   const path = window.location.pathname;
   if (VALID_PATHS.has(path)) return path;
   if (TOURNAMENT_CREATION_PATH.test(path)) return path;
+  if (CLASS_TOURNAMENT_CREATION_PATH.test(path)) return path;
   if (CLASS_MANAGEMENT_PATH.test(path)) return path;
   if (TOURNAMENT_DETAIL_PATH.test(path)) return path;
   if (/^\/classes\/[0-9a-f-]{36}$/i.test(path)) return path;
@@ -82,6 +85,7 @@ export default function App() {
   }
 
   if (!sessionChecked) return <main className="session-loading">Đang kiểm tra phiên đăng nhập…</main>;
+  if (teacher?.mustChangePassword) return <InitialPasswordPage account={teacher} onLogout={logout} onCompleted={(account) => { setTeacher(account); navigate("/center"); }} />;
   if (path === "/") return <LandingPage onNavigate={navigate} />;
   if (path === "/register") return <RegisterPage onNavigate={navigate} onRegistered={handleAuthenticated} />;
   if (path === "/homepage" && teacher) return <Homepage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
@@ -91,7 +95,10 @@ export default function App() {
   if (path === "/settings" && teacher) return <AccountSettingsPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   if (path === "/center" && teacher) return <CenterPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   const tournamentPath = path.match(TOURNAMENT_CREATION_PATH);
-  if (tournamentPath && teacher) return <CreateTournamentPage classId={tournamentPath[1]} sessionId={tournamentPath[2]} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
+  if (tournamentPath && teacher) return <CreateTournamentPage key={path} classId={tournamentPath[1]} sessionId={tournamentPath[2]} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
+  const classTournamentPath = path.match(CLASS_TOURNAMENT_CREATION_PATH);
+  if (classTournamentPath && teacher) return <CreateTournamentPage key={path} classId={classTournamentPath[1]} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
+  if (path === "/tournaments/new" && teacher) return <CreateTournamentPage key={path} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   const managementPath = path.match(CLASS_MANAGEMENT_PATH);
   if (managementPath && teacher) return <ClassManagementPage classId={managementPath[1]} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   const tournamentDetailPath = path.match(TOURNAMENT_DETAIL_PATH);

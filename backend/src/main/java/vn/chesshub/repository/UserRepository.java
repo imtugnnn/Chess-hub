@@ -8,6 +8,9 @@ import org.springframework.data.jpa.repository.Query;
 import vn.chesshub.entity.User;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
+  @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+  @Query("select u from User u where u.id = :userId")
+  Optional<User> findForPasswordChange(UUID userId);
   List<User> findAllByOrderByFullNameAsc();
   Optional<User> findByEmail(String email);
   Optional<User> findByGoogleSubject(String googleSubject);
