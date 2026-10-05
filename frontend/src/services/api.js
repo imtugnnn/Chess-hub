@@ -1,5 +1,37 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:3000" : "");
 
+async function classRequest(teacherId, classId, path, method, payload) {
+  const response = await apiFetch(`${API_BASE_URL}/api/v1/teachers/${teacherId}/classes/${classId}${path}`, {
+    method, headers: payload === undefined ? undefined : { "Content-Type": "application/json" },
+    body: payload === undefined ? undefined : JSON.stringify(payload),
+  });
+  const body = response.status === 204 ? null : await response.json().catch(() => ({}));
+  if (!response.ok) { const error = new Error(body?.message ?? "Không thể cập nhật lớp. Vui lòng thử lại."); error.status = response.status; throw error; }
+  return body;
+}
+export const previewClassSchedule = (teacherId, classId, schedule) => classRequest(teacherId, classId, "/schedule/preview", "POST", schedule);
+export const rescheduleClassSession = (teacherId, classId, sessionId, slot) => classRequest(teacherId, classId, `/sessions/${sessionId}`, "PATCH", slot);
+export const removeClassStudent = (teacherId, classId, studentId) => classRequest(teacherId, classId, `/students/${studentId}`, "DELETE");
+export const applyClassSchedule = (teacherId, classId, schedule) => classRequest(teacherId, classId, "/schedule", "PUT", schedule);
+
+async function materialRequest(teacherId, path, method = "GET", body) {
+  const response = await apiFetch(`${API_BASE_URL}/api/v1/teachers/${teacherId}${path}`, { method, body });
+  if (response.status === 204) return;
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.message ?? "Không thể xử lý bài giảng. Vui lòng thử lại.");
+  return result;
+}
+export const searchMaterials = (teacherId, query = "", library = "all") => materialRequest(teacherId, `/materials?query=${encodeURIComponent(query)}&library=${encodeURIComponent(library)}`);
+export const createMaterial = (teacherId, form) => materialRequest(teacherId, "/materials", "POST", form);
+export const updateMaterial = (teacherId, id, form) => materialRequest(teacherId, `/materials/${id}`, "PUT", form);
+export const deleteMaterial = (teacherId, id) => materialRequest(teacherId, `/materials/${id}`, "DELETE");
+const sessionMaterialPath = (classId, sessionId) => `/classes/${classId}/sessions/${sessionId}/materials`;
+export const getSessionMaterials = (teacherId, classId, sessionId) => materialRequest(teacherId, sessionMaterialPath(classId, sessionId));
+export const attachSessionMaterial = (teacherId, classId, sessionId, id) => materialRequest(teacherId, `${sessionMaterialPath(classId, sessionId)}/${id}`, "POST");
+export const createSessionMaterial = (teacherId, classId, sessionId, form) => materialRequest(teacherId, sessionMaterialPath(classId, sessionId), "POST", form);
+export const detachSessionMaterial = (teacherId, classId, sessionId, id) => materialRequest(teacherId, `${sessionMaterialPath(classId, sessionId)}/${id}`, "DELETE");
+export const materialFileUrl = (teacherId, id) => `${API_BASE_URL}/api/v1/teachers/${teacherId}/materials/${id}/file`;
+
 async function apiFetch(url, options = {}) {
   const method = (options.method ?? "GET").toUpperCase();
   const headers = new Headers(options.headers);
@@ -36,6 +68,9 @@ async function postAuth(path, payload) {
 export function login(credentials) { return postAuth("login", credentials); }
 export function registerAccount(account) { return postAuth("register", account); }
 export function completeInitialPassword(payload) { return postAuth("initial-password", payload); }
+export function updateAccountEmail(payload) { return postAuth("email", payload); }
+export function updateAccountPassword(payload) { return postAuth("password", payload); }
+export function updateAccountGoogleMeet(googleMeetUrl) { return postAuth("google-meet", { googleMeetUrl }); }
 
 export async function getAuthProviders() {
   const response = await apiFetch(`${API_BASE_URL}/api/v1/auth/providers`);
@@ -60,9 +95,9 @@ export async function logoutSession() {
   throw new Error("Không thể đăng xuất. Vui lòng thử lại.");
 }
 
-async function centerRequest(userId, path = "", payload) {
+async function centerRequest(userId, path = "", payload, method = payload === undefined ? "GET" : "POST") {
   const response = await apiFetch(`${API_BASE_URL}/api/v1/users/${userId}/center${path}`, {
-    method: payload === undefined ? "GET" : "POST",
+    method,
     headers: payload === undefined ? undefined : { "Content-Type": "application/json" },
     body: payload === undefined ? undefined : JSON.stringify(payload),
   });
@@ -73,6 +108,7 @@ async function centerRequest(userId, path = "", payload) {
 
 export function getCenterDashboard(userId) { return centerRequest(userId); }
 export function getCenterMemberClasses(userId, memberId) { return centerRequest(userId, `/members/${memberId}/classes`); }
+export function removeCenterMember(userId, memberId) { return centerRequest(userId, `/members/${memberId}`, undefined, "DELETE"); }
 export function createCenter(userId, name) { return centerRequest(userId, "", { name }); }
 export function inviteCenterMember(userId, email) { return centerRequest(userId, "/invitations", { email }); }
 export function respondToCenterInvitation(userId, invitationId, accept) {

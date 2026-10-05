@@ -222,9 +222,9 @@
 .sidebar .sidebar-menu-row:hover, .sidebar .sidebar-menu-row--open { background: #203958; }
 .sidebar .sidebar-menu-row--active { background: #30445f; }
 .sidebar .sidebar-menu-row .class-menu__trigger, .sidebar .sidebar-menu-row .class-menu__trigger:hover { background: transparent; box-shadow: none; }
-.sidebar .sidebar-menu-row .class-menu__trigger { flex: 1; min-width: 0; width: auto; gap: 7px; padding-inline: 10px; font-size: 13px; white-space: nowrap; }
-.sidebar .sidebar-menu-row .class-menu__trigger > span { width: 18px; flex-shrink: 0; }
-.sidebar .sidebar-menu-row .class-menu__trigger svg { width: 18px; height: 18px; }
+.sidebar .sidebar-menu-row .class-menu__trigger { flex: 1; min-width: 0; width: auto; gap: 13px; padding-left: 13px; padding-right: 4px; font-size: 13px; white-space: nowrap; }
+.sidebar .sidebar-menu-row .class-menu__trigger > span { width: 20px; flex-shrink: 0; }
+.sidebar .sidebar-menu-row .class-menu__trigger svg { width: 20px; height: 20px; }
 .sidebar .sidebar-menu-row .class-menu__trigger b { margin-left: auto; }
 .sidebar .sidebar-quick-create, .sidebar .sidebar-menu-chevron { display: grid; place-items: center; flex: 0 0 28px; height: 32px; padding: 0; border: 0; border-radius: 5px; color: #dce6f5; background: transparent; cursor: pointer; }
 .sidebar .sidebar-quick-create:hover, .sidebar .sidebar-menu-chevron:hover { color: #f2c14e; background: #ffffff0d; }

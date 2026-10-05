@@ -17,17 +17,20 @@ import org.springframework.stereotype.Component;
 import vn.chesshub.entity.User;
 import vn.chesshub.service.AuthException;
 import vn.chesshub.service.AuthService;
+import vn.chesshub.service.RememberLoginService;
 
 @Component
 public class GoogleOAuthSuccessHandler implements AuthenticationSuccessHandler {
   private final AuthService auth;
   private final SecurityContextRepository contexts;
+  private final RememberLoginService remember;
   private final String frontendOrigin;
 
-  public GoogleOAuthSuccessHandler(AuthService auth, SecurityContextRepository contexts,
+  public GoogleOAuthSuccessHandler(AuthService auth, SecurityContextRepository contexts, RememberLoginService remember,
       @Value("${CORS_ORIGIN:http://localhost:4173}") String frontendOrigin) {
     this.auth = auth;
     this.contexts = contexts;
+    this.remember = remember;
     this.frontendOrigin = frontendOrigin.replaceAll("/+$", "");
   }
 
@@ -46,6 +49,8 @@ public class GoogleOAuthSuccessHandler implements AuthenticationSuccessHandler {
       context.setAuthentication(local);
       SecurityContextHolder.setContext(context);
       contexts.saveContext(context, request, response);
+      if (!account.isMustChangePassword()) remember.issue(account.getId(), request, response);
+      else remember.revoke(request, response);
       response.sendRedirect(frontendOrigin + "/homepage");
     } catch (AuthException | IllegalStateException error) {
       SecurityContextHolder.clearContext();

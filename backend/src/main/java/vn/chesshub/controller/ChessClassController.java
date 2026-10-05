@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +21,7 @@ import vn.chesshub.entity.ChessClass;
 import vn.chesshub.repository.ChessClassRepository;
 import vn.chesshub.repository.ClassSessionRepository;
 import vn.chesshub.service.ChessClassService;
+import vn.chesshub.service.ClassScheduleService;
 
 @RestController
 @CrossOrigin(origins = "${CORS_ORIGIN:http://localhost:4173}")
@@ -27,11 +30,13 @@ public class ChessClassController {
   private final ChessClassRepository classes;
   private final ChessClassService classService;
   private final ClassSessionRepository sessions;
+  private final ClassScheduleService scheduleService;
 
-  public ChessClassController(ChessClassRepository classes, ChessClassService classService, ClassSessionRepository sessions) {
+  public ChessClassController(ChessClassRepository classes, ChessClassService classService, ClassSessionRepository sessions, ClassScheduleService scheduleService) {
     this.classes = classes;
     this.classService = classService;
     this.sessions = sessions;
+    this.scheduleService = scheduleService;
   }
 
   @GetMapping
@@ -47,7 +52,7 @@ public class ChessClassController {
       .sorted((left, right) -> left.getFullName().compareToIgnoreCase(right.getFullName()))
       .map(StudentResponse::from).toList();
     List<SessionResponse> plannedSessions = sessions.findByChessClassIdOrderBySessionDateAscStartTimeAsc(classId).stream()
-      .map(SessionResponse::from).toList();
+      .map(session -> SessionResponse.from(session, sessions.hasAttendance(session.getId()))).toList();
     return new ClassDetailResponse(ClassResponse.from(chessClass), students, plannedSessions);
   }
 
@@ -71,7 +76,27 @@ public class ChessClassController {
 
   @PutMapping("/{classId}/schedule")
   public ClassResponse updateSchedule(@PathVariable UUID teacherId, @PathVariable UUID classId, @RequestBody ScheduleRequest request) {
+    if (request != null && "RECURRING".equals(request.mode())) {
+      return ClassResponse.from(scheduleService.apply(teacherId, classId, request.toRecurring()));
+    }
     return ClassResponse.from(classService.updateFutureSchedule(teacherId, classId, ScheduleRequest.toCommand(request)));
+  }
+
+  @PostMapping("/{classId}/schedule/preview")
+  public ClassScheduleService.Preview previewSchedule(@PathVariable UUID teacherId, @PathVariable UUID classId, @RequestBody ScheduleRequest request) {
+    if (request == null || !"RECURRING".equals(request.mode())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chọn lịch lặp để xem trước.");
+    return scheduleService.preview(teacherId, classId, request.toRecurring());
+  }
+
+  @PatchMapping("/{classId}/sessions/{sessionId}")
+  public SessionResponse reschedule(@PathVariable UUID teacherId, @PathVariable UUID classId, @PathVariable UUID sessionId, @RequestBody ClassScheduleService.Slot request) {
+    return SessionResponse.from(scheduleService.reschedule(teacherId, classId, sessionId, request), false);
+  }
+
+  @DeleteMapping("/{classId}/students/{studentId}")
+  public org.springframework.http.ResponseEntity<Void> removeStudent(@PathVariable UUID teacherId, @PathVariable UUID classId, @PathVariable UUID studentId) {
+    classService.removeStudent(teacherId, classId, studentId);
+    return org.springframework.http.ResponseEntity.noContent().build();
   }
 
   public record ClassResponse(UUID id, String name, String schedule, int studentCount, String tone, BigDecimal feePerSession) {
@@ -84,7 +109,8 @@ public class ChessClassController {
   public record StudentRequest(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber) {
     ChessClassService.StudentCommand toCommand() { return new ChessClassService.StudentCommand(fullName, birthDate, parentName, parentPhoneNumber); }
   }
-  public record ScheduleRequest(String mode, List<SessionRequest> sessions, List<Integer> weekdays, LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime) {
+  public record ScheduleRequest(String mode, List<SessionRequest> sessions, List<Integer> weekdays, LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime, String previewToken) {
+    ClassScheduleService.RecurringRequest toRecurring() { return new ClassScheduleService.RecurringRequest(startDate, endDate, weekdays, startTime, endTime, previewToken); }
     static ChessClassService.ScheduleCommand toCommand(ScheduleRequest schedule) {
       if (schedule == null) return null;
       List<ChessClassService.SessionCommand> sessions = schedule.sessions() == null ? List.of() : schedule.sessions().stream()
@@ -99,9 +125,9 @@ public class ChessClassController {
       return new StudentResponse(student.getId(), student.getFullName(), student.getBirthDate(), student.getParentName(), student.getParentPhoneNumber());
     }
   }
-  public record SessionResponse(UUID id, LocalDate date, LocalTime startTime, LocalTime endTime) {
-    static SessionResponse from(vn.chesshub.entity.ClassSession session) {
-      return new SessionResponse(session.getId(), session.getSessionDate(), session.getStartTime(), session.getEndTime());
+  public record SessionResponse(UUID id, LocalDate date, LocalTime startTime, LocalTime endTime, boolean hasAttendance, boolean scheduleOverride) {
+    static SessionResponse from(vn.chesshub.entity.ClassSession session, boolean hasAttendance) {
+      return new SessionResponse(session.getId(), session.getSessionDate(), session.getStartTime(), session.getEndTime(), hasAttendance, session.isScheduleOverride());
     }
   }
   public record ClassDetailResponse(ClassResponse chessClass, List<StudentResponse> students, List<SessionResponse> sessions) { }

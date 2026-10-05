@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,6 +33,11 @@ public class CenterController {
   @PostMapping
   public CenterService.Dashboard create(@PathVariable UUID userId, @RequestBody CreateRequest request) {
     return centers.create(userId, request.name());
+  }
+
+  @DeleteMapping("/members/{memberId}")
+  public CenterService.Dashboard removeMember(@PathVariable UUID userId, @PathVariable UUID memberId) {
+    return centers.removeMember(userId, memberId);
   }
 
   @PostMapping("/invitations")

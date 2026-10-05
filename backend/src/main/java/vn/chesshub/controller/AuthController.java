@@ -69,7 +69,7 @@ public class AuthController {
   public AccountResponse login(@RequestBody LoginRequest body, HttpServletRequest request, HttpServletResponse response) {
     User account = auth.login(body.email(), body.password());
     establishSession(account, request, response);
-    if (body.rememberMe() && !account.isMustChangePassword()) remember.issue(account.getId(), request, response);
+    if (!account.isMustChangePassword() && !Boolean.FALSE.equals(body.rememberMe())) remember.issue(account.getId(), request, response);
     else remember.revoke(request, response);
     return AccountResponse.from(account);
   }
@@ -95,7 +95,7 @@ public class AuthController {
     User account = auth.completeInitialPassword(UUID.fromString(authentication.getName()), body.password());
     remember.revoke(request, response);
     establishSession(account, request, response);
-    if (body.rememberMe()) remember.issue(account.getId(), request, response);
+    remember.issue(account.getId(), request, response);
     return AccountResponse.from(account);
   }
 
@@ -110,17 +110,41 @@ public class AuthController {
     contexts.saveContext(context, request, response);
   }
 
+  @PostMapping("/email")
+  public AccountResponse updateEmail(@RequestBody EmailRequest body, Authentication authentication) {
+    return AccountResponse.from(auth.updateEmail(UUID.fromString(authentication.getName()), body.email()));
+  }
+
+  @PostMapping("/password")
+  public AccountResponse updatePassword(@RequestBody PasswordRequest body, Authentication authentication,
+      HttpServletRequest request, HttpServletResponse response) {
+    UUID userId = UUID.fromString(authentication.getName());
+    User account = auth.updatePassword(userId, body.currentPassword(), body.newPassword());
+    remember.revokeAll(userId);
+    remember.revoke(request, response);
+    establishSession(account, request, response);
+    return AccountResponse.from(account);
+  }
+
+  @PostMapping("/google-meet")
+  public AccountResponse updateGoogleMeet(@RequestBody GoogleMeetRequest body, Authentication authentication) {
+    return AccountResponse.from(auth.updateGoogleMeet(UUID.fromString(authentication.getName()), body.googleMeetUrl()));
+  }
+
   @ExceptionHandler(AuthException.class)
   public ResponseEntity<ErrorResponse> authError(AuthException error) {
     return ResponseEntity.status(error.getStatus()).body(new ErrorResponse(error.getMessage()));
   }
 
   public record RegisterRequest(String fullName, String email, String password) { }
-  public record LoginRequest(String email, String password, boolean rememberMe) { }
+  public record LoginRequest(String email, String password, Boolean rememberMe) { }
   public record InitialPasswordRequest(String password, boolean rememberMe) { }
-  public record AccountResponse(UUID id, String email, String fullName, boolean mustChangePassword) {
+  public record EmailRequest(String email) { }
+  public record PasswordRequest(String currentPassword, String newPassword) { }
+  public record GoogleMeetRequest(String googleMeetUrl) { }
+  public record AccountResponse(UUID id, String email, String fullName, boolean mustChangePassword, boolean hasPassword, String googleMeetUrl) {
     static AccountResponse from(User account) {
-      return new AccountResponse(account.getId(), account.getEmail(), account.getFullName(), account.isMustChangePassword());
+      return new AccountResponse(account.getId(), account.getEmail(), account.getFullName(), account.isMustChangePassword(), account.getPasswordHash() != null, account.getGoogleMeetUrl());
     }
   }
   public record ErrorResponse(String message) { }

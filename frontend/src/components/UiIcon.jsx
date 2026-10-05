@@ -1,4 +1,5 @@
 const paths = {
+  book: 'M3 4h7a2 2 0 0 1 2 2v15a3 3 0 0 0-3-2H3V4m9 2a2 2 0 0 1 2-2h7v15h-6a3 3 0 0 0-3 2',
   home: 'M3 10 12 3l9 7M5 9v12h5v-7h4v7h5V9',
   calendar: 'M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2',
   check: 'm5 12 4 4L19 6',
@@ -11,6 +12,7 @@ const paths = {
   plus: 'M12 5v14M5 12h14',
   chevron: 'm9 5 7 7-7 7',
   logout: 'M9 3H4v18h5m6-14 5 5-5 5m-7-5h12',
+  video: 'M3 5h12v14H3V5m12 5 6-4v12l-6-4',
 };
 
 export function UiIcon({ name, size = 20 }) {

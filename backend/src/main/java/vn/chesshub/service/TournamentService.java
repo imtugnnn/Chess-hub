@@ -33,7 +33,7 @@ import vn.chesshub.repository.TournamentTieBreakRepository;
 
 @Service
 public class TournamentService {
-  public static final List<String> AVAILABLE_TIE_BREAKS = List.of("WIN_COUNT", "WHITE_GAME_COUNT");
+  public static final List<String> AVAILABLE_TIE_BREAKS = List.of("BUCHHOLZ", "SONNEBORN_BERGER", "WIN_COUNT", "WHITE_GAME_COUNT");
   private static final Set<String> RESULTS = Set.of("WHITE_WIN", "DRAW", "BLACK_WIN");
   private final ClassSessionRepository sessions;
   private final ChessClassRepository classes;
@@ -57,6 +57,7 @@ public class TournamentService {
 
   @Transactional
   public Tournament create(UUID teacherId, UUID classId, UUID sessionId, String name, List<UUID> participantIds, List<String> participantNames, List<String> requestedTieBreaks) {
+    classes.findForUpdate(classId, teacherId).orElseThrow(() -> notFound("Không tìm thấy lớp học."));
     ClassSession session = sessionId == null ? null : getSession(teacherId, classId, sessionId);
     ChessClass classroom = session == null ? getClass(teacherId, classId) : session.getChessClass();
     if (participantIds == null) participantIds = List.of();
@@ -154,52 +155,50 @@ public class TournamentService {
     TournamentParticipant bye = chooseBye(ranked, history); if (bye != null) ranked.remove(bye);
     Map<String, Integer> meetings = new HashMap<>();
     history.stream().filter(pairing -> pairing.getBlackParticipant() != null).forEach(pairing -> meetings.merge(pairKey(pairing.getWhiteParticipant(), pairing.getBlackParticipant()), 1, Integer::sum));
-    List<PlayerPair> matches = new ArrayList<>();
-    // Bounded search avoids greedy dead ends. Exhausting fresh opponents does not end a tournament.
-    if (!match(ranked, matches, stats, meetings, false, new int[]{20000})) {
-      matches.clear();
-      if (!match(ranked, matches, stats, meetings, true, new int[]{20000})) {
-        matches.clear();
-        for (int index = 0; index < ranked.size(); index += 2) matches.add(new PlayerPair(ranked.get(index), ranked.get(index + 1)));
-      }
-    }
-    TournamentRound round = rounds.save(new TournamentRound(tournament, number));
+    List<SwissPairing.Player> players = ranked.stream().map(player -> {
+      StandingStats stat = stats.get(player.getId());
+      return new SwissPairing.Player(player.getId(), stat.halfPoints, stat.whiteGames, stat.blackGames, stat.lastColorWhite, stat.sameColorStreak);
+    }).toList();
+    SwissPairing.Result solution = SwissPairing.pair(players, meetings);
+    Map<UUID, TournamentParticipant> byId = roster.stream().collect(java.util.stream.Collectors.toMap(TournamentParticipant::getId, player -> player));
+    List<SwissPairing.Pair> matches = new ArrayList<>(solution.pairs());
+    matches.sort(Comparator.comparingInt((SwissPairing.Pair pair) -> stats.get(pair.white()).halfPoints + stats.get(pair.black()).halfPoints).reversed()
+      .thenComparingInt(pair -> Math.min(byId.get(pair.white()).getInitialSeed(), byId.get(pair.black()).getInitialSeed())));
+    TournamentRound round = new TournamentRound(tournament, number);
+    round.recordPairingNote(pairingNote(solution), solution.searchLimited());
+    round = rounds.save(round);
     int board = 1;
-    for (PlayerPair pair : matches) {
-      TournamentParticipant white = chooseWhite(pair.left(), pair.right(), stats, board);
-      pairings.save(new TournamentPairing(round, board++, white, white == pair.left() ? pair.right() : pair.left()));
+    for (SwissPairing.Pair pair : matches) {
+      pairings.save(new TournamentPairing(round, board++, byId.get(pair.white()), byId.get(pair.black())));
     }
     if (bye != null) pairings.save(new TournamentPairing(round, board, bye, null));
     tournament.recordRound(number);
   }
 
-  private boolean match(List<TournamentParticipant> remaining, List<PlayerPair> result, Map<UUID, StandingStats> stats, Map<String, Integer> meetings, boolean allowRepeats, int[] budget) {
-    if (remaining.isEmpty()) return true;
-    if (--budget[0] < 0) return false;
-    TournamentParticipant first = remaining.getFirst();
-    List<TournamentParticipant> candidates = remaining.subList(1, remaining.size()).stream()
-      .filter(candidate -> allowRepeats || !meetings.containsKey(pairKey(first, candidate)))
-      .filter(candidate -> hasLegalColorAssignment(first, candidate, stats))
-      .sorted(Comparator.comparingInt((TournamentParticipant candidate) -> meetings.getOrDefault(pairKey(first, candidate), 0))
-        .thenComparingInt(candidate -> Math.abs(stats.get(first.getId()).halfPoints - stats.get(candidate.getId()).halfPoints))
-        .thenComparingInt(candidate -> colorPenalty(first, candidate, stats)).thenComparingInt(TournamentParticipant::getInitialSeed)).toList();
-    for (TournamentParticipant candidate : candidates) {
-      List<TournamentParticipant> next = new ArrayList<>(remaining); next.remove(first); next.remove(candidate);
-      result.add(new PlayerPair(first, candidate));
-      if (match(next, result, stats, meetings, allowRepeats, budget)) return true;
-      result.removeLast();
-      if (budget[0] < 0) break;
+  private String pairingNote(SwissPairing.Result solution) {
+    List<String> notes = new ArrayList<>();
+    if (solution.cost().repeats() > 0) notes.add(solution.cost().repeats() + " bàn tái đấu.");
+    if (solution.cost().colorViolations() > 0) notes.add(solution.cost().colorViolations() + " người chơi nhận cùng màu từ 3 lượt liên tiếp (không tính bye).");
+    if (solution.searchLimited()) {
+      notes.add("Đã đạt giới hạn tìm kiếm; dùng phương án tốt nhất đã tìm thấy. Có thể còn cách ghép tốt hơn, kể cả cách tránh tái đấu hoặc chuỗi màu.");
+    } else if (!notes.isEmpty()) {
+      notes.add("Với người nghỉ đã chọn, phương án ưu tiên giảm số bàn tái đấu và số lần gặp lại, sau đó giảm vi phạm chuỗi màu.");
     }
-    return false;
+    return notes.isEmpty() ? null : String.join(" ", notes);
   }
-
-  private record PlayerPair(TournamentParticipant left, TournamentParticipant right) { }
 
   private TournamentDetails details(Tournament tournament) {
     List<TournamentParticipant> roster = participants.findByTournamentId(tournament.getId()); List<TournamentPairing> history = pairings.findByRoundTournamentIdOrderByRoundRoundNumberAscBoardNumberAsc(tournament.getId()); Map<UUID, StandingStats> stats = standings(roster, history); List<TournamentTieBreak> criteria = tieBreaks.findByTournamentIdOrderBySortOrder(tournament.getId());
     List<TournamentParticipant> ranked = new ArrayList<>(roster); ranked.sort(rankingComparator(stats, criteria)); List<StandingView> table = new ArrayList<>();
-    for (int index = 0; index < ranked.size(); index++) { TournamentParticipant player = ranked.get(index); StandingStats stat = stats.get(player.getId()); table.add(new StandingView(index + 1, player.getId(), player.getFullName(), stat.halfPoints / 2.0, stat.wins, stat.draws, stat.losses, stat.whiteGames)); }
-    List<RoundView> roundViews = rounds.findByTournamentIdOrderByRoundNumberAsc(tournament.getId()).stream().map(round -> new RoundView(round.getId(), round.getRoundNumber(), round.getStatus(), pairings.findByRoundIdOrderByBoardNumberAsc(round.getId()).stream().map(this::pairingView).toList())).toList();
+    Comparator<TournamentParticipant> scores = scoreComparator(stats, criteria);
+    int rank = 1;
+    for (int index = 0; index < ranked.size(); index++) {
+      TournamentParticipant player = ranked.get(index); StandingStats stat = stats.get(player.getId());
+      if (index > 0 && scores.compare(ranked.get(index - 1), player) != 0) rank = index + 1;
+      table.add(new StandingView(rank, player.getId(), player.getFullName(), stat.halfPoints / 2.0,
+        stat.wins, stat.draws, stat.losses, stat.whiteGames, stat.buchholzHalfPoints / 2.0, stat.sonnebornQuarterPoints / 4.0));
+    }
+    List<RoundView> roundViews = rounds.findByTournamentIdOrderByRoundNumberAsc(tournament.getId()).stream().map(round -> new RoundView(round.getId(), round.getRoundNumber(), round.getStatus(), pairings.findByRoundIdOrderByBoardNumberAsc(round.getId()).stream().map(this::pairingView).toList(), round.getPairingNote(), round.isPairingSearchLimited())).toList();
     return new TournamentDetails(tournament.getId(), tournament.getChessClass() == null ? null : tournament.getChessClass().getName(), tournament.getSession() == null ? null : tournament.getSession().getSessionDate(), roundViews.size(), tournament.getStatus(), criteria.stream().map(TournamentTieBreak::getType).toList(), roundViews, table, tournament.getName());
   }
 
@@ -212,32 +211,69 @@ public class TournamentService {
   private void validateTieBreaks(List<String> items) { if (items == null || items.isEmpty() || items.size() > 3 || items.stream().anyMatch(Objects::isNull)) throw bad("Cần chọn từ 1 đến 3 tie-break."); Set<String> unique = Set.copyOf(items); if (unique.size() != items.size() || !AVAILABLE_TIE_BREAKS.containsAll(unique)) throw bad("Tie-break không hợp lệ hoặc bị trùng."); }
   private ResponseStatusException bad(String value) { return new ResponseStatusException(HttpStatus.BAD_REQUEST, value); } private ResponseStatusException notFound(String value) { return new ResponseStatusException(HttpStatus.NOT_FOUND, value); }
   private TournamentParticipant chooseBye(List<TournamentParticipant> ranked, List<TournamentPairing> history) { if (ranked.size() % 2 == 0) return null; Map<UUID, Integer> prior = new HashMap<>(); history.stream().filter(pairing -> "BYE".equals(pairing.getResult())).forEach(pairing -> prior.merge(pairing.getWhiteParticipant().getId(), 1, Integer::sum)); return ranked.reversed().stream().min(Comparator.comparingInt(player -> prior.getOrDefault(player.getId(), 0))).orElseThrow(); }
-  private String pairKey(TournamentParticipant left, TournamentParticipant right) { return left.getId().compareTo(right.getId()) < 0 ? left.getId() + ":" + right.getId() : right.getId() + ":" + left.getId(); }
-  private int colorPenalty(TournamentParticipant left, TournamentParticipant right, Map<UUID, StandingStats> stats) { return Math.abs(stats.get(left.getId()).whiteGames - stats.get(right.getId()).whiteGames); }
-  private boolean hasLegalColorAssignment(TournamentParticipant left, TournamentParticipant right, Map<UUID, StandingStats> stats) { return (canPlayColor(left, true, stats) && canPlayColor(right, false, stats)) || (canPlayColor(left, false, stats) && canPlayColor(right, true, stats)); }
-  private boolean canPlayColor(TournamentParticipant player, boolean white, Map<UUID, StandingStats> stats) { StandingStats stat = stats.get(player.getId()); return stat.lastColorWhite == null || stat.lastColorWhite.booleanValue() != white || stat.sameColorStreak < 2; }
-  private TournamentParticipant chooseWhite(TournamentParticipant left, TournamentParticipant right, Map<UUID, StandingStats> stats, int board) {
-    boolean leftCanBeWhite = canPlayColor(left, true, stats) && canPlayColor(right, false, stats);
-    boolean rightCanBeWhite = canPlayColor(left, false, stats) && canPlayColor(right, true, stats);
-    if (leftCanBeWhite && !rightCanBeWhite) return left;
-    if (rightCanBeWhite && !leftCanBeWhite) return right;
-    if (!leftCanBeWhite) return colorCost(left, true, stats) + colorCost(right, false, stats) <= colorCost(right, true, stats) + colorCost(left, false, stats) ? left : right;
-    int lw = stats.get(left.getId()).whiteGames, rw = stats.get(right.getId()).whiteGames;
-    if (lw != rw) return lw < rw ? left : right;
-    return board % 2 == 1 ? left : right;
+  private String pairKey(TournamentParticipant left, TournamentParticipant right) { return SwissPairing.key(left.getId(), right.getId()); }
+  private Comparator<TournamentParticipant> rankingComparator(Map<UUID, StandingStats> stats, List<TournamentTieBreak> criteria) {
+    return scoreComparator(stats, criteria).thenComparingInt(TournamentParticipant::getInitialSeed).thenComparing(TournamentParticipant::getFullName);
   }
-  private int colorCost(TournamentParticipant player, boolean white, Map<UUID, StandingStats> stats) { StandingStats stat = stats.get(player.getId()); return (canPlayColor(player, white, stats) ? 0 : 1000 + stat.sameColorStreak) + Math.abs(stat.whiteGames - stat.blackGames + (white ? 1 : -1)); }
-  private Comparator<TournamentParticipant> rankingComparator(Map<UUID, StandingStats> stats, List<TournamentTieBreak> criteria) { Comparator<TournamentParticipant> result = Comparator.comparingInt((TournamentParticipant item) -> stats.get(item.getId()).halfPoints).reversed(); for (TournamentTieBreak criterion : criteria) { if ("WIN_COUNT".equals(criterion.getType())) result = result.thenComparing(Comparator.comparingInt((TournamentParticipant item) -> stats.get(item.getId()).wins).reversed()); if ("WHITE_GAME_COUNT".equals(criterion.getType())) result = result.thenComparing(Comparator.comparingInt((TournamentParticipant item) -> stats.get(item.getId()).whiteGames).reversed()); } return result.thenComparingInt(TournamentParticipant::getInitialSeed).thenComparing(TournamentParticipant::getFullName); }
-  private Map<UUID, StandingStats> standings(List<TournamentParticipant> roster, List<TournamentPairing> history) { Map<UUID, StandingStats> result = new HashMap<>(); roster.forEach(player -> result.put(player.getId(), new StandingStats())); for (TournamentPairing pairing : history) { if (!"COMPLETED".equals(pairing.getRound().getStatus())) continue; StandingStats white = result.get(pairing.getWhiteParticipant().getId()); if ("BYE".equals(pairing.getResult())) { white.halfPoints += 2; continue; } StandingStats black = result.get(pairing.getBlackParticipant().getId()); white.whiteGames++; black.blackGames++; white.recordColor(true); black.recordColor(false); switch (pairing.getResult()) { case "WHITE_WIN" -> { white.halfPoints += 2; white.wins++; black.losses++; } case "BLACK_WIN" -> { black.halfPoints += 2; black.wins++; white.losses++; } case "DRAW" -> { white.halfPoints++; black.halfPoints++; white.draws++; black.draws++; } default -> { } } } return result; }
+  private Comparator<TournamentParticipant> scoreComparator(Map<UUID, StandingStats> stats, List<TournamentTieBreak> criteria) {
+    Comparator<TournamentParticipant> result = Comparator.comparingInt((TournamentParticipant item) -> stats.get(item.getId()).halfPoints).reversed();
+    for (TournamentTieBreak criterion : criteria) {
+      result = result.thenComparing(Comparator.comparingInt((TournamentParticipant item) -> {
+        StandingStats stat = stats.get(item.getId());
+        return switch (criterion.getType()) {
+          case "BUCHHOLZ" -> stat.buchholzHalfPoints;
+          case "SONNEBORN_BERGER" -> stat.sonnebornQuarterPoints;
+          case "WIN_COUNT" -> stat.wins;
+          case "WHITE_GAME_COUNT" -> stat.whiteGames;
+          default -> 0;
+        };
+      }).reversed());
+    }
+    return result;
+  }
+
+  private Map<UUID, StandingStats> standings(List<TournamentParticipant> roster, List<TournamentPairing> history) {
+    Map<UUID, StandingStats> result = new HashMap<>();
+    roster.forEach(player -> result.put(player.getId(), new StandingStats()));
+    for (TournamentPairing pairing : history) {
+      if (!"COMPLETED".equals(pairing.getRound().getStatus())) continue;
+      StandingStats white = result.get(pairing.getWhiteParticipant().getId());
+      if ("BYE".equals(pairing.getResult())) { white.halfPoints += 2; continue; }
+      StandingStats black = result.get(pairing.getBlackParticipant().getId());
+      white.whiteGames++; black.blackGames++; white.recordColor(true); black.recordColor(false);
+      switch (pairing.getResult()) {
+        case "WHITE_WIN" -> { white.halfPoints += 2; white.wins++; black.losses++; }
+        case "BLACK_WIN" -> { black.halfPoints += 2; black.wins++; white.losses++; }
+        case "DRAW" -> { white.halfPoints++; black.halfPoints++; white.draws++; black.draws++; }
+        default -> { }
+      }
+    }
+    // Real opponents only; their current totals include bye points. Each rematch counts once.
+    // SB is stored in quarter points: opponent half-points * result half-points.
+    for (TournamentPairing pairing : history) {
+      if (!"COMPLETED".equals(pairing.getRound().getStatus()) || pairing.getBlackParticipant() == null) continue;
+      StandingStats white = result.get(pairing.getWhiteParticipant().getId());
+      StandingStats black = result.get(pairing.getBlackParticipant().getId());
+      white.buchholzHalfPoints += black.halfPoints;
+      black.buchholzHalfPoints += white.halfPoints;
+      switch (pairing.getResult()) {
+        case "WHITE_WIN" -> white.sonnebornQuarterPoints += black.halfPoints * 2;
+        case "BLACK_WIN" -> black.sonnebornQuarterPoints += white.halfPoints * 2;
+        case "DRAW" -> { white.sonnebornQuarterPoints += black.halfPoints; black.sonnebornQuarterPoints += white.halfPoints; }
+        default -> { }
+      }
+    }
+    return result;
+  }
   private static class StandingStats {
-    int halfPoints; int wins; int draws; int losses; int whiteGames; int blackGames; Boolean lastColorWhite; int sameColorStreak;
+    int halfPoints; int wins; int draws; int losses; int whiteGames; int blackGames; int buchholzHalfPoints; int sonnebornQuarterPoints; Boolean lastColorWhite; int sameColorStreak;
     void recordColor(boolean white) { sameColorStreak = lastColorWhite != null && lastColorWhite == white ? sameColorStreak + 1 : 1; lastColorWhite = white; }
   }
   public record ResultCommand(UUID pairingId, String result) { }
   public record TournamentListItem(UUID id, UUID classId, String className, int roundCount, String status, String name) { }
   public record TournamentDetails(UUID id, String className, LocalDate sessionDate, int roundCount, String status, List<String> tieBreaks, List<RoundView> rounds, List<StandingView> standings, String name) { }
-  public record RoundView(UUID id, int number, String status, List<PairingView> pairings) { }
+  public record RoundView(UUID id, int number, String status, List<PairingView> pairings, String pairingNote, boolean pairingSearchLimited) { }
   public record PairingView(UUID id, int boardNumber, ParticipantView white, ParticipantView black, String result) { }
   public record ParticipantView(UUID id, String fullName) { }
-  public record StandingView(int rank, UUID participantId, String fullName, double points, int wins, int draws, int losses, int whiteGameCount) { }
+  public record StandingView(int rank, UUID participantId, String fullName, double points, int wins, int draws, int losses, int whiteGameCount, double buchholz, double sonnebornBerger) { }
 }

@@ -34,7 +34,7 @@ export function Homepage({ teacherId, teacherName, onLogout, onNavigate }) {
   const nextSession = sessions.find((session) => new Date(`${session.date}T${session.endTime}+07:00`) > now);
   return <div className="app-shell"><AppSidebar activeSection="home" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} />
     <main className="dashboard overview-page" id="tong-quan">
-      <AppPageHeader breadcrumb="Không gian giảng dạy" title={`Chào ${firstName}, hôm nay dạy lớp nào?`} description="Theo dõi lịch dạy, mở lớp và hoàn tất điểm danh trong một nơi." actions={<button className="primary-button" onClick={() => onNavigate("/classes/new")}><UiIcon name="plus" size={18} /> Tạo lớp mới</button>} />
+      <AppPageHeader section="Không gian giảng dạy" title={`Chào ${firstName}, hôm nay dạy lớp nào?`} description="Theo dõi lịch dạy, mở lớp và hoàn tất điểm danh trong một nơi." actions={<button className="primary-button" onClick={() => onNavigate("/classes/new")}><UiIcon name="plus" size={18} /> Tạo lớp mới</button>} />
       {error ? <div className="ui-error" role="alert">{error}<button className="secondary-button" onClick={() => setRetry((value) => value + 1)}>Thử lại</button></div> : <>
         <section className="overview-metrics" aria-label="Tổng quan hôm nay" aria-busy={loading}>
           {[['classes', 'Lớp học', classes.length], ['calendar', 'Buổi học hôm nay', sessions.length], ['check', 'Buổi chưa đủ điểm danh hôm nay', pending.length]].map(([icon, label, value]) => <div className="overview-metric" key={icon}><span className="overview-metric-icon"><UiIcon name={icon} /></span><div><p>{label}</p><strong>{loading ? '—' : value}</strong></div></div>)}

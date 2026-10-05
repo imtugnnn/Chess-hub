@@ -7,6 +7,7 @@ import { filterAttendanceClasses, getAttendanceTotals, getReportMonth, shiftRepo
 import { getAttendanceSummary } from "../services/api";
 import "./calendar.css";
 import "./attendanceSummary.css";
+import "../components/classSchedule.css";
 
 export function AttendanceSummaryPage({ teacherId, teacherName, onLogout, onNavigate }) {
   const [month, setMonth] = useState(getReportMonth);
@@ -64,7 +65,7 @@ export function AttendanceSummaryPage({ teacherId, teacherName, onLogout, onNavi
   return <div className="app-shell">
     <AppSidebar activeSection="attendance" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} />
     <main className="dashboard attendance-summary-page">
-      <AppPageHeader breadcrumb="Điểm danh" title="Tổng hợp điểm danh" description="Theo dõi số buổi đã học và học phí tạm tính của từng học sinh theo tháng." />
+      <AppPageHeader section="Điểm danh" title="Tổng hợp điểm danh" description="Theo dõi số buổi đã học và học phí tạm tính của từng học sinh theo tháng." />
       <section className="attendance-report-panel" aria-label="Bộ lọc tổng hợp điểm danh">
         <div className="attendance-report-toolbar">
           <h2>{formatMonth(month)}</h2>
@@ -111,7 +112,7 @@ function AttendanceClassCard({ classroom, collapsed, searched, onToggle }) {
     <div id={`attendance-class-${classroom.classId}`} hidden={collapsed}>
       {classroom.students.length ? <div className="attendance-report-table-wrap"><table className="attendance-report-table" aria-label={`Tổng hợp điểm danh lớp ${classroom.className}`}>
         <thead><tr><th scope="col">Học sinh</th><th scope="col">Buổi đã học</th><th scope="col">Học phí tạm tính</th></tr></thead>
-        <tbody>{classroom.students.map((student) => <tr key={student.studentId}><th scope="row">{student.studentName}</th><td><span className="attendance-mobile-label" aria-hidden="true">Buổi đã học</span><span>{student.attendedDays} buổi</span></td><td><span className="attendance-mobile-label" aria-hidden="true">Học phí tạm tính</span><span>{formatCurrency(student.tuitionAmount)}</span></td></tr>)}</tbody>
+        <tbody>{classroom.students.map((student) => <tr key={student.studentId}><th scope="row">{student.studentName}{student.leftClass && <span className="student-left-label">Đã rời lớp</span>}</th><td><span className="attendance-mobile-label" aria-hidden="true">Buổi đã học</span><span>{student.attendedDays} buổi</span></td><td><span className="attendance-mobile-label" aria-hidden="true">Học phí tạm tính</span><span>{formatCurrency(student.tuitionAmount)}</span></td></tr>)}</tbody>
         <tfoot><tr><th scope="row" colSpan={2}>{searched ? "Tổng kết quả tìm kiếm" : "Tổng lớp"}</th><td>{formatCurrency(total.tuitionAmount)}</td></tr></tfoot>
       </table></div> : <p className="attendance-class-empty">Lớp chưa có học sinh.</p>}
     </div>

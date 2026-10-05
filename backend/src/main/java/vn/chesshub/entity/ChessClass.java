@@ -72,6 +72,10 @@ public class ChessClass {
   public void addStudent(Student student) {
     if (students.add(student)) this.studentCount = students.size();
   }
+  public void removeStudent(UUID studentId) {
+    students.removeIf(student -> student.getId().equals(studentId));
+    this.studentCount = students.size();
+  }
 
   public UUID getId() { return id; }
   public User getTeacher() { return teacher; }

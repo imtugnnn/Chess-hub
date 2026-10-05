@@ -17,6 +17,12 @@
 .center-secondary-button { border: 1px solid #d8e2ee; border-radius: 7px; color: #456385; background: #fff; font-weight: 700; }
 .center-secondary-button:hover { background: #f4f7fb; }
 .center-role { color: #50729b; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.center-remove-button { border: 1px solid currentColor; border-radius: 7px; color: var(--workspace-danger); background: var(--workspace-danger-bg, #fff); font-weight: 700; }
+.center-remove-button:hover { background: var(--workspace-danger-soft, #f7dce0); }
+.center-row-actions { flex-wrap: wrap; }
+.center-remove-dialog > p { color: var(--text-muted, #718096); font-size: 14px; line-height: 24px; overflow-wrap: anywhere; }
+.center-remove-dialog .center-row-actions { justify-content: flex-end; margin-top: 24px; }
+.center-remove-dialog button:disabled { cursor: not-allowed; opacity: .55; }
 .center-form { display: grid; gap: 8px; }
 .center-form label { color: #3b4860; font-size: 12px; font-weight: 700; }
 .center-form-line { display: flex; gap: 10px; }
@@ -27,4 +33,4 @@
 .center-pending h3 { color: #43546c; font-size: 13px; }
 .center-hint { margin: 12px 0 0 !important; }
 .center-card button:disabled { cursor: not-allowed; opacity: .55; }
-@media (max-width: 560px) { .center-card { padding: 18px; }.center-row { align-items: start; flex-direction: column; }.center-form-line { flex-direction: column; }.center-row-actions { width: 100%; }.center-row-actions button { flex: 1; } }
+@media (max-width: 560px) { .center-card { padding: 18px; }.center-row { align-items: start; flex-direction: column; }.center-form-line { flex-direction: column; }.center-row-actions { width: 100%; }.center-row-actions .center-role { flex-basis: 100%; }.center-row-actions button { flex: 1; white-space: nowrap; } }

@@ -5,8 +5,8 @@ import { getAuthProviders, login, startGoogleLogin } from "../services/api";
 export function LoginPage({ onNavigate, onAuthenticated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [googleStatus, setGoogleStatus] = useState("loading");
@@ -68,7 +68,16 @@ export function LoginPage({ onNavigate, onAuthenticated }) {
           <form className="auth-form" onSubmit={submit}>
             <label>Email<span className="input-wrap"><span aria-hidden="true">✉</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ban@example.com" required /></span></label>
             <label>Mật khẩu<span className="input-wrap"><span aria-hidden="true">⌑</span><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nhập mật khẩu" required /></span></label>
-            <div className="form-row"><label className="check-label"><input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} /> <span>Ghi nhớ đăng nhập 30 ngày</span></label><button type="button" className="text-button" onClick={() => setShowPassword(!showPassword)}>Hiện mật khẩu</button></div>
+            <div className="form-row login-options">
+              <div className="remember-login-control">
+                <button id="remember-login" type="button" className="remember-login-button" aria-pressed={rememberMe}
+                  aria-labelledby="remember-login-label" disabled={submitting} onClick={() => setRememberMe((value) => !value)}>
+                  <span className="remember-login-button__indicator" aria-hidden="true">{rememberMe ? "✓" : ""}</span>
+                </button>
+                <label id="remember-login-label" htmlFor="remember-login">Lưu đăng nhập</label>
+              </div>
+              <button type="button" className="text-button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}</button>
+            </div>
             {error && <p className="form-error" role="alert">{error}</p>}
             <button className="primary-button" type="submit" disabled={submitting}>{submitting ? "Đang kiểm tra…" : <>Đăng nhập <span aria-hidden="true">→</span></>}</button>
           </form>

@@ -33,6 +33,9 @@ public class ClassSession {
   @Column(name = "end_time", nullable = false)
   private LocalTime endTime;
 
+  @Column(name = "schedule_override", nullable = false)
+  private boolean scheduleOverride;
+
   protected ClassSession() { }
 
   public ClassSession(ChessClass chessClass, LocalDate sessionDate, LocalTime startTime, LocalTime endTime) {
@@ -47,4 +50,12 @@ public class ClassSession {
   public LocalDate getSessionDate() { return sessionDate; }
   public LocalTime getStartTime() { return startTime; }
   public LocalTime getEndTime() { return endTime; }
+  public void updateTimes(LocalTime startTime, LocalTime endTime) { this.startTime = startTime; this.endTime = endTime; }
+  public boolean isScheduleOverride() { return scheduleOverride; }
+  public void reschedule(LocalDate date, LocalTime start, LocalTime end) {
+    this.sessionDate = date;
+    this.startTime = start;
+    this.endTime = end;
+    this.scheduleOverride = true;
+  }
 }

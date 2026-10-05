@@ -16,6 +16,15 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, UUID
 
   void deleteByChessClassIdAndSessionDateAfter(UUID classId, LocalDate date);
 
+  @org.springframework.data.jpa.repository.Query(value = "select exists (select 1 from session_materials where session_id = :sessionId)", nativeQuery = true)
+  boolean hasTeachingMaterials(UUID sessionId);
+
+  @org.springframework.data.jpa.repository.Query(value = "select exists (select 1 from tournaments where session_id = :sessionId)", nativeQuery = true)
+  boolean hasTournament(UUID sessionId);
+
+  @org.springframework.data.jpa.repository.Query(value = "select exists (select 1 from session_attendance where session_id = :sessionId)", nativeQuery = true)
+  boolean hasAttendance(UUID sessionId);
+
   @EntityGraph(attributePaths = "chessClass.students")
   Optional<ClassSession> findByIdAndChessClassIdAndChessClassTeacherId(UUID id, UUID classId, UUID teacherId);
 }

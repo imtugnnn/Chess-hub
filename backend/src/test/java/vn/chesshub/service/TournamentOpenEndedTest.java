@@ -137,6 +137,7 @@ class TournamentOpenEndedTest {
     ChessClass classroom = mock(ChessClass.class); when(classroom.getStudents()).thenReturn(Set.of(student)); when(classroom.getName()).thenReturn("Lớp cờ");
     ClassSession session = mock(ClassSession.class); when(session.getChessClass()).thenReturn(classroom);
     when(sessions.findByIdAndChessClassIdAndChessClassTeacherId(sessionId, classId, owner)).thenReturn(Optional.of(session));
+    when(classes.findForUpdate(classId, owner)).thenReturn(Optional.of(classroom));
     assertThrows(ResponseStatusException.class, () -> service.create(owner, classId, sessionId, null, List.of(UUID.randomUUID()), List.of("Khách"), List.of("WIN_COUNT")));
     service.create(owner, classId, sessionId, null, List.of(studentId), List.of("Khách"), List.of("WIN_COUNT"));
     assertEquals(2, roster.size()); assertEquals(1, roster.stream().filter(player -> player.getStudent() != null).count());
@@ -148,6 +149,7 @@ class TournamentOpenEndedTest {
     Student student = mock(Student.class); when(student.getId()).thenReturn(studentId); when(student.getFullName()).thenReturn("Học sinh An");
     ChessClass classroom = mock(ChessClass.class); when(classroom.getId()).thenReturn(classId); when(classroom.getStudents()).thenReturn(Set.of(student)); when(classroom.getName()).thenReturn("Lớp cờ");
     when(classes.findByIdAndTeacherId(classId, owner)).thenReturn(Optional.of(classroom));
+    when(classes.findForUpdate(classId, owner)).thenReturn(Optional.of(classroom));
     service.create(owner, classId, null, "Giải của lớp", List.of(studentId), List.of("Khách"), List.of("WIN_COUNT"));
     assertNull(tournament.getSession()); assertSame(classroom, tournament.getChessClass());
     assertEquals("Lớp cờ", service.details(owner, tournament.getId()).className());
@@ -162,9 +164,86 @@ class TournamentOpenEndedTest {
     assertEquals(404, assertThrows(ResponseStatusException.class, () -> service.create(owner, classId, null, "Giải", List.of(), List.of("An", "Bình"), List.of("WIN_COUNT"))).getStatusCode().value());
     ChessClass classroom = mock(ChessClass.class); when(classroom.getStudents()).thenReturn(Set.of());
     when(classes.findByIdAndTeacherId(classId, owner)).thenReturn(Optional.of(classroom));
+    when(classes.findForUpdate(classId, owner)).thenReturn(Optional.of(classroom));
     assertThrows(ResponseStatusException.class, () -> service.create(owner, classId, null, "Giải", List.of(UUID.randomUUID()), List.of("Khách"), List.of("WIN_COUNT")));
     verify(tournaments, never()).save(any()); verifyNoInteractions(sessions);
   }
+  @Test void opponentTieBreaksUseCurrentFinalizedTotalsAndExactQuarterPoints() {
+    prepareManualRounds(List.of("A", "B", "C", "D"), List.of("BUCHHOLZ", "SONNEBORN_BERGER", "WIN_COUNT"));
+    manualRound(1, true, "A", "B", "WHITE_WIN", "C", "D", "WHITE_WIN");
+    manualRound(2, true, "A", "C", "DRAW", "B", "D", "WHITE_WIN");
+    var a = standing("A"); var c = standing("C");
+    assertEquals(1.5, a.points()); assertEquals(1.5, c.points());
+    assertEquals(2.5, a.buchholz()); assertEquals(1.5, c.buchholz());
+    assertEquals(1.75, a.sonnebornBerger()); assertEquals(.75, c.sonnebornBerger());
+    assertEquals(1, a.rank()); assertEquals(2, c.rank());
+    manualRound(3, false, "A", "D", "BLACK_WIN", "B", "C", "DRAW");
+    assertEquals(a, standing("A"));
+    assertEquals(c, standing("C"));
+    allRounds.getLast().finalizeRound();
+    assertEquals(4.5, standing("A").buchholz());
+  }
+
+  @Test void byeDoesNotCountAsOpponentWinOrColorAndRematchesCountSeparately() {
+    prepareManualRounds(List.of("A", "B", "C"), List.of("BUCHHOLZ", "SONNEBORN_BERGER"));
+    manualRound(1, true, "A", "B", "DRAW", "C", null, "BYE");
+    manualRound(2, true, "A", "C", "WHITE_WIN", "B", null, "BYE");
+    manualRound(3, true, "A", "B", "BLACK_WIN", "C", null, "BYE");
+    assertEquals(7, standing("A").buchholz());
+    assertEquals(3.25, standing("A").sonnebornBerger());
+    assertEquals(3, standing("B").buchholz());
+    assertEquals(2.25, standing("B").sonnebornBerger());
+    var c = standing("C");
+    assertEquals(2, c.points()); assertEquals(0, c.wins()); assertEquals(0, c.whiteGameCount());
+    assertEquals(1.5, c.buchholz()); assertEquals(0, c.sonnebornBerger());
+  }
+
+  @Test void equalSelectedCriteriaShareRankInsteadOfUsingRandomSeed() {
+    prepareManualRounds(List.of("A", "B", "C"), List.of("BUCHHOLZ", "SONNEBORN_BERGER", "WIN_COUNT"));
+    manualRound(1, true, "A", "B", "WHITE_WIN");
+    manualRound(2, true, "B", "C", "WHITE_WIN");
+    manualRound(3, true, "C", "A", "WHITE_WIN");
+    assertEquals(List.of(1, 1, 1), service.details(owner, tournament.getId()).standings().stream().map(TournamentService.StandingView::rank).toList());
+  }
+
+  @Test void rematchNotesRemainVisibleWhenReadingPreviousRounds() {
+    create(List.of("A", "B"));
+    settle(1);
+    var details = service.nextRound(owner, tournament.getId());
+    assertNull(details.rounds().getFirst().pairingNote());
+    assertTrue(details.rounds().getLast().pairingNote().contains("1 bàn tái đấu"));
+    assertFalse(details.rounds().getLast().pairingSearchLimited());
+    assertEquals(details.rounds().getLast().pairingNote(), service.details(owner, tournament.getId()).rounds().getLast().pairingNote());
+  }
+
+  @Test void validatesNewTieBreaksAndKeepsThreeCriterionLimit() {
+    assertThrows(ResponseStatusException.class, () -> service.createStandalone(owner, "Swiss", List.of("A", "B"), List.of("BUCHHOLZ", "SONNEBORN_BERGER", "WIN_COUNT", "WHITE_GAME_COUNT")));
+    assertThrows(ResponseStatusException.class, () -> service.createStandalone(owner, "Swiss", List.of("A", "B"), List.of("BUCHHOLZ", "BUCHHOLZ")));
+    assertThrows(ResponseStatusException.class, () -> service.createStandalone(owner, "Swiss", List.of("A", "B"), List.of("UNKNOWN")));
+  }
+
+  private void prepareManualRounds(List<String> names, List<String> methods) {
+    service.createStandalone(owner, "Swiss", names, methods);
+    history.clear(); allRounds.clear();
+  }
+
+  private TournamentService.StandingView standing(String name) {
+    return service.details(owner, tournament.getId()).standings().stream().filter(item -> name.equals(item.fullName())).findFirst().orElseThrow();
+  }
+
+  private void manualRound(int number, boolean completed, String... games) {
+    TournamentRound round = new TournamentRound(tournament, number); identify(round); allRounds.add(round);
+    for (int i = 0; i < games.length; i += 3) {
+      final String whiteName = games[i], blackName = games[i + 1];
+      var white = roster.stream().filter(player -> whiteName.equals(player.getFullName())).findFirst().orElseThrow();
+      var black = blackName == null ? null : roster.stream().filter(player -> blackName.equals(player.getFullName())).findFirst().orElseThrow();
+      var pairing = new TournamentPairing(round, i / 3 + 1, white, black); identify(pairing);
+      pairing.recordResult(games[i + 2]); history.add(pairing);
+    }
+    if (completed) round.finalizeRound();
+    tournament.recordRound(number);
+  }
+
   private void create(List<String> names) { service.createStandalone(owner, " Giải cuối tuần ", names, List.of("WIN_COUNT", "WHITE_GAME_COUNT")); }
   private void settle(int number) {
     var updates = currentPairings(number).stream().filter(item -> item.getBlackParticipant() != null).map(item -> new TournamentService.ResultCommand(item.getId(), "DRAW")).toList();

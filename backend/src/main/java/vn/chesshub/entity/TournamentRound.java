@@ -21,10 +21,15 @@ public class TournamentRound {
   @Column(name = "round_number", nullable = false) private int roundNumber;
   @Column(nullable = false) private String status = "RESULTS_OPEN";
   @Column(name = "finalized_at") private Instant finalizedAt;
+  @Column(name = "pairing_note", length = 1000) private String pairingNote;
+  @Column(name = "pairing_search_limited", nullable = false) private boolean pairingSearchLimited;
   protected TournamentRound() { }
   public TournamentRound(Tournament tournament, int roundNumber) { this.tournament = tournament; this.roundNumber = roundNumber; }
   public UUID getId() { return id; }
   public int getRoundNumber() { return roundNumber; }
   public String getStatus() { return status; }
+  public String getPairingNote() { return pairingNote; }
+  public boolean isPairingSearchLimited() { return pairingSearchLimited; }
+  public void recordPairingNote(String note, boolean limited) { pairingNote = note; pairingSearchLimited = limited; }
   public void finalizeRound() { status = "COMPLETED"; finalizedAt = Instant.now(); }
 }

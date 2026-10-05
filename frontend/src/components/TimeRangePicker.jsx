@@ -28,13 +28,18 @@ export function TimeRangePicker({ startTime, endTime, onChange, onDone }) {
     </div>
     <div className="time-range-picker__quick" role="group" aria-label="Chọn phút nhanh">{["00", "15", "30", "45"].map((value) => <button type="button" key={value} aria-label={`Chọn phút ${value}`} aria-pressed={minute === value} onClick={() => choose("minute", value)}>{value}</button>)}</div>
     <p id={feedbackId} className={error ? "time-range-picker__error" : "time-range-picker__feedback"} aria-live="polite">{error || (duration > 0 ? `Thời lượng: ${Math.floor(duration / 60) ? `${Math.floor(duration / 60)} giờ ` : ""}${duration % 60 ? `${duration % 60} phút` : ""}` : "Chọn mốc bắt đầu hoặc kết thúc để chỉnh giờ.")}</p>
-    <button type="button" className="secondary-button time-range-picker__done" disabled={!start || !end || duration <= 0} onClick={onDone}>Xong</button>
+    {onDone && <button type="button" className="secondary-button time-range-picker__done" disabled={!start || !end || duration <= 0} onClick={onDone}>Xong</button>}
   </div>;
 }
 
 function TimeColumn({ label, count, value, onChoose }) {
   const list = useRef(null);
-  useEffect(() => { if (list.current) list.current.scrollTop = Math.max(0, Number(value) * 32 - 64); }, [value]);
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      if (list.current) list.current.scrollTop = Math.max(0, Number(value) * 32 - 64);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [value]);
   function navigate(event) {
     const index = Number(event.target.dataset.value);
     let next;

@@ -8,6 +8,10 @@ server:
         same-site: lax
         secure: ${SESSION_COOKIE_SECURE:false}
 spring:
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
   application:
     name: chesshub-api
   datasource:

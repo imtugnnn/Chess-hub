@@ -36,6 +36,9 @@ public class User {
   @Column(name = "google_subject", unique = true)
   private String googleSubject;
 
+  @Column(name = "google_meet_url", length = 512)
+  private String googleMeetUrl;
+
   @Column(name = "created_at", nullable = false)
   private Instant createdAt = Instant.now();
 
@@ -55,6 +58,9 @@ public class User {
   }
 
   public void linkGoogle(String googleSubject) { this.googleSubject = googleSubject; }
+  public void changeEmail(String email) { this.email = email; }
+  public void setGoogleMeetUrl(String url) { this.googleMeetUrl = url; }
+  public String getGoogleMeetUrl() { return googleMeetUrl; }
 
   public UUID getId() { return id; }
   public UUID getCenterId() { return centerId; }

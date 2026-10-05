@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppPageHeader } from "../components/layout/AppPageHeader";
 import { AppSidebar } from "../components/layout/AppSidebar";
+import { ScheduleDatePicker, localDateKey, formatScheduleDate } from "../components/ScheduleDatePicker";
 import { WeeklyTimeFields } from "../components/WeeklyTimeFields";
 import { generateRecurringSessions } from "../components/recurringSessions";
 import { createTeacherClass, getStudentNameSuggestions } from "../services/api";
@@ -132,7 +133,7 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
     <div className="app-shell">
       <AppSidebar activeSection="classes" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} />
       <main className="dashboard create-class-dashboard">
-      <AppPageHeader breadcrumb="Lớp học" title="Tạo lớp mới" description="Thiết lập lớp học và lịch dạy đầu tiên." actions={<><button type="button" className="secondary-button" onClick={() => onNavigate("/homepage")} disabled={submitting}>← Quay lại</button><button className="primary-button create-class-submit" type="submit" form="create-class-form" disabled={submitting} aria-busy={submitting}>{submitting ? "Đang tạo lớp…" : "Tạo lớp"}</button></>} />
+      <AppPageHeader section="Lớp học" breadcrumbs={[{ label: "Lớp học", href: "/homepage" }]} onNavigate={onNavigate} title="Tạo lớp mới" description="Thiết lập lớp học và lịch dạy đầu tiên." actions={<><button type="button" className="secondary-button" onClick={() => onNavigate("/homepage")} disabled={submitting}>← Quay lại</button><button className="primary-button create-class-submit" type="submit" form="create-class-form" disabled={submitting} aria-busy={submitting}>{submitting ? "Đang tạo lớp…" : "Tạo lớp"}</button></>} />
       <section className="create-class-card" aria-labelledby="create-class-title">
         <p className="eyebrow">Thiết lập lớp học</p>
         <h2 id="create-class-title">Tạo lớp mới</h2>
@@ -155,7 +156,7 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
               <button type="button" role="radio" aria-checked={form.scheduleMode === "RECURRING"} className={form.scheduleMode === "RECURRING" ? "schedule-mode-toggle__active" : ""} onClick={() => setForm((current) => ({ ...current, scheduleMode: "RECURRING" }))}>Định kỳ hàng tuần</button>
             </div>
             {form.scheduleMode === "MANUAL" ? <div className="manual-sessions">
-              <ManualDatePicker sessions={form.manualSessions} onToggle={toggleManualDate} />
+              <ScheduleDatePicker sessions={form.manualSessions} onToggle={toggleManualDate} />
               <p className="manual-date-summary" role="status">{form.manualSessions.length ? `Đã chọn ${form.manualSessions.length} ngày. Nhập giờ riêng cho từng buổi bên dưới.` : "Chọn các ngày học trên lịch, sau đó nhập giờ cho từng buổi."}</p>
               {form.manualSessions.map((session, index) => <div className="manual-session manual-session--selected" key={session.date}>
                 <div className="manual-session-date"><strong>{new Date(`${session.date}T12:00:00`).toLocaleDateString("vi-VN", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" })}</strong><small>Buổi {index + 1}</small></div>
@@ -203,29 +204,9 @@ function RecurringDateField({ form, onDate }) {
   }
   return <div className="recurring-compact-fields recurring-compact-fields--date-only" ref={container}>
     <button ref={dateTrigger} type="button" className="recurring-range-trigger" aria-expanded={open === "date"} aria-controls="recurring-date-popover" onClick={() => setOpen(open === "date" ? null : "date")}><span>Khoảng ngày</span><strong>{form.startDate ? `${formatScheduleDate(form.startDate)} → ${form.endDate ? formatScheduleDate(form.endDate) : "…"}` : "Chọn ngày đầu → ngày cuối"}</strong></button>
-    {open === "date" && <div id="recurring-date-popover" className="recurring-small-popover" role="group" aria-label="Chọn khoảng ngày học"><ManualDatePicker sessions={[]} onToggle={chooseDate} range={{ start: form.startDate, end: form.endDate }} /></div>}
+    {open === "date" && <div id="recurring-date-popover" className="recurring-small-popover" role="group" aria-label="Chọn khoảng ngày học"><ScheduleDatePicker sessions={[]} onToggle={chooseDate} range={{ start: form.startDate, end: form.endDate }} /></div>}
   </div>;
 }
-
-function ManualDatePicker({ sessions, onToggle, range }) {
-  const [month, setMonth] = useState(() => { const date = sessions[0]?.date ? new Date(`${sessions[0].date}T12:00:00`) : new Date(); return new Date(date.getFullYear(), date.getMonth(), 1); });
-  const selected = new Set(sessions.map((session) => session.date));
-  const offset = (month.getDay() + 6) % 7;
-  const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
-  const today = localDateKey(new Date());
-  return <div className="manual-date-picker">
-    <div className="manual-date-picker__header"><button type="button" className="secondary-button" aria-label="Tháng trước" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>←</button><strong aria-live="polite">{month.toLocaleDateString("vi-VN", { month: "long", year: "numeric" })}</strong><button type="button" className="secondary-button" aria-label="Tháng sau" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>→</button></div>
-    <div className="manual-date-picker__grid" role="group" aria-label={range ? "Chọn ngày đầu và ngày cuối của lịch học" : "Chọn ngày học; bấm lại để bỏ chọn"}>
-      {weekdays.map((day) => <span className="manual-date-picker__weekday" key={day.value}>{day.label}</span>)}
-      {Array.from({ length: offset }, (_, index) => <span aria-hidden="true" key={`empty-${index}`} />)}
-      {Array.from({ length: days }, (_, index) => { const date = localDateKey(new Date(month.getFullYear(), month.getMonth(), index + 1)); const inRange = range?.start && range?.end && date > range.start && date < range.end; const isSelected = range ? date === range.start || date === range.end : selected.has(date); return <button type="button" key={date} className={inRange ? "calendar-date--in-range" : undefined} aria-label={`${new Date(`${date}T12:00:00`).toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}${range && date === range.start ? ", ngày đầu" : ""}${range && date === range.end ? ", ngày cuối" : ""}`} aria-pressed={Boolean(isSelected || inRange)} aria-current={date === today ? "date" : undefined} onClick={() => onToggle(date)}>{index + 1}</button>; })}
-    </div>
-    <small className="manual-date-picker__hint">{range ? (!range.start || range.end ? "Chọn ngày đầu để bắt đầu một khoảng mới. Có thể chọn khoảng qua nhiều tháng." : "Chọn ngày cuối để hoàn tất khoảng ngày học.") : "Có thể chọn nhiều ngày ở các tháng khác nhau. Bấm lại ngày đã chọn để bỏ."}</small>
-  </div>;
-}
-
-function localDateKey(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
-function formatScheduleDate(date) { return new Date(`${date}T12:00:00`).toLocaleDateString("vi-VN"); }
 
 function StudentDraft({ student, index, suggestions, onChange, onSelect, onRemove, disabled }) {
   const [collapsed, setCollapsed] = useState(false);

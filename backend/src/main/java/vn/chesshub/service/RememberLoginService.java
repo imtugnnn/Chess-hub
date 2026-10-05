@@ -24,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class RememberLoginService {
   static final String COOKIE_NAME = "CHESSHUB_REMEMBER";
-  private static final Duration LIFETIME = Duration.ofDays(30);
+  // Browsers require a finite cookie lifetime. Renew it when restoring a session;
+  // the server-side token remains valid until explicitly revoked.
+  private static final Duration COOKIE_LIFETIME = Duration.ofDays(365);
   private final JdbcTemplate jdbc;
   private final boolean secure;
   private final SecureRandom random = new SecureRandom();
@@ -42,9 +44,9 @@ public class RememberLoginService {
     byte[] bytes = new byte[32];
     random.nextBytes(bytes);
     String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    jdbc.update("insert into remember_login_tokens (token_hash, user_id, expires_at) values (?, ?, ?)",
-      hash(token), userId, Timestamp.from(now.plus(LIFETIME)));
-    cookie(response, token, LIFETIME);
+    jdbc.update("insert into remember_login_tokens (token_hash, user_id, expires_at) values (?, ?, null)",
+      hash(token), userId);
+    cookie(response, token, COOKIE_LIFETIME);
   }
 
   public Optional<UUID> restore(HttpServletRequest request, HttpServletResponse response) {
@@ -55,9 +57,10 @@ public class RememberLoginService {
       return Optional.empty();
     }
     var users = jdbc.query("select t.user_id from remember_login_tokens t join users u on u.id = t.user_id "
-      + "where t.token_hash = ? and t.expires_at > ? and u.password_hash is not null and not u.must_change_password",
+      + "where t.token_hash = ? and (t.expires_at is null or t.expires_at > ?) and not u.must_change_password",
       (row, index) -> row.getObject("user_id", UUID.class), hash(token), Timestamp.from(Instant.now()));
     if (users.isEmpty()) cookie(response, "", Duration.ZERO);
+    else cookie(response, token, COOKIE_LIFETIME);
     return users.stream().findFirst();
   }
 
@@ -65,6 +68,10 @@ public class RememberLoginService {
     String token = token(request);
     if (token != null) jdbc.update("delete from remember_login_tokens where token_hash = ?", hash(token));
     cookie(response, "", Duration.ZERO);
+  }
+
+  public void revokeAll(UUID userId) {
+    jdbc.update("delete from remember_login_tokens where user_id = ?", userId);
   }
 
   private String token(HttpServletRequest request) {

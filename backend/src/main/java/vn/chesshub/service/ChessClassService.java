@@ -42,6 +42,7 @@ public class ChessClassService {
 
   @Transactional
   public CreatedClass create(UUID teacherId, CreateClassCommand command) {
+    users.findForScheduleUpdate(teacherId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên."));
     String className = required(command.name(), "Tên lớp");
     User teacher = users.findById(teacherId)
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên."));
@@ -59,7 +60,8 @@ public class ChessClassService {
 
   @Transactional
   public ChessClass updateDetails(UUID teacherId, UUID classId, String name, BigDecimal feePerSession) {
-    ChessClass chessClass = findClass(teacherId, classId);
+    ChessClass chessClass = classes.findForUpdate(classId, teacherId)
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
     chessClass.updateName(required(name, "Tên lớp"));
     chessClass.updateFeePerSession(validFee(feePerSession));
     return chessClass;
@@ -67,7 +69,8 @@ public class ChessClassService {
 
   @Transactional
   public Student addStudent(UUID teacherId, UUID classId, StudentCommand command) {
-    ChessClass chessClass = findClass(teacherId, classId);
+    ChessClass chessClass = classes.findForUpdate(classId, teacherId)
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
     Student student = resolveStudents(users.findById(teacherId)
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên.")), List.of(command)).getFirst();
     if (chessClass.getStudents().stream().anyMatch(existing -> existing.getId().equals(student.getId()))) {
@@ -78,21 +81,46 @@ public class ChessClassService {
   }
 
   @Transactional
+  public void removeStudent(UUID teacherId, UUID classId, UUID studentId) {
+    ChessClass classroom = classes.findForUpdate(classId, teacherId)
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
+    classroom.removeStudent(studentId);
+  }
+
+  @Transactional
   public ChessClass updateFutureSchedule(UUID teacherId, UUID classId, ScheduleCommand schedule) {
-    ChessClass chessClass = findClass(teacherId, classId);
+    users.findForScheduleUpdate(teacherId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên."));
+    ChessClass chessClass = classes.findForUpdate(classId, teacherId)
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
     LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
     List<SessionSlot> replacements = createSessions(schedule).stream().filter(slot -> slot.date().isAfter(today)).toList();
     if (replacements.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lịch mới cần có ít nhất một buổi học trong tương lai.");
     validateNoScheduleConflicts(teacherId, replacements, classId);
-    sessions.deleteByChessClassIdAndSessionDateAfter(classId, today);
-    sessions.saveAll(replacements.stream().map(slot -> new ClassSession(chessClass, slot.date(), slot.startTime(), slot.endTime())).toList());
+    List<ClassSession> remaining = new ArrayList<>(sessions.findByChessClassIdOrderBySessionDateAscStartTimeAsc(classId).stream()
+      .filter(session -> session.getSessionDate().isAfter(today)).toList());
+    List<ClassSession> updated = new ArrayList<>();
+    // Reuse the exact slot first, then a remaining slot on the same date, to retain attachments.
+    for (SessionSlot slot : replacements) {
+      ClassSession existing = remaining.stream().filter(session -> session.getSessionDate().equals(slot.date())
+        && session.getStartTime().equals(slot.startTime()) && session.getEndTime().equals(slot.endTime())).findFirst().orElse(null);
+      if (existing != null) { remaining.remove(existing); updated.add(existing); }
+    }
+    for (SessionSlot slot : replacements) {
+      if (updated.stream().anyMatch(session -> session.getSessionDate().equals(slot.date())
+        && session.getStartTime().equals(slot.startTime()) && session.getEndTime().equals(slot.endTime()))) continue;
+      ClassSession existing = remaining.stream().filter(session -> session.getSessionDate().equals(slot.date())
+        && !session.isScheduleOverride() && !sessions.hasAttendance(session.getId()) && !sessions.hasTournament(session.getId())).findFirst().orElse(null);
+      if (existing != null) { remaining.remove(existing); existing.updateTimes(slot.startTime(), slot.endTime()); updated.add(existing); }
+      else updated.add(new ClassSession(chessClass, slot.date(), slot.startTime(), slot.endTime()));
+    }
+    if (remaining.stream().anyMatch(session -> session.isScheduleOverride() || sessions.hasTeachingMaterials(session.getId())
+        || sessions.hasAttendance(session.getId()) || sessions.hasTournament(session.getId()))) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Lịch mới bỏ buổi đã sửa riêng hoặc có dữ liệu. Hãy dùng chức năng xem trước lịch lặp.");
+    }
+    sessions.deleteAll(remaining);
+    sessions.saveAll(updated);
     chessClass.updateSchedule(scheduleSummary(schedule, replacements));
     return chessClass;
-  }
-
-  private ChessClass findClass(UUID teacherId, UUID classId) {
-    return classes.findByIdAndTeacherId(classId, teacherId)
-      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
   }
 
   private List<Student> resolveStudents(User teacher, List<StudentCommand> studentCommands) {

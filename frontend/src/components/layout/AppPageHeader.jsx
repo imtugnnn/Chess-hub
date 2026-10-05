@@ -1,7 +1,7 @@
 import { UiIcon } from "../UiIcon";
 
-export function AppPageHeader({ breadcrumb, title, description, actions, icon, className = "" }) {
-  const defaultIcon = getBreadcrumbIcon(breadcrumb);
+export function AppPageHeader({ section, breadcrumbs = [], onNavigate, title, description, actions, icon, className = "" }) {
+  const defaultIcon = getBreadcrumbIcon(section);
   const displayIcon = icon ?? defaultIcon;
 
   return (
@@ -9,7 +9,16 @@ export function AppPageHeader({ breadcrumb, title, description, actions, icon, c
       <div className="dashboard-header__main">
         {displayIcon && <div className="dashboard-header__icon" aria-hidden="true">{displayIcon}</div>}
         <div className="dashboard-header__content">
-          {breadcrumb && <div className="dashboard-header__breadcrumb"><span>{breadcrumb}</span></div>}
+          {breadcrumbs.length > 0 && <nav className="dashboard-header__breadcrumb" aria-label="Đường dẫn">
+            <ol>{breadcrumbs.map((item) => <li key={item.href}>
+              <a href={item.href} title={item.label} onClick={(event) => {
+                if (onNavigate && event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+                  event.preventDefault();
+                  onNavigate(item.href);
+                }
+              }}><span>{item.label}</span></a>
+            </li>)}</ol>
+          </nav>}
           <h1 className="dashboard-header__title">{typeof title === "string" ? title.replace(/\s+([·,:;!?])/g, "\u00a0$1") : title}</h1>
           {description && <p className="dashboard-header__description">{description}</p>}
         </div>

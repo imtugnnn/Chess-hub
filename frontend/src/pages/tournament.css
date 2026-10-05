@@ -23,3 +23,7 @@
 .create-tournament-page .tournament-card__heading > strong { flex-shrink: 0; }
 @media (max-width: 1100px) { .tournament-creation-layout { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 700px) { .tournament-identity { padding: 18px !important; } .tournament-names { padding: 18px; } .tournament-round-note { margin-inline: 18px; } }
+.tie-break-section .tie-break-description { display: block; margin-top: 4px; font-size: 12px; font-weight: 400; line-height: 1.5; color: #52637a; text-wrap: pretty; }
+.tie-break-section > div:first-child small { color: #52637a; font-size: 12px; }
+.tie-break-help { color: #52637a; font-size: 12px; line-height: 1.6; text-wrap: pretty; }
+.tie-break-item label:has(input:disabled) { opacity: .55; cursor: not-allowed; }

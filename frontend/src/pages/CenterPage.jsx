@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { AppSidebar } from "../components/layout/AppSidebar";
 import { AppPageHeader } from "../components/layout/AppPageHeader";
 import { UiIcon } from "../components/UiIcon";
-import { createCenter, getCenterDashboard, getCenterMemberClasses, inviteCenterMember, respondToCenterInvitation } from "../services/api";
+import { createCenter, getCenterDashboard, getCenterMemberClasses, inviteCenterMember, removeCenterMember, respondToCenterInvitation } from "../services/api";
+import { MaterialDialog } from "../components/materials/MaterialDialog";
 import "./center.css";
 
 export function CenterPage({ teacherId, teacherName, onLogout, onNavigate }) {
@@ -16,6 +17,20 @@ export function CenterPage({ teacherId, teacherName, onLogout, onNavigate }) {
   const [classesLoading, setClassesLoading] = useState(false);
   const [classesError, setClassesError] = useState("");
   const [section, setSection] = useState("members");
+  const [removingMember, setRemovingMember] = useState(null);
+  const [removalError, setRemovalError] = useState("");
+
+  async function removeMember() {
+    setBusy(true); setRemovalError(""); setError(""); setNotice("");
+    try {
+      setData(await removeCenterMember(teacherId, removingMember.id));
+      if (memberClasses?.member.id === removingMember.id) setMemberClasses(null);
+      setRemovingMember(null);
+      setNotice("Đã xóa thành viên khỏi trung tâm.");
+      window.dispatchEvent(new Event("center-invitations-updated"));
+    } catch (reason) { setRemovalError(reason.message); }
+    finally { setBusy(false); }
+  }
 
   async function showClasses(member) {
     setMemberClasses({ member, classes: [] }); setClassesLoading(true); setClassesError("");
@@ -52,7 +67,7 @@ export function CenterPage({ teacherId, teacherName, onLogout, onNavigate }) {
   return <div className="app-shell">
     <AppSidebar activeSection="center" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} />
     <main className="dashboard center-page">
-      <AppPageHeader breadcrumb="Trung tâm" title="Trung tâm của bạn" description="Mời giáo viên cùng sử dụng danh sách học sinh. Mỗi người vẫn quản lý lớp học của riêng mình." />
+      <AppPageHeader section="Trung tâm" title="Trung tâm của bạn" description="Mời giáo viên cùng sử dụng danh sách học sinh. Mỗi người vẫn quản lý lớp học của riêng mình." />
       {error && <p className="settings-message settings-message--error" role="alert">{error}</p>}
       {notice && <p className="settings-message settings-message--ready" role="status">{notice}</p>}
       {!data && !error && <p>Đang tải thông tin trung tâm…</p>}
@@ -81,7 +96,7 @@ export function CenterPage({ teacherId, teacherName, onLogout, onNavigate }) {
 
       {data?.center && section === "members" && <section className="center-card" aria-labelledby="center-name-title">
         <div className="center-card-heading"><div><span className="eyebrow">Dữ liệu học sinh dùng chung</span><h2 id="center-name-title">{data.center.name}</h2><p>Chủ trung tâm: {data.center.ownerName}</p></div><span className="center-count">{data.members.length} thành viên</span></div>
-        <div className="center-list">{data.members.map((member) => <div className="center-row" key={member.id}><div><strong>{member.fullName}</strong><small>{member.email}</small></div><div className="center-row-actions"><span className="center-role">{member.role === "OWNER" ? "Chủ trung tâm" : "Giáo viên"}</span>{isOwner && <button type="button" className="center-secondary-button" disabled={classesLoading} onClick={() => showClasses(member)}>Xem lớp học</button>}</div></div>)}</div>
+        <div className="center-list">{data.members.map((member) => <div className="center-row" key={member.id}><div><strong>{member.fullName}</strong><small>{member.email}</small></div><div className="center-row-actions"><span className="center-role">{member.role === "OWNER" ? "Chủ trung tâm" : "Giáo viên"}</span>{isOwner && <button type="button" className="center-secondary-button" disabled={busy || classesLoading} onClick={() => showClasses(member)}>Xem lớp học</button>}{isOwner && member.role !== "OWNER" && member.id !== teacherId && <button type="button" className="center-remove-button" disabled={busy || classesLoading} onClick={() => { setRemovalError(""); setRemovingMember(member); }}>Xóa khỏi trung tâm</button>}</div></div>)}</div>
       </section>}
 
       {isOwner && section === "members" && memberClasses && <section className="center-card" aria-labelledby="member-classes-title">
@@ -99,6 +114,11 @@ export function CenterPage({ teacherId, teacherName, onLogout, onNavigate }) {
         {data.outgoingInvitations.length > 0 && <div className="center-pending"><h3>Đang chờ chấp nhận</h3><div className="center-list">{data.outgoingInvitations.map((invitation) => <div className="center-row" key={invitation.id}><div><strong>{invitation.personName}</strong><small>{invitation.personEmail}</small></div><span className="center-role">Đang chờ</span></div>)}</div></div>}
       </section>}
       {data?.center && !isOwner && section === "invitations" && data.incomingInvitations.length === 0 && <section className="workspace-card workspace-empty"><UiIcon name="center" size={32} /><h3>Không có lời mời đang chờ</h3><p>Bạn đang là thành viên của {data.center.name}.</p></section>}
+      {removingMember && <MaterialDialog title="Xóa thành viên khỏi trung tâm?" busy={busy} className="center-remove-dialog" onClose={() => setRemovingMember(null)}>
+        <p>Xóa <strong>{removingMember.fullName}</strong> khỏi {data.center.name}? Thành viên sẽ mất quyền sử dụng danh sách học sinh chung. Tài khoản, lớp học và lịch sử giảng dạy vẫn được giữ. Bạn có thể mời họ tham gia lại sau.</p>
+        {removalError && <p className="settings-message settings-message--error" role="alert">{removalError}</p>}
+        <div className="center-row-actions"><button type="button" className="center-secondary-button" disabled={busy} data-dialog-autofocus onClick={() => setRemovingMember(null)}>Hủy</button><button type="button" className="center-remove-button" disabled={busy} onClick={removeMember}>{busy ? "Đang xóa…" : "Xóa khỏi trung tâm"}</button></div>
+      </MaterialDialog>}
     </main>
   </div>;
 }

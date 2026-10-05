@@ -50,9 +50,7 @@ public class AuthService {
     String normalizedEmail = normalizeEmail(email);
     User bySubject = accounts.findByGoogleSubject(subject).orElse(null);
     if (bySubject != null) {
-      if (!bySubject.getEmail().equals(normalizedEmail)) {
-        throw new AuthException(HttpStatus.CONFLICT, "Email tài khoản Google đã thay đổi. Vui lòng liên hệ hỗ trợ.");
-      }
+      // The verified Google subject remains the identity after a local email change.
       return bySubject;
     }
     User byEmail = accounts.findByEmail(normalizedEmail).orElse(null);
@@ -69,6 +67,7 @@ public class AuthService {
 
   private String normalizeEmail(String email) {
     String normalized = required(email, "Email là bắt buộc.").toLowerCase(Locale.ROOT);
+    if (normalized.length() > 255) throw new AuthException(HttpStatus.BAD_REQUEST, "Email không được vượt quá 255 ký tự.");
     if (!normalized.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
       throw new AuthException(HttpStatus.BAD_REQUEST, "Email không hợp lệ.");
     }
@@ -104,5 +103,48 @@ public class AuthService {
       throw new AuthException(HttpStatus.BAD_REQUEST, "Mật khẩu mới phải khác mật khẩu tạm thời.");
     account.completePasswordChange(passwordEncoder.encode(password));
     return accounts.saveAndFlush(account);
+  }
+
+  @Transactional
+  public User updateEmail(java.util.UUID userId, String email) {
+    User account = accountForUpdate(userId);
+    String normalized = normalizeEmail(email);
+    if (!normalized.equals(account.getEmail()) && accounts.existsByEmail(normalized))
+      throw new AuthException(HttpStatus.CONFLICT, "Email này đã được sử dụng.");
+    account.changeEmail(normalized);
+    return accounts.saveAndFlush(account);
+  }
+
+  @Transactional
+  public User updatePassword(java.util.UUID userId, String currentPassword, String newPassword) {
+    User account = accountForUpdate(userId);
+    if (account.getPasswordHash() != null) verifyCurrentPassword(account, currentPassword);
+    validatePassword(newPassword);
+    if (account.getPasswordHash() != null && passwordEncoder.matches(newPassword, account.getPasswordHash()))
+      throw new AuthException(HttpStatus.BAD_REQUEST, "Mật khẩu mới phải khác mật khẩu hiện tại.");
+    account.completePasswordChange(passwordEncoder.encode(newPassword));
+    return accounts.saveAndFlush(account);
+  }
+
+  @Transactional
+  public User updateGoogleMeet(java.util.UUID userId, String googleMeetUrl) {
+    String url = googleMeetUrl == null ? "" : googleMeetUrl.trim();
+    if (!url.isEmpty() && !url.matches("https://meet\\.google\\.com/[a-z]{3}-[a-z]{4}-[a-z]{3}"))
+      throw new AuthException(HttpStatus.BAD_REQUEST, "Nhập link Google Meet dạng https://meet.google.com/abc-defg-hij.");
+    User account = accountForUpdate(userId);
+    account.setGoogleMeetUrl(url.isEmpty() ? null : url);
+    return accounts.saveAndFlush(account);
+  }
+
+  private User accountForUpdate(java.util.UUID userId) {
+    return accounts.findForPasswordChange(userId).orElseThrow(this::invalidCredentials);
+  }
+
+  private void verifyCurrentPassword(User account, String password) {
+    if (account.getPasswordHash() == null)
+      throw new AuthException(HttpStatus.BAD_REQUEST, "Hãy tạo mật khẩu trước khi đổi email.");
+    if (password == null || password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72
+        || !passwordEncoder.matches(password, account.getPasswordHash()))
+      throw new AuthException(HttpStatus.BAD_REQUEST, "Mật khẩu hiện tại không đúng.");
   }
 }

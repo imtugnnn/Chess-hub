@@ -194,6 +194,32 @@ public class CenterService {
     return dashboard(userId);
   }
 
+  @Transactional
+  public Dashboard removeMember(UUID ownerId, UUID memberId) {
+    requireUser(ownerId);
+    lockUser(ownerId);
+    UUID centerId = db.queryForObject("select center_id from users where id = ?", UUID.class, ownerId);
+    Center center = activeCenter(ownerId, centerId);
+    if (center == null || !center.ownerUserId().equals(ownerId)) {
+      throw error(HttpStatus.FORBIDDEN, "Chỉ chủ trung tâm mới có thể xóa thành viên.");
+    }
+    if (ownerId.equals(memberId)) {
+      throw error(HttpStatus.BAD_REQUEST, "Không thể xóa chủ trung tâm khỏi trung tâm.");
+    }
+    // Serialize membership changes with invitation acceptance and account deletion.
+    requireUser(memberId);
+    lockUser(memberId);
+    int removed = db.update("""
+      update center_memberships set status = 'LEFT'
+      where center_id = ? and user_id = ? and status = 'ACTIVE' and role <> 'OWNER'
+      """, centerId, memberId);
+    if (removed == 0) {
+      throw error(HttpStatus.NOT_FOUND, "Người dùng không phải thành viên của trung tâm.");
+    }
+    db.update("update users set center_id = null where id = ? and center_id = ?", memberId, centerId);
+    return dashboard(ownerId);
+  }
+
   private Center activeCenter(UUID userId, UUID centerId) {
     if (centerId == null) return null;
     List<Center> centers = db.query("""

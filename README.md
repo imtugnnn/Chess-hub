@@ -88,6 +88,8 @@ $env:GOOGLE_OAUTH_CLIENT_SECRET = "<client-secret>"
 
 Nếu dùng Docker Compose thường xuyên, có thể tạo file `.env` tại thư mục gốc với hai dòng `GOOGLE_OAUTH_CLIENT_ID=<client-id>` và `GOOGLE_OAUTH_CLIENT_SECRET=<client-secret>`. File `.env` đã được thêm vào `.gitignore`; không đưa secret vào mã nguồn hoặc gửi công khai.
 
+Docker Compose mặc định cố định callback Google ở `http://localhost:3000/login/oauth2/code/google`, kể cả khi bắt đầu đăng nhập qua frontend `http://localhost:4173`. Đăng ký URL này trong **Authorized redirect URIs** của OAuth client. Có thể ghi đè bằng `GOOGLE_OAUTH_REDIRECT_URI` trong `.env`; không dùng hostname nội bộ Docker `api` làm callback.
+
 Sau khi cấu hình, chạy `docker compose up -d --force-recreate api` để API nhận biến môi trường mới. Nút **Đăng nhập bằng Google** luôn hiển thị tại `http://localhost:4173/login` và chỉ bật khi API đã được cấu hình. Google phải trả về email đã xác minh. Nếu email trùng tài khoản hiện có, tài khoản đó được liên kết với Google và giữ nguyên dữ liệu; tài khoản mới dùng Google sẽ không có mật khẩu. Khi triển khai ở tên miền khác, đăng ký redirect URI tương ứng với API (`https://<api-domain>/login/oauth2/code/google`), đặt `CORS_ORIGIN` bằng origin của frontend và bật `SESSION_COOKIE_SECURE=true` trên HTTPS.
 
 ## API chính
@@ -166,10 +168,10 @@ GOOGLE_OAUTH_REDIRECT_URI=https://chesshub-web-881466446251.asia-southeast1.run.
 
 Đăng ký chính xác URL này trong **Authorized redirect URIs** của OAuth client có Client ID đang dùng trên backend. Build và deploy image backend có cấu hình này trước khi sử dụng biến mới. Nếu không đặt biến, backend tiếp tục dùng callback mặc định theo URL của request để hỗ trợ local.
 
-### Ghi nhớ đăng nhập bằng mật khẩu
+### Tự động giữ đăng nhập đến khi đăng xuất
 
-Trang đăng nhập mặc định chọn **Ghi nhớ đăng nhập 30 ngày**. API `POST /api/v1/auth/login` nhận thêm `rememberMe` (boolean); bỏ chọn hoặc không gửi trường này chỉ tạo session thông thường với thời gian không hoạt động tối đa 8 giờ.
+Đăng nhập bằng email/mật khẩu và Google đều tự động giữ đăng nhập. Trường `rememberMe` của API được giữ để tương thích nhưng không còn quyết định việc lưu phiên. Tài khoản dùng mật khẩu tạm chỉ nhận cookie ghi nhớ sau khi hoàn thành đổi mật khẩu.
 
-Khi chọn ghi nhớ, backend cấp token ngẫu nhiên 256 bit trong cookie `CHESSHUB_REMEMBER` có `HttpOnly`, `SameSite=Lax`, thời hạn 30 ngày và chỉ lưu SHA-256 của token trong database. Token hết hạn sau 30 ngày kể từ lần đăng nhập bằng mật khẩu; việc khôi phục session không gia hạn token. Khi session mất hoặc backend restart, request tiếp theo dùng token hợp lệ để tạo session mới. Đăng xuất thu hồi token của trình duyệt hiện tại và xóa cookie. Token của tài khoản bị xóa được xóa theo khóa ngoại.
+Backend cấp token ngẫu nhiên 256 bit trong cookie `CHESSHUB_REMEMBER` có `HttpOnly`, `SameSite=Lax`, thời hạn cookie 365 ngày và chỉ lưu SHA-256 của token trong database. Token trên server không có ngày hết hạn; cookie được gia hạn khi khôi phục phiên. Khi session mất hoặc backend restart, request tiếp theo dùng token hợp lệ để tạo session mới, kể cả tài khoản Google không có mật khẩu. Đăng xuất thu hồi token của trình duyệt hiện tại và xóa cookie. Token của tài khoản bị xóa được xóa theo khóa ngoại. Trình duyệt xóa cookie hoặc cookie hết hạn vẫn yêu cầu đăng nhập lại.
 
-Triển khai cả frontend và backend, để Flyway chạy migration `V10__create_remember_login_tokens.sql`, và đặt `SESSION_COOKIE_SECURE=true` trên HTTPS. Người đang đăng nhập cần đăng nhập lại một lần với lựa chọn ghi nhớ để nhận cookie mới. Kiểm thử backend dùng MockMvc và JDBC mock; migration chưa được kiểm tra trên database production.
+Triển khai cả frontend và backend, để Flyway chạy migration `V10__create_remember_login_tokens.sql` và `V18__remember_login_until_revoked.sql`, và đặt `SESSION_COOKIE_SECURE=true` trên HTTPS. Sau khi nâng cấp, người đang dùng phiên cũ cần đăng nhập lại một lần để nhận cookie ghi nhớ mới. Kiểm thử gồm luồng OAuth, cấp token, khôi phục tài khoản Google không có mật khẩu và thu hồi token khi đăng xuất.

@@ -9,6 +9,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+  @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+  public ResponseEntity<ErrorResponse> handleUploadSize(org.springframework.web.multipart.MaxUploadSizeExceededException exception) {
+    return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(new ErrorResponse("Tệp bài giảng tối đa 20 MB."));
+  }
   @ExceptionHandler(ResponseStatusException.class)
   public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException exception) {
     HttpStatus status = HttpStatus.valueOf(exception.getStatusCode().value());

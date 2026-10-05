@@ -1,4 +1,15 @@
 /* Shared UI refinements; keep ChessHub's navy and gold brand. */
+.auth-form .login-options { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; }
+.remember-login-control { display: inline-flex; align-items: center; gap: 8px; }
+.remember-login-control > label { color: #234b87; font-family: var(--font-body); font-size: 13px; font-weight: 600; line-height: 1.4; cursor: pointer; }
+.remember-login-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 40px; width: 40px; min-height: 40px; padding: 8px; border: 1px solid #dce2eb; border-radius: 12px; color: #3a465a; background: #fff; font-size: 13px; font-weight: 600; line-height: 1.4; cursor: pointer; transition: background-color .2s, color .2s; }
+.remember-login-button:hover { background: #f1f1f3; }
+.remember-login-button[aria-pressed="true"] { color: #234b87; background: #eaf1fc; }
+.remember-login-button[aria-pressed="true"]:hover { background: #dce8fa; }
+.remember-login-button__indicator { display: grid; place-items: center; flex: 0 0 16px; width: 16px; height: 16px; border: 1px solid #8491a6; border-radius: 4px; font-size: 12px; line-height: 1; }
+.remember-login-button[aria-pressed="true"] .remember-login-button__indicator { border-color: #234b87; color: #fff; background: #234b87; }
+.remember-login-button:disabled { opacity: .6; cursor: wait; }
+.login-options > .text-button { min-height: 40px; }
 .manual-date-picker { padding: 16px; border: 1px solid var(--ui-border); border-radius: 10px; background: #fff; }
 .manual-date-picker__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; color: var(--ui-text); font-size: 14px; }
 .manual-date-picker__header .secondary-button { min-width: 40px; min-height: 40px; padding: 8px; }
@@ -80,12 +91,23 @@
   --ui-page-gap: 24px;
 }
 .app-shell > main.dashboard { padding: 32px 32px 48px; }
-.app-shell > main.dashboard > .dashboard-header { margin: 0 0 var(--ui-page-gap); padding: 20px 24px; min-height: 144px; }
+.app-shell > main.dashboard > .dashboard-header { margin: 0 0 var(--ui-page-gap); padding: 20px 24px; min-height: 108px; }
 .app-shell > main.dashboard > .dashboard-header .header-actions { gap: 12px; }
 .dashboard-header { min-height: 108px; padding: 20px 24px; box-shadow: none; }
 .dashboard-header__icon { box-shadow: none; }
 .dashboard-header__description { color: var(--ui-muted); font-size: 14px; line-height: 1.6; }
-.dashboard-header__breadcrumb span { font-size: 12px; }
+.dashboard-header__breadcrumb ol { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0; padding: 0; list-style: none; }
+.dashboard-header__breadcrumb li { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.dashboard-header__breadcrumb li + li::before { content: "›"; color: var(--ui-muted); }
+.dashboard-header__breadcrumb a { display: inline-flex; align-items: center; min-width: 0; max-width: 192px; min-height: 32px; color: var(--ui-muted); text-decoration: none; }
+.dashboard-header__breadcrumb a span { overflow: hidden; padding: 0; border-radius: 0; color: inherit; background: transparent; font-size: 14px; font-weight: 400; letter-spacing: normal; text-transform: none; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-header__breadcrumb a:hover { color: var(--ui-navy); text-decoration: underline; }
+.dashboard-header__breadcrumb a:focus-visible { outline: 2px solid var(--ui-navy); outline-offset: 2px; }
+@media (max-width: 639px) {
+  .dashboard-header__breadcrumb li:not(:last-child) { display: none; }
+  .dashboard-header__breadcrumb li:last-child::before { content: "‹"; }
+  .dashboard-header__breadcrumb a { min-height: 40px; }
+}
 .header-actions .secondary-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; }
 .sidebar { z-index: 20; }
 .sidebar nav { min-height: 0; overflow-y: auto; margin-bottom: 20px; }
