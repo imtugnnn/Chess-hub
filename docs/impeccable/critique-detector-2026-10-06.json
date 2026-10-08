@@ -1,0 +1,81 @@
+[
+  {
+    "antipattern": "side-tab",
+    "name": "Side-tab accent border",
+    "description": "Thick colored border on one side of a card — the most recognizable tell of AI-generated UIs. Use a subtler accent or remove it entirely.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\imtun\\Documents\\GitHub\\ChessHub\\frontend\\src\\pages\\calendar.css",
+    "line": 52,
+    "snippet": "border-left: 3px solid var(--ui-navy)",
+    "importedBy": [
+      "AttendanceSummaryPage.jsx",
+      "CalendarPage.jsx"
+    ]
+  },
+  {
+    "antipattern": "side-tab",
+    "name": "Side-tab accent border",
+    "description": "Thick colored border on one side of a card — the most recognizable tell of AI-generated UIs. Use a subtler accent or remove it entirely.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\imtun\\Documents\\GitHub\\ChessHub\\frontend\\src\\pages\\landing.css",
+    "line": 56,
+    "snippet": "border-left:3px solid var(--lp-blue)",
+    "importedBy": [
+      "LandingPage.jsx"
+    ]
+  },
+  {
+    "antipattern": "side-tab",
+    "name": "Side-tab accent border",
+    "description": "Thick colored border on one side of a card — the most recognizable tell of AI-generated UIs. Use a subtler accent or remove it entirely.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\imtun\\Documents\\GitHub\\ChessHub\\frontend\\src\\pages\\tournament.css",
+    "line": 16,
+    "snippet": "border-left: 3px solid #e1b84a",
+    "importedBy": [
+      "CreateTournamentPage.jsx"
+    ]
+  },
+  {
+    "antipattern": "side-tab",
+    "name": "Side-tab accent border",
+    "description": "Thick colored border on one side of a card — the most recognizable tell of AI-generated UIs. Use a subtler accent or remove it entirely.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\imtun\\Documents\\GitHub\\ChessHub\\frontend\\src\\styles.css",
+    "line": 6,
+    "snippet": "border-left: 5px solid #244d89",
+    "importedBy": [
+      "main.jsx"
+    ]
+  },
+  {
+    "antipattern": "side-tab",
+    "name": "Side-tab accent border",
+    "description": "Thick colored border on one side of a card — the most recognizable tell of AI-generated UIs. Use a subtler accent or remove it entirely.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\imtun\\Documents\\GitHub\\ChessHub\\frontend\\src\\styles.css",
+    "line": 33,
+    "snippet": "border-left: 3px solid #d49a45",
+    "importedBy": [
+      "main.jsx"
+    ]
+  },
+  {
+    "antipattern": "side-tab",
+    "name": "Side-tab accent border",
+    "description": "Thick colored border on one side of a card — the most recognizable tell of AI-generated UIs. Use a subtler accent or remove it entirely.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "C:\\Users\\imtun\\Documents\\GitHub\\ChessHub\\frontend\\src\\styles.css",
+    "line": 52,
+    "snippet": "border-left: 3px solid #4979b9",
+    "importedBy": [
+      "main.jsx"
+    ]
+  }
+]

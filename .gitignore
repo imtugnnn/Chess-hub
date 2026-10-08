@@ -4,3 +4,18 @@ frontend/dist/
 backend/.env
 .env
 .DS_Store
+
+# Impeccable local runtime and downloaded engine
+.impeccable/engine/
+**/skills/impeccable/scripts/bin/
+**/.impeccable/hook.cache.json
+**/.impeccable/hook.pending.json
+.impeccable/config.local.json
+.impeccable/*.log
+.impeccable/live/server.json
+.impeccable/live/sessions/
+.impeccable/live/previews/
+.impeccable/live/cache/
+.impeccable/live/locks/
+.impeccable/live/artifacts/
+.impeccable/live/annotations/

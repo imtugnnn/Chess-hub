@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { Homepage } from "./pages/HomePage";
@@ -7,7 +7,6 @@ import { CreateClassPage } from "./pages/CreateClassPage";
 import { CalendarPage } from "./pages/CalendarPage";
 import { ClassDetailPage } from "./pages/ClassDetailPage";
 import { CreateTournamentPage } from "./pages/CreateTournamentPage";
-import { ClassManagementPage } from "./pages/ClassManagementPage";
 import { TournamentDetailPage } from "./pages/TournamentDetailPage";
 import { AttendanceSummaryPage } from "./pages/AttendanceSummaryPage";
 import { AccountSettingsPage } from "./pages/AccountSettingsPage";
@@ -15,6 +14,8 @@ import { CenterPage } from "./pages/CenterPage";
 import { MaterialsPage } from "./pages/MaterialsPage";
 import { InitialPasswordPage } from "./pages/InitialPasswordPage";
 import { getSessionUser, logoutSession } from "./services/api";
+import { createNavigation } from "./services/navigation";
+import { canonicalClassUrl } from "./components/workspaceState";
 
 const VALID_PATHS = new Set(["/", "/login", "/register", "/homepage", "/classes/new", "/tournaments/new", "/calendar", "/attendance-summary", "/settings", "/center", "/materials"]);
 const TOURNAMENT_CREATION_PATH = /^\/classes\/([0-9a-f-]{36})\/sessions\/([0-9a-f-]{36})\/tournaments\/new$/i;
@@ -23,11 +24,14 @@ const CLASS_MANAGEMENT_PATH = /^\/classes\/([0-9a-f-]{36})\/manage$/i;
 const TOURNAMENT_DETAIL_PATH = /^\/tournaments\/([0-9a-f-]{36})$/i;
 
 function getPathname() {
-  const path = window.location.pathname;
+  let path = window.location.pathname;
+  if (CLASS_MANAGEMENT_PATH.test(path)) {
+    window.history.replaceState(window.history.state, "", canonicalClassUrl(`${path}${window.location.search}`, window.location.origin));
+    path = window.location.pathname;
+  }
   if (VALID_PATHS.has(path)) return path;
   if (TOURNAMENT_CREATION_PATH.test(path)) return path;
   if (CLASS_TOURNAMENT_CREATION_PATH.test(path)) return path;
-  if (CLASS_MANAGEMENT_PATH.test(path)) return path;
   if (TOURNAMENT_DETAIL_PATH.test(path)) return path;
   if (/^\/classes\/[0-9a-f-]{36}$/i.test(path)) return path;
   window.history.replaceState({}, "", "/");
@@ -36,6 +40,10 @@ function getPathname() {
 
 export default function App() {
   const [path, setPath] = useState(getPathname);
+  const [locationSearch, setLocationSearch] = useState(() => window.location.search);
+  const navigation = useRef(null);
+  if (!navigation.current) navigation.current = createNavigation(window, () => { setPath(getPathname()); setLocationSearch(window.location.search); });
+  const registerNavigationGuard = useCallback((guard) => navigation.current.setGuard(guard), []);
   const [teacher, setTeacher] = useState(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const sessionVersion = useRef(0);
@@ -51,13 +59,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const expired = () => { sessionVersion.current += 1; setTeacher(null); navigate("/login"); };
+    const expired = () => { sessionVersion.current += 1; setTeacher(null); navigation.current.navigate("/login", true); };
     window.addEventListener("chesshub-session-expired", expired);
     return () => window.removeEventListener("chesshub-session-expired", expired);
   }, []);
 
   useEffect(() => {
-    const handlePopState = () => setPath(getPathname());
+    const handlePopState = () => navigation.current.popstate();
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
@@ -66,18 +74,18 @@ export default function App() {
     if (sessionChecked && path === "/" && teacher) {
       window.history.replaceState({}, "", "/homepage");
       setPath("/homepage");
+      navigation.current.sync();
       return;
     }
     if (sessionChecked && (path === "/materials" || path === "/homepage" || path === "/classes/new" || path === "/calendar" || path === "/attendance-summary" || path === "/settings" || path === "/center" || path.startsWith("/classes/") || path.startsWith("/tournaments/")) && !teacher) {
       window.history.replaceState({}, "", "/login");
       setPath("/login");
+      navigation.current.sync();
     }
   }, [path, teacher, sessionChecked]);
 
   function navigate(to) {
-    const destination = new URL(to, window.location.origin);
-    window.history.pushState({}, "", `${destination.pathname}${destination.search}${destination.hash}`);
-    setPath(destination.pathname);
+    navigation.current.navigate(canonicalClassUrl(to, window.location.origin));
   }
 
   function handleAuthenticated(account) {
@@ -87,12 +95,13 @@ export default function App() {
     navigate("/homepage");
   }
 
-  async function logout() {
+  function logout() { navigation.current.request(performLogout); }
+  async function performLogout() {
     try { await logoutSession(); }
     catch (error) { window.alert(error.message); return; }
     sessionVersion.current += 1;
     setTeacher(null);
-    navigate("/");
+    navigation.current.navigate("/", true);
   }
 
   if (path === "/") return <LandingPage onNavigate={navigate} />;
@@ -112,10 +121,8 @@ export default function App() {
   const classTournamentPath = path.match(CLASS_TOURNAMENT_CREATION_PATH);
   if (classTournamentPath && teacher) return <CreateTournamentPage key={path} classId={classTournamentPath[1]} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   if (path === "/tournaments/new" && teacher) return <CreateTournamentPage key={path} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
-  const managementPath = path.match(CLASS_MANAGEMENT_PATH);
-  if (managementPath && teacher) return <ClassManagementPage classId={managementPath[1]} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   const tournamentDetailPath = path.match(TOURNAMENT_DETAIL_PATH);
   if (tournamentDetailPath && teacher) return <TournamentDetailPage tournamentId={tournamentDetailPath[1]} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
-  if (path.startsWith("/classes/") && path !== "/classes/new" && teacher) return <ClassDetailPage classId={path.split("/").at(-1)} sessionId={new URLSearchParams(window.location.search).get("sessionId")} googleMeetUrl={teacher.googleMeetUrl} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
+  if (path.startsWith("/classes/") && path !== "/classes/new" && teacher) return <ClassDetailPage key={path} classId={path.split("/").at(-1)} locationSearch={locationSearch} registerNavigationGuard={registerNavigationGuard} googleMeetUrl={teacher.googleMeetUrl} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   return <LoginPage onNavigate={navigate} onAuthenticated={handleAuthenticated} />;
 }

@@ -1,0 +1,66 @@
+[
+  {
+    "width": 1280,
+    "initial": {
+      "width": 1280,
+      "scrollWidth": 1280,
+      "height": 900,
+      "rows": 6,
+      "metrics": [
+        "13",
+        "679",
+        "88.200.000 ₫"
+      ]
+    },
+    "errors": [],
+    "checks": "class/student pagination, totals, search without accents, sorting, class filter, empty class, Escape and focus"
+  },
+  {
+    "width": 375,
+    "initial": {
+      "width": 375,
+      "scrollWidth": 375,
+      "height": 1369,
+      "rows": 4,
+      "metrics": [
+        "13",
+        "679",
+        "88.200.000 ₫"
+      ]
+    },
+    "errors": [],
+    "checks": "class/student pagination, totals, search without accents, sorting, class filter, empty class, Escape and focus"
+  },
+  {
+    "width": 1920,
+    "initial": {
+      "width": 1920,
+      "scrollWidth": 1920,
+      "height": 900,
+      "rows": 6,
+      "metrics": [
+        "13",
+        "679",
+        "88.200.000 ₫"
+      ]
+    },
+    "errors": [],
+    "checks": "class/student pagination, totals, search without accents, sorting, class filter, empty class, Escape and focus"
+  },
+  {
+    "mode": "empty",
+    "passed": true
+  },
+  {
+    "mode": "error",
+    "passed": true
+  },
+  {
+    "mode": "loading",
+    "passed": true
+  },
+  {
+    "stress": "100 classes × 500 memberships, only 6 classes / 6 students rendered",
+    "passed": true
+  }
+]

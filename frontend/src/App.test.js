@@ -24,9 +24,11 @@ const compiled = await build({
 
 function initialRender(pathname) {
   const module = { exports: {} };
+  const location = new URL(pathname, "https://chesshub.test");
+  const browser = { location: { pathname: location.pathname, search: location.search, hash: location.hash, origin: location.origin }, history: { state: {}, replaceState(state, _, to) { this.state = state; const next = new URL(to, location.origin); Object.assign(browser.location, { pathname: next.pathname, search: next.search, hash: next.hash }); } } };
   vm.runInNewContext(compiled.outputFiles[0].text, {
-    module, exports: module.exports, require: createRequire(import.meta.url), React,
-    window: { location: { pathname }, history: { replaceState() {} } },
+    module, exports: module.exports, require: createRequire(import.meta.url), React, URL,
+    window: browser,
   });
   return renderToStaticMarkup(React.createElement(module.exports.default));
 }
@@ -38,7 +40,7 @@ test("public routes render while session verification is pending", () => {
 });
 
 test("protected routes still wait for session verification", () => {
-  for (const path of ["/homepage", "/center", "/materials", "/classes/new", "/tournaments/new"]) {
+  for (const path of ["/homepage", "/center", "/materials", "/classes/new", "/tournaments/new", "/classes/11111111-1111-1111-1111-111111111111/manage?section=students"]) {
     assert.match(initialRender(path), /Đang kiểm tra phiên đăng nhập/);
   }
 });

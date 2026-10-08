@@ -94,7 +94,7 @@ export function CalendarPage({ teacherId, teacherName, onLogout, onNavigate }) {
         <div className="schedule-filters">
           <CalendarFilter label="Lớp học" value={classFilter} options={availableClasses} searchable={availableClasses.length > 8} disabled={loading || Boolean(error)} onChange={(value) => { setClassFilter(value); setSelectedClass(availableClasses.find((option) => option.value === value)); }} />
           <CalendarFilter label="Điểm danh" value={statusFilter} options={attendanceOptions} onChange={setStatusFilter} disabled={loading || Boolean(error)} />
-          {hasFilters && <button className="schedule-clear" type="button" onClick={clearFilters}>Xóa bộ lọc</button>}
+          {hasFilters && <button className="secondary-button schedule-clear" type="button" onClick={clearFilters}>Đặt lại bộ lọc</button>}
         </div>
         <div className="schedule-content" aria-busy={loading}>
           {error ? <div className="schedule-feedback ui-error" role="alert"><p>{error}</p><button className="secondary-button" onClick={() => setRetry((value) => value + 1)}>Thử lại</button></div>
@@ -102,12 +102,12 @@ export function CalendarPage({ teacherId, teacherName, onLogout, onNavigate }) {
               : <>
                 <div className="schedule-day-picker" role="group" aria-label="Chọn ngày xem lịch">{days.map((date, index) => { const dateKey = formatDate(date); return <button type="button" key={dateKey} aria-pressed={dateKey === selectedDate} aria-current={dateKey === today ? "date" : undefined} aria-label={`${dayNames[index]}, ${date.toLocaleDateString("vi-VN")}, ${(sessionsByDate[dateKey] ?? []).length} buổi học`} onClick={() => setSelectedDate(dateKey)}><span>{shortDayNames[index]}</span><strong>{date.getDate()}</strong><i className={(sessionsByDate[dateKey] ?? []).length ? "schedule-day-picker__dot" : ""} aria-hidden="true" /></button>; })}</div>
                 {view === "week" && filteredSessions.length > 0 && <WeekSchedule days={days} sessionsByDate={sessionsByDate} now={now} onNavigate={onNavigate} />}
-                {!filteredSessions.length && <div className="schedule-empty-week"><UiIcon name="calendar" size={24} /><div><strong>{hasFilters ? "Không có buổi học phù hợp" : "Tuần này chưa có buổi học"}</strong><p>{hasFilters ? "Thử chọn lớp học hoặc trạng thái khác." : "Tạo lớp học để bắt đầu sắp xếp lịch dạy."}</p></div>{hasFilters ? <button type="button" className="secondary-button" onClick={clearFilters}>Xóa bộ lọc</button> : <button type="button" className="secondary-button" onClick={() => onNavigate(`/classes/new?date=${selectedDate}`)}>Tạo lớp mới</button>}</div>}
+                {!filteredSessions.length && <div className="schedule-empty-week"><UiIcon name="calendar" size={24} /><div><strong>{hasFilters ? "Không có buổi học phù hợp" : "Tuần này chưa có buổi học"}</strong><p>{hasFilters ? "Thử chọn lớp học hoặc trạng thái khác." : "Tạo lớp học để bắt đầu sắp xếp lịch dạy."}</p></div>{hasFilters ? <button type="button" className="secondary-button" onClick={clearFilters}>Đặt lại bộ lọc</button> : <button type="button" className="secondary-button" onClick={() => onNavigate(`/classes/new?date=${selectedDate}`)}>Tạo lớp mới</button>}</div>}
                 {filteredSessions.length > 0 && <div className="schedule-agenda" aria-label="Danh sách buổi học">{days.map((date, index) => {
                   const dateKey = formatDate(date);
                   const dailySessions = sessionsByDate[dateKey] ?? [];
                   return <section key={dateKey} className={`schedule-agenda-day ${dateKey === selectedDate ? "schedule-agenda-day--selected" : ""} ${!dailySessions.length ? "schedule-agenda-day--empty" : ""}`} aria-label={`${dayNames[index]}, ${date.toLocaleDateString("vi-VN")}`}>
-                    <header><div><h3>{dayNames[index]}, {date.toLocaleDateString("vi-VN", { day: "numeric", month: "numeric" })}{dateKey === today && <span>Hôm nay</span>}</h3><p>{dailySessions.length} buổi học</p></div><button type="button" className="schedule-add" aria-label={`Tạo lớp học ngày ${date.toLocaleDateString("vi-VN")}`} onClick={() => onNavigate(`/classes/new?date=${dateKey}`)}><UiIcon name="plus" size={18} /><span>Tạo lớp</span></button></header>
+                    <header><div><h3>{dayNames[index]}, {date.toLocaleDateString("vi-VN", { day: "numeric", month: "numeric" })}{dateKey === today && <span>Hôm nay</span>}</h3><p>{dailySessions.length} buổi học</p></div></header>
                     {dailySessions.length ? dailySessions.map((session) => <SessionLink key={session.id} session={session} now={now} onNavigate={onNavigate} className="schedule-agenda-session" />) : <p className="schedule-empty-day">{hasFilters ? "Không có buổi học phù hợp trong ngày này." : "Chưa có buổi học trong ngày này."}</p>}
                   </section>;
                 })}</div>}
@@ -130,7 +130,6 @@ function WeekSchedule({ days, sessionsByDate, now, onNavigate }) {
           {dailySessions.length ? dailySessions.map((session) => <SessionLink key={session.id} session={session} now={now} onNavigate={onNavigate} className="schedule-week-session" />) : <p className="schedule-week-day__empty">Chưa có buổi học</p>}
         </section>;
       })}</div>
-      <div className="schedule-week__footer">{days.map((date) => <button type="button" className="schedule-add" key={formatDate(date)} aria-label={`Tạo lớp học ngày ${date.toLocaleDateString("vi-VN")}`} onClick={() => onNavigate(`/classes/new?date=${formatDate(date)}`)}><UiIcon name="plus" size={16} /><span>Tạo lớp</span></button>)}</div>
     </div>
   </div>;
 }
@@ -140,13 +139,13 @@ function SessionLink({ session, now, onNavigate, className }) {
   const time = `${session.startTime.slice(0, 5)} – ${session.endTime.slice(0, 5)}`;
   const duration = formatSessionDuration(session);
   const description = `${session.className}, ${time}. Thời lượng ${duration}. ${status.label}`;
-  const href = `/classes/${session.classId}?sessionId=${session.id}`;
-  return <a href={href} className={`${className} schedule-session--${status.type}`} aria-label={`Mở buổi học ${description}`} title={description} onClick={(event) => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); onNavigate(href); }}>
+  const href = `/classes/${session.classId}?tab=sessions&sessionId=${session.id}`;
+  return <article className={`${className} schedule-session--${status.type}`}>
     <div className="schedule-session-timing"><time>{time}</time><span className="schedule-session-duration">{duration}</span></div>
     <strong>{session.className}</strong>
     <span className={`schedule-session-status schedule-session-status--${status.type}`}><i aria-hidden="true" /><span>{status.label}</span></span>
-    {className === "schedule-agenda-session" && <span className="schedule-session-open"><UiIcon name="chevron" size={18} /></span>}
-  </a>;
+    <a href={href} className="secondary-button schedule-session-open" aria-label={`Mở buổi học ${description}`} onClick={(event) => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); onNavigate(href); }}>Mở buổi học</a>
+  </article>;
 }
 
 function startOfWeek(date) { const result = new Date(date); const day = result.getDay(); result.setHours(0, 0, 0, 0); result.setDate(result.getDate() + (day === 0 ? -6 : 1 - day)); return result; }

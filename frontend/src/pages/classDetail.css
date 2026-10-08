@@ -54,3 +54,27 @@
   .class-detail-page .dashboard-header .header-actions { max-width: 100%; margin-left: 0; justify-content: flex-start; }
   .class-detail-page .class-detail-layout { grid-template-columns: minmax(0, 1fr); }
 }
+
+.class-detail-page .class-workspace-nav a { border: 1px solid var(--ui-border); background: white; min-height: 44px; }
+.class-detail-page .class-workspace-nav a[aria-current="page"] { border-color: var(--ui-navy); background: #e0e7f0; }
+.class-detail-page .workspace-form { max-width: none; }
+.class-detail-page .workspace-card > .workspace-form { margin: 0 24px 24px; background: #f7f9fc; }
+.workspace-form-fields { display: grid; gap: 18px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.workspace-form-fields > label { display: grid; gap: 7px; font-weight: 600; }
+.workspace-form input { width: 100%; min-width: 0; }
+.class-detail-page .management-actions { align-items: center; flex-wrap: wrap; gap: 12px; }
+.workspace-draft-label { color: var(--workspace-warning); font-size: 13px; font-weight: 600; }
+.management-actions .workspace-draft-label { margin-right: auto; }
+.attendance-footer > div { display: grid; gap: 6px; font-size: 13px; color: var(--ui-muted); }
+.workspace-unsaved-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+.workspace-phone-button { min-height: 44px; white-space: nowrap; }
+.class-detail-page :is(.status-button, .student-remove-button), .class-detail-page .attendance-footer button, .class-detail-page .management-actions button, .class-workspace-dialog .workspace-unsaved-actions button { min-height: 44px; }
+.class-detail-page .workspace-tournament > .secondary-button { flex-shrink: 0; min-height: 44px; text-decoration: none; }
+.class-detail-page :is(button, a):focus-visible { outline: 2px solid var(--ui-navy); outline-offset: 3px; }
+@media (max-width: 700px) {
+  .class-detail-page .workspace-card > .workspace-form { margin: 0 16px 16px; }
+  .workspace-unsaved-actions { flex-direction: column; }
+  .workspace-unsaved-actions button { width: 100%; }
+  .class-detail-page .management-actions button { flex: 1 1 140px; }
+  .class-detail-page .workspace-tournament > .secondary-button { margin-left: auto; }
+}

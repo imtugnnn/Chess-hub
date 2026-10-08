@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScheduleDatePicker, formatScheduleDate } from "./ScheduleDatePicker";
 import { TimeRangePicker } from "./TimeRangePicker";
 import { applyClassSchedule, previewClassSchedule } from "../services/api";
@@ -16,12 +16,19 @@ function initialSchedule(sessions) {
   return { mode: "RECURRING", startDate: future[0]?.date ?? vietnamToday(), endDate: future.at(-1)?.date ?? fallbackEnd.toISOString().slice(0, 10), weekdays: days.length ? days : [2, 4], startTime: future[0]?.startTime.slice(0, 5) ?? "17:30", endTime: future[0]?.endTime.slice(0, 5) ?? "19:00" };
 }
 
-export function ClassScheduleEditor({ teacherId, classId, sessions, onSaved }) {
+export function ClassScheduleEditor({ teacherId, classId, sessions, onSaved, onDraftChange }) {
   const [schedule, setSchedule] = useState(() => initialSchedule(sessions));
+  const [savedSchedule, setSavedSchedule] = useState(schedule);
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [editingTime, setEditingTime] = useState(false);
+  useEffect(() => {
+    const normalized = (value) => JSON.stringify({ ...value, weekdays: [...value.weekdays].sort() });
+    onDraftChange?.({ dirty: normalized(schedule) !== normalized(savedSchedule), busy, label: "lịch học",
+      discard: () => { setSchedule(savedSchedule); setPreview(null); setMessage(""); } });
+    return () => onDraftChange?.(null);
+  }, [schedule, savedSchedule, busy, onDraftChange]);
   function change(key, value) { setSchedule((current) => ({ ...current, [key]: value })); setPreview(null); setMessage(""); }
   async function showPreview(event) {
     event.preventDefault(); setBusy(true); setMessage(""); setPreview(null);
@@ -33,8 +40,10 @@ export function ClassScheduleEditor({ teacherId, classId, sessions, onSaved }) {
     setBusy(true); setMessage("");
     try {
       await applyClassSchedule(teacherId, classId, { ...schedule, previewToken: preview.token });
+      setSavedSchedule(schedule);
       setPreview(null); setMessage("Đã cập nhật lịch học.");
-      await onSaved(); window.dispatchEvent(new Event("classes-updated"));
+      window.dispatchEvent(new Event("classes-updated"));
+      try { await onSaved(); } catch { setMessage("Đã lưu lịch học. Chưa tải lại được danh sách; hãy tải lại trang để cập nhật."); }
     } catch (error) { setMessage(error.message); if (error.status === 409) setPreview(null); }
     finally { setBusy(false); }
   }
