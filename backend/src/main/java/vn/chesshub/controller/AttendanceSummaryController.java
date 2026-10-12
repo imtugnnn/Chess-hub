@@ -47,16 +47,20 @@ public class AttendanceSummaryController {
     Map<String, Long> attendedCounts = monthAttendance.stream()
       .filter(item -> "PRESENT".equals(item.getStatus()) || "LATE".equals(item.getStatus()))
       .collect(java.util.stream.Collectors.groupingBy(item -> attendanceKey(item.getSession().getChessClass().getId(), item.getStudent().getId()), java.util.stream.Collectors.counting()));
+    Map<String, Long> absentCounts = monthAttendance.stream()
+      .filter(item -> "ABSENT".equals(item.getStatus()))
+      .collect(java.util.stream.Collectors.groupingBy(item -> attendanceKey(item.getSession().getChessClass().getId(), item.getStudent().getId()), java.util.stream.Collectors.counting()));
 
     return classes.findWithStudentsByTeacherIdOrderByName(teacherId).stream()
-      .map(classroom -> ClassAttendanceSummary.from(classroom, sessionCounts.getOrDefault(classroom.getId(), 0L), attendedCounts, monthAttendance))
+      .filter(classroom -> sessionCounts.getOrDefault(classroom.getId(), 0L) > 0)
+      .map(classroom -> ClassAttendanceSummary.from(classroom, sessionCounts.get(classroom.getId()), attendedCounts, absentCounts, monthAttendance))
       .toList();
   }
 
   private static String attendanceKey(UUID classId, UUID studentId) { return classId + ":" + studentId; }
 
   public record ClassAttendanceSummary(UUID classId, String className, long sessionCount, BigDecimal feePerSession, List<StudentAttendanceSummary> students) {
-    static ClassAttendanceSummary from(ChessClass classroom, long sessionCount, Map<String, Long> attendedCounts, List<SessionAttendance> history) {
+    static ClassAttendanceSummary from(ChessClass classroom, long sessionCount, Map<String, Long> attendedCounts, Map<String, Long> absentCounts, List<SessionAttendance> history) {
       Map<UUID, Student> roster = new java.util.LinkedHashMap<>();
       classroom.getStudents().forEach(student -> roster.put(student.getId(), student));
       history.stream().filter(item -> item.getSession().getChessClass().getId().equals(classroom.getId()))
@@ -65,7 +69,8 @@ public class AttendanceSummaryController {
       List<StudentAttendanceSummary> students = roster.values().stream()
         .map(student -> {
           long attendedDays = attendedCounts.getOrDefault(attendanceKey(classroom.getId(), student.getId()), 0L);
-          return new StudentAttendanceSummary(student.getId(), student.getFullName(), attendedDays, classroom.getFeePerSession().multiply(BigDecimal.valueOf(attendedDays)), !currentIds.contains(student.getId()));
+          long absentSessions = absentCounts.getOrDefault(attendanceKey(classroom.getId(), student.getId()), 0L);
+          return new StudentAttendanceSummary(student.getId(), student.getFullName(), attendedDays, classroom.getFeePerSession().multiply(BigDecimal.valueOf(attendedDays)), !currentIds.contains(student.getId()), absentSessions);
         })
         .sorted(java.util.Comparator.comparing(StudentAttendanceSummary::studentName, String.CASE_INSENSITIVE_ORDER))
         .toList();
@@ -73,5 +78,5 @@ public class AttendanceSummaryController {
     }
   }
 
-  public record StudentAttendanceSummary(UUID studentId, String studentName, long attendedDays, BigDecimal tuitionAmount, boolean leftClass) { }
+  public record StudentAttendanceSummary(UUID studentId, String studentName, long attendedDays, BigDecimal tuitionAmount, boolean leftClass, long absentSessions) { }
 }

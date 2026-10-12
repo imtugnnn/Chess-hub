@@ -14,7 +14,7 @@ import vn.chesshub.repository.UserRepository;
 
 public class InitialPasswordFilter extends OncePerRequestFilter {
   private static final Set<String> ALLOWED = Set.of("/api/v1/auth/me", "/api/v1/auth/csrf",
-    "/api/v1/auth/logout", "/api/v1/auth/initial-password");
+    "/api/v1/auth/logout", "/api/v1/auth/initial-password", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password");
   private final UserRepository users;
   public InitialPasswordFilter(UserRepository users) { this.users = users; }
   @Override

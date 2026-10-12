@@ -29,6 +29,42 @@
 .attendance-table-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; padding: 16px 20px; border-bottom: 1px solid var(--ui-border); }
 .attendance-table-heading h2 { margin: 0; color: var(--ui-text); font-size: 16px; line-height: 1.5; }
 .attendance-table-heading p { margin: 4px 0 0; color: var(--ui-muted); font-size: 12px; line-height: 1.5; text-wrap: pretty; }
+.attendance-sort-label { display: flex; align-items: center; gap: 8px; color: var(--ui-muted); font-size: 12px; }
+.attendance-sort-label select { min-height: 44px; max-width: 100%; padding: 8px 12px; border: 1px solid var(--ui-border); border-radius: 8px; background: var(--workspace-surface); color: var(--ui-text); font: inherit; font-size: 13px; }
+.attendance-search-results-table .attendance-result-name { display: block; color: var(--ui-text); font-size: 16px; font-weight: 600; line-height: 1.5; }
+.attendance-result-class { display: block; margin-top: 4px; color: var(--ui-muted); font-size: 13px; font-weight: 400; }
+.attendance-search-results-table tbody th { width: 44%; }
+.attendance-search-results-table tbody :is(th, td) { padding-top: 16px; padding-bottom: 16px; }
+.attendance-summary-page select:focus-visible { outline: 2px solid var(--ui-navy); outline-offset: 2px; }
+.attendance-group-table { width: 100%; border-collapse: collapse; color: var(--ui-text); font-size: 13px; }
+.attendance-group-table thead th { padding: 12px 20px; background: var(--ui-soft); color: var(--ui-muted); font-size: 12px; font-weight: 500; text-align: right; border-bottom: 1px solid var(--ui-border); }
+.attendance-group-table thead th:first-child { width: 35%; text-align: left; }
+.attendance-group-table :is(td, th) { padding: 12px 20px; line-height: 1.5; }
+.attendance-group-table td { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.attendance-group-table tbody th { text-align: left; font-weight: 400; }
+.attendance-group-table .attendance-result-name { font-size: 16px; font-weight: 600; color: var(--ui-text); }
+.attendance-student-group-heading { background: var(--ui-soft); border-top: 1px solid var(--ui-border); }
+.attendance-group-total strong { font-weight: 600; }
+.attendance-student-class-row { border-bottom: 1px solid var(--ui-border); }
+.attendance-group-class-link { display: inline-flex; align-items: center; gap: 8px; padding: 0; min-height: 40px; border: 0; background: none; color: var(--ui-navy); font: inherit; text-align: left; cursor: pointer; }
+.attendance-group-class-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.attendance-group-class-link svg { flex-shrink: 0; }
+@media (max-width: 1000px) {
+  .attendance-group-table, .attendance-group-table tbody, .attendance-group-table tr, .attendance-group-table :is(td, th) { display: block; width: 100%; }
+  .attendance-group-table thead { display: none; }
+  .attendance-group-table .attendance-student-group-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; }
+  .attendance-student-group-heading th, .attendance-student-group-heading td { padding: 0; width: auto; min-width: 0; }
+  .attendance-group-table .attendance-group-total { flex-shrink: 0; font-size: 14px; }
+  .attendance-group-total .attendance-mobile-label { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 400; }
+  .attendance-group-table .attendance-student-class-row { padding: 12px 16px; }
+  .attendance-student-class-row :is(th, td) { padding: 0; }
+  .attendance-student-class-row td { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 8px; }
+  .attendance-student-class-row .attendance-group-spacer { display: none; }
+  .attendance-group-table .attendance-mobile-label { display: inline; color: var(--ui-muted); white-space: normal; }
+  .attendance-group-table .attendance-group-total .attendance-mobile-label { display: block; }
+  .attendance-group-class-link { min-height: 44px; }
+}
+@media (max-width: 1000px) { .attendance-search-results-table tbody :is(th, td) { padding: 0; } }
 .attendance-class-table { width: 100%; border-collapse: collapse; color: var(--ui-text); font-size: 13px; }
 .attendance-class-table :is(th, td) { padding: 10px 20px; border-bottom: 1px solid var(--ui-border); text-align: left; line-height: 1.5; }
 .attendance-class-table thead th { background: var(--ui-soft); color: var(--ui-muted); font-size: 12px; font-weight: 500; }

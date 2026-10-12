@@ -81,6 +81,89 @@ class ClassHistoryTransactionTest {
     assertEquals("PRESENT", attendanceApi.list(teacherId, classId, sessionId).getFirst().status());
   }
 
+  @Test void monthlyReportOnlyIncludesScheduledClassesAndCountsPresentLateAndAbsentSeparately() {
+    YearMonth reportMonth = YearMonth.from(date);
+    tx.executeWithoutResult(status -> {
+      ChessClass classroom = classes.findById(classId).orElseThrow();
+      Student student = students.findById(studentId).orElseThrow();
+      String[] states = {"PRESENT", "LATE", "ABSENT"};
+      for (int i = 0; i < states.length; i++) {
+        ClassSession lesson = sessions.save(new ClassSession(classroom, reportMonth.atDay(i + 1), LocalTime.of(12, 0), LocalTime.of(13, 0)));
+        attendance.save(new SessionAttendance(lesson, student, states[i]));
+      }
+      sessions.save(new ClassSession(classroom, reportMonth.atDay(4), LocalTime.of(12, 0), LocalTime.of(13, 0)));
+      sessions.save(new ClassSession(classes.findById(otherClassId).orElseThrow(), reportMonth.minusMonths(1).atDay(1), LocalTime.of(12, 0), LocalTime.of(13, 0)));
+    });
+    var report = summaryApi.list(teacherId, reportMonth);
+    assertEquals(1, report.size()); assertEquals(classId, report.getFirst().classId());
+    assertEquals(5, report.getFirst().sessionCount());
+    var student = report.getFirst().students().getFirst();
+    assertEquals(2, student.attendedDays()); assertEquals(1, student.absentSessions());
+    assertEquals(BigDecimal.valueOf(200000), student.tuitionAmount());
+    assertTrue(summaryApi.list(teacherId, reportMonth.plusMonths(2)).isEmpty());
+  }
+
+  @Test void monthlyReportRetainsUnmarkedRosterAndAbsentOnlyFormerStudents() {
+    attendanceApi.save(teacherId, classId, sessionId, new AttendanceController.AttendanceRequest(List.of(new AttendanceController.AttendanceRecord(studentId, "ABSENT"))));
+    classService.removeStudent(teacherId, classId, studentId);
+    UUID currentStudentId = tx.execute(status -> {
+      Student current = students.save(new Student("Unmarked", LocalDate.of(2016, 1, 1), "Parent", "0902345678", null, teacherId));
+      classes.findById(classId).orElseThrow().addStudent(current);
+      return current.getId();
+    });
+    var students = summaryApi.list(teacherId, YearMonth.from(date)).getFirst().students();
+    var former = students.stream().filter(s -> s.studentId().equals(studentId)).findFirst().orElseThrow();
+    assertTrue(former.leftClass()); assertEquals(0, former.attendedDays()); assertEquals(1, former.absentSessions());
+    var current = students.stream().filter(s -> s.studentId().equals(currentStudentId)).findFirst().orElseThrow();
+    assertFalse(current.leftClass()); assertEquals(0, current.attendedDays()); assertEquals(0, current.absentSessions());
+  }
+
+  @Test void existingProfileCanBeLinkedByIdWithoutCreatingOrChangingOwnership() {
+    classService.removeStudent(teacherId, classId, studentId);
+    assertEquals(studentId, classService.addExistingStudent(teacherId, classId, studentId).getId());
+    tx.executeWithoutResult(status -> {
+      Student stored = students.findById(studentId).orElseThrow();
+      assertEquals(teacherId, stored.getOwnerUserId()); assertNull(stored.getCenterId());
+      assertEquals(1, classes.findById(classId).orElseThrow().getStudents().size());
+    });
+    assertThrows(ResponseStatusException.class, () -> classService.addExistingStudent(teacherId, classId, studentId));
+  }
+
+  @Test void linkingByIdRejectsAnotherTeachersPersonalProfile() {
+    UUID foreignStudent = tx.execute(status -> {
+      User other = users.save(new User("Other", UUID.randomUUID() + "@example.com", "hash"));
+      return students.save(new Student("Foreign", LocalDate.of(2015, 1, 1), "Parent", "0901234567", null, other.getId())).getId();
+    });
+    assertThrows(ResponseStatusException.class, () -> classService.addExistingStudent(teacherId, classId, foreignStudent));
+    tx.executeWithoutResult(status -> assertEquals(1, classes.findById(classId).orElseThrow().getStudents().size()));
+  }
+
+  @Test void quickCreationPersistsOptionalFieldsAndReusingProfileCannotOverwriteThem() {
+    var command = new ChessClassService.StudentCommand("New with notes", LocalDate.of(2015, 2, 3), "Parent", "0901234567", "091 234 5678", "First\nSecond");
+    Student created = classService.addStudent(teacherId, classId, command);
+    UUID createdId = created.getId();
+    tx.executeWithoutResult(status -> {
+      Student stored = students.findById(createdId).orElseThrow();
+      assertEquals("0912345678", stored.getPhoneNumber()); assertEquals("First\nSecond", stored.getNotes());
+    });
+    Student reused = classService.addStudent(teacherId, otherClassId,
+      new ChessClassService.StudentCommand("New with notes", LocalDate.of(2015, 2, 3), "Parent", "0901234567", "0923456789", "Overwrite"));
+    assertEquals(createdId, reused.getId());
+    tx.executeWithoutResult(status -> assertEquals("First\nSecond", students.findById(createdId).orElseThrow().getNotes()));
+  }
+
+  @Test void classCreationPersistsOptionalProfileFieldsAndRejectsInvalidPhone() {
+    var planned = new ChessClassService.ScheduleCommand("MANUAL", List.of(new ChessClassService.SessionCommand(date.plusDays(1), LocalTime.of(10, 0), LocalTime.of(11, 0))), null, null, null, null, null);
+    var result = classService.create(teacherId, new ChessClassService.CreateClassCommand("New class", BigDecimal.ZERO,
+      List.of(new ChessClassService.StudentCommand("Class student", LocalDate.of(2016, 1, 1), "Parent", "0901234567", "0934567890", "From class creation")), planned));
+    tx.executeWithoutResult(status -> {
+      Student created = classes.findById(result.chessClass().getId()).orElseThrow().getStudents().iterator().next();
+      assertEquals("0934567890", created.getPhoneNumber()); assertEquals("From class creation", created.getNotes());
+    });
+    assertThrows(ResponseStatusException.class, () -> classService.addStudent(teacherId, classId,
+      new ChessClassService.StudentCommand("Invalid phone", LocalDate.of(2016, 1, 1), "Parent", "0901234567", "abc", null)));
+  }
+
   @Test void bulkReplacementRollbackRestoresDeletedSessionAndClassDescription() {
     var preview = schedules.preview(teacherId, classId, request(null));
     assertThrows(IllegalStateException.class, () -> tx.executeWithoutResult(status -> {

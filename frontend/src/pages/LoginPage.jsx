@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Brand } from "../components/Brand";
+import { PasswordInput } from "../components/PasswordInput";
 import { getAuthProviders, login, startGoogleLogin } from "../services/api";
 
 export function LoginPage({ onNavigate, onAuthenticated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -67,7 +67,7 @@ export function LoginPage({ onNavigate, onAuthenticated }) {
           <p className="auth-subtitle">Tiếp tục quản lý những lớp cờ của bạn.</p>
           <form className="auth-form" onSubmit={submit}>
             <label>Email<span className="input-wrap"><span aria-hidden="true">✉</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ban@example.com" required /></span></label>
-            <label>Mật khẩu<span className="input-wrap"><span aria-hidden="true">⌑</span><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nhập mật khẩu" required /></span></label>
+            <label>Mật khẩu<PasswordInput aria-label="Mật khẩu" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nhập mật khẩu" autoComplete="current-password" required /></label>
             <div className="form-row login-options">
               <div className="remember-login-control">
                 <button id="remember-login" type="button" className="remember-login-button" aria-pressed={rememberMe}
@@ -76,10 +76,11 @@ export function LoginPage({ onNavigate, onAuthenticated }) {
                 </button>
                 <label id="remember-login-label" htmlFor="remember-login">Lưu đăng nhập</label>
               </div>
-              <button type="button" className="text-button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}</button>
+              <button type="button" className="text-button" onClick={() => onNavigate("/forgot-password?intent=change")}>Thay đổi mật khẩu</button>
             </div>
             {error && <p className="form-error" role="alert">{error}</p>}
             <button className="primary-button" type="submit" disabled={submitting}>{submitting ? "Đang kiểm tra…" : <>Đăng nhập <span aria-hidden="true">→</span></>}</button>
+            <button type="button" className="text-button forgot-password-link" onClick={() => onNavigate("/forgot-password")}>Quên mật khẩu?</button>
           </form>
           <div className="auth-divider"><span>hoặc</span></div>
           <button className="oauth-button" type="button" onClick={startGoogleLogin}

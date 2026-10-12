@@ -1,5 +1,20 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:3000" : "");
 
+async function studentRequest(teacherId, path = "", method = "GET", payload) {
+  const response = await apiFetch(`${API_BASE_URL}/api/v1/teachers/${teacherId}/students${path}`, {
+    method, headers: payload === undefined ? undefined : { "Content-Type": "application/json" },
+    body: payload === undefined ? undefined : JSON.stringify(payload),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.message ?? "Không thể xử lý hồ sơ học sinh. Vui lòng thử lại.");
+  return result;
+}
+export const getStudentOptions = (teacherId) => studentRequest(teacherId, "/options");
+export const getStudents = (teacherId, filters) => studentRequest(teacherId, `?${new URLSearchParams(Object.entries(filters).filter(([, value]) => value !== ""))}`);
+export const getStudentDetail = (teacherId, id, historyPage = 0) => studentRequest(teacherId, `/${id}?historyPage=${historyPage}`);
+export const createStudent = (teacherId, input) => studentRequest(teacherId, "", "POST", input);
+export const updateStudent = (teacherId, id, input) => studentRequest(teacherId, `/${id}`, "PUT", input);
+
 async function classRequest(teacherId, classId, path, method, payload) {
   const response = await apiFetch(`${API_BASE_URL}/api/v1/teachers/${teacherId}/classes/${classId}${path}`, {
     method, headers: payload === undefined ? undefined : { "Content-Type": "application/json" },
@@ -12,6 +27,7 @@ async function classRequest(teacherId, classId, path, method, payload) {
 export const previewClassSchedule = (teacherId, classId, schedule) => classRequest(teacherId, classId, "/schedule/preview", "POST", schedule);
 export const rescheduleClassSession = (teacherId, classId, sessionId, slot) => classRequest(teacherId, classId, `/sessions/${sessionId}`, "PATCH", slot);
 export const removeClassStudent = (teacherId, classId, studentId) => classRequest(teacherId, classId, `/students/${studentId}`, "DELETE");
+export const addExistingClassStudent = (teacherId, classId, studentId) => classRequest(teacherId, classId, `/students/${studentId}`, "POST");
 export const applyClassSchedule = (teacherId, classId, schedule) => classRequest(teacherId, classId, "/schedule", "PUT", schedule);
 
 async function materialRequest(teacherId, path, method = "GET", body) {
@@ -66,6 +82,8 @@ async function postAuth(path, payload) {
 }
 
 export function login(credentials) { return postAuth("login", credentials); }
+export function requestPasswordReset(email) { return postAuth("forgot-password", { email }); }
+export function resetPassword(payload) { return postAuth("reset-password", payload); }
 export function registerAccount(account) { return postAuth("register", account); }
 export function completeInitialPassword(payload) { return postAuth("initial-password", payload); }
 export function updateAccountEmail(payload) { return postAuth("email", payload); }

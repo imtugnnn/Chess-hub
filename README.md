@@ -158,6 +158,16 @@ Nếu chưa cấu hình gửi mail hoặc Gmail trả lỗi, request mời ngư�
 
 Tham khảo [Gmail API gửi thư](https://developers.google.com/workspace/gmail/api/guides/sending) và [OAuth refresh token](https://developers.google.com/identity/protocols/oauth2).
 
+### Quên mật khẩu và đặt lại qua email
+
+Màn `/login` có nút **Quên mật khẩu?**, dòng **Thay đổi mật khẩu** và biểu tượng hiện/ẩn trong ô mật khẩu. Hai nút đổi/quên mật khẩu mở biểu mẫu nhập email tại `/forgot-password`; email chứa link `/reset-password#token=...` để nhập và xác nhận mật khẩu mới. Đặt lại thành công yêu cầu đăng nhập lại.
+
+Dùng lại bốn biến Gmail OAuth ở phần trên; `CORS_ORIGIN` phải trỏ đến frontend công khai để email chứa đúng địa chỉ. Không cần cấu hình SMTP riêng. Nếu chưa cấu hình Gmail hoặc gửi thư thất bại, giao diện hiển thị lỗi và không báo đã gửi thành công.
+
+Migration `V19__create_password_reset_tokens.sql` lưu SHA-256 của token ngẫu nhiên, thời điểm tạo/hết hạn và thông tin tài khoản lúc yêu cầu. Link có hiệu lực 30 phút, dùng một lần, mất hiệu lực sau khi email/mật khẩu đổi hoặc có yêu cầu mới sau khoảng chờ 60 giây. Reset thu hồi tất cả token lưu đăng nhập của tài khoản và đăng xuất trình duyệt thực hiện reset; các phiên đăng nhập đang mở trên trình duyệt khác vẫn theo thời hạn phiên hiện tại. Phản hồi yêu cầu giống nhau cho email tồn tại và không tồn tại. Token nằm trong fragment để không gửi trong URL request và được xóa khỏi thanh địa chỉ sau khi màn hình mở; tải lại trang cần mở lại link trong email.
+
+Kiểm thử backend dùng H2 và mock gửi thư; kiểm thử giao diện dùng dữ liệu mô phỏng ở desktop/mobile, không gửi email thật. Việc gửi thư đồng bộ cùng transaction có giới hạn tương tự email lời mời: Gmail đã nhận thư nhưng database commit thất bại thì cần yêu cầu lại.
+
 ### Google OAuth trên Cloud Run
 
 Backend hỗ trợ biến `GOOGLE_OAUTH_REDIRECT_URI` để cố định callback công khai, tránh dùng địa chỉ nội bộ của reverse proxy. Với frontend Cloud Run hiện tại, đặt:

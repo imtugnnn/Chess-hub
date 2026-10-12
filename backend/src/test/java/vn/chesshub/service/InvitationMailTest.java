@@ -16,6 +16,30 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 class InvitationMailTest {
   @Test
+  void resetEmailContainsSingleUseLinkAndExpiry() throws Exception {
+    var builder = RestClient.builder();
+    var server = MockRestServiceServer.bindTo(builder).build();
+    var mail = new InvitationMailService("client", "secret", "refresh", "sender@example.com", "https://chesshub.example/", builder.build());
+    server.expect(requestTo("https://oauth2.googleapis.com/token"))
+      .andRespond(withSuccess("{\"access_token\":\"test-access\"}", MediaType.APPLICATION_JSON));
+    server.expect(requestTo("https://gmail.googleapis.com/gmail/v1/users/me/messages/send"))
+      .andExpect(header("Authorization", "Bearer test-access"))
+      .andExpect(request -> {
+        try {
+          byte[] payload = ((org.springframework.mock.http.client.MockClientHttpRequest) request).getBodyAsBytes();
+          String raw = new com.fasterxml.jackson.databind.ObjectMapper().readTree(payload).get("raw").asText();
+          var message = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(Base64.getUrlDecoder().decode(raw)));
+          assertEquals("teacher@example.com", message.getAllRecipients()[0].toString());
+          assertEquals("Đặt lại mật khẩu ChessHub", message.getSubject());
+          assertTrue(message.getContent().toString().contains("https://chesshub.example/reset-password#token=reset-token"));
+          assertTrue(message.getContent().toString().contains("30 phút"));
+          assertTrue(message.getContent().toString().contains("một lần"));
+        } catch (jakarta.mail.MessagingException exception) { throw new java.io.IOException(exception); }
+      }).andRespond(withSuccess("{\"id\":\"sent-id\"}", MediaType.APPLICATION_JSON));
+    mail.sendPasswordReset("teacher@example.com", "reset-token");
+    server.verify();
+  }
+  @Test
   void oauthRefreshesAccessAndSendsCorrectMimeMessage() throws Exception {
     var builder = RestClient.builder();
     var server = MockRestServiceServer.bindTo(builder).build();

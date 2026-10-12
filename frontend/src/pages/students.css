@@ -1,0 +1,110 @@
+.students-page { min-width: 0; }
+.students-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
+.students-directory { background: var(--workspace-surface); border: 1px solid var(--ui-border); border-radius: 12px; overflow: hidden; }
+.students-filters { padding: 24px 24px 16px; }
+.students-page label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ui-text); }
+.students-page input, .students-page select { min-width: 0; width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--ui-border); border-radius: 8px; background: var(--workspace-surface); color: var(--ui-text); font: inherit; font-size: 14px; }
+.students-page input::placeholder { color: var(--ui-muted); opacity: 1; }
+.students-search > div { display: flex; align-items: center; position: relative; }
+.students-search svg { position: absolute; left: 14px; color: var(--ui-muted); pointer-events: none; }
+.students-search input { padding-left: 42px; }
+.students-filter-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 16px; align-items: end; margin-top: 16px; }
+.students-filter-help { margin: 12px 0 0; color: var(--ui-muted); font-size: 12px; }
+.students-mobile-filter-controls, .students-mobile-filter-summary { display: none; }
+.students-results { padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; border-bottom: 1px solid var(--ui-border); color: var(--ui-muted); font-size: 13px; }
+.students-results > span { color: var(--ui-text); font-weight: 600; }
+.students-results label { flex-direction: row; align-items: center; }
+.students-results select { width: 70px; }
+.students-table-scroll { overflow-x: auto; }
+.students-table-scroll .students-table { min-width: 1080px; }
+.students-table-scroll .students-table :is(th, td) { padding-left: 12px; padding-right: 12px; }
+.students-note-preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-width: 100px; max-width: 180px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ui-muted); }
+.students-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+.students-table th { padding: 12px 24px; background: var(--ui-soft); color: var(--ui-muted); font-weight: 500; white-space: nowrap; }
+.students-table td { padding: 20px 24px; border-bottom: 1px solid var(--ui-border); vertical-align: middle; }
+.students-table tr:last-child td { border-bottom: none; }
+.students-table tbody tr:hover, .students-row--selected { background: var(--ui-soft); }
+.students-person { display: flex; align-items: center; gap: 12px; border: 0; padding: 0; text-align: left; background: none; color: var(--ui-text); cursor: pointer; font: inherit; min-height: 44px; }
+.students-person strong { font-size: 14px; font-weight: 600; }
+.students-person small { display: block; font-size: 12px; color: var(--ui-muted); margin-top: 4px; }
+.students-avatar { flex: 0 0 36px; height: 36px; display: grid; place-items: center; background: var(--ui-soft); color: var(--ui-navy); border-radius: 50%; font-size: 12px; font-weight: 600; }
+.students-parent { display: block; margin-bottom: 4px; }
+.students-page a { color: var(--ui-navy); text-underline-offset: 3px; }
+.students-class-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.students-class-tags > span:not(.students-muted), .students-class-tags button { padding: 4px 8px; border-radius: 4px; background: var(--ui-soft); color: var(--ui-text); font-size: 12px; overflow-wrap: anywhere; }
+.students-class-tags button { min-height: 40px; border: 1px solid var(--ui-border); cursor: pointer; }
+.students-center-name { display: block; max-width: 180px; overflow-wrap: anywhere; }
+.students-view { white-space: nowrap; }
+.students-pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; border-top: 1px solid var(--ui-border); font-size: 12px; color: var(--ui-muted); font-variant-numeric: tabular-nums; }
+.students-pagination > div { display: flex; align-items: center; gap: 12px; }
+.students-empty { padding: 48px 24px; text-align: center; color: var(--ui-muted); }
+.students-empty h2 { font-size: 18px; color: var(--ui-text); margin: 16px 0 8px; }
+.students-empty p { margin: 0 auto 20px; max-width: 44ch; }
+.students-empty > button { margin: auto; }
+.students-loading { min-height: 300px; padding: 0 24px; }
+.students-loading > div { display: flex; gap: 24px; padding: 24px 0; border-bottom: 1px solid var(--ui-border); }
+.students-loading span { height: 18px; width: 25%; background: var(--ui-soft); border-radius: 4px; }
+.students-close { padding: 10px; flex-shrink: 0; }
+.students-profile-fields { margin: 24px 0; font-size: 13px; }
+.students-profile-fields > div { margin-bottom: 16px; }
+.students-profile-fields dt { color: var(--ui-muted); margin-bottom: 4px; }
+.students-profile-fields dd { margin: 0; overflow-wrap: anywhere; }
+.students-profile-section { border-top: 1px solid var(--ui-border); margin-top: 24px; padding-top: 24px; }
+.students-class-link { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 0; border-bottom: 1px solid var(--ui-border); padding: 12px 0; background: none; color: var(--ui-navy); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.students-history { list-style: none; padding: 0; margin: 0; }
+.students-history li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--ui-border); font-size: 12px; }
+.students-history li strong, .students-history li div > span { display: block; }
+.students-history li div > span { margin-top: 4px; color: var(--ui-muted); }
+.students-attendance { white-space: nowrap; color: var(--workspace-success); }
+.students-attendance--absent { color: var(--workspace-danger); }
+.students-attendance--late { color: var(--workspace-warning); }
+.students-history-pages { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; font-size: 12px; }
+.students-form { display: flex; flex-direction: column; gap: 16px; }
+.students-form-fields { display: grid; gap: 16px; padding: 0; margin: 0; border: 0; min-width: 0; }
+.students-form p { margin: 0; color: var(--ui-muted); }
+.students-form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
+.students-form .students-form-error { color: var(--workspace-danger); }
+.students-notice { color: var(--workspace-success); font-size: 14px; margin: 0 0 24px; }
+.student-detail-content { display: grid; gap: 24px; outline: none; }
+.student-detail-content > .students-notice { margin: 0; }
+.student-detail-profile, .student-detail-classes, .student-detail-history { padding: 24px; background: var(--workspace-surface); border: 1px solid var(--ui-border); border-radius: 12px; min-width: 0; }
+.student-detail-content h2 { margin: 0 0 20px; color: var(--ui-text); font-size: 18px; font-weight: 600; }
+.student-detail-content p { font-size: 14px; line-height: 1.7; }
+.student-detail-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 0; }
+.student-detail-fields > div { margin: 0; }
+.student-detail-fields dd { font-size: 14px; }
+.student-detail-notes { grid-column: 1 / -1; }
+.student-detail-notes dd { white-space: pre-wrap; overflow-wrap: anywhere; }
+.student-detail-learning { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 24px; align-items: start; }
+.student-detail-profile .students-form-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.student-detail-profile .students-form { max-width: 800px; }
+.student-detail-page .header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 900px) { .student-detail-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } .student-detail-learning { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) { .student-detail-profile, .student-detail-classes, .student-detail-history { padding: 20px; } .student-detail-fields, .student-detail-profile .students-form-fields { grid-template-columns: minmax(0, 1fr); gap: 16px; } .student-detail-page .header-actions { width: 100%; } }
+.students-muted { color: var(--ui-muted); }
+.students-cell-label { display: none; }
+.students-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.students-page :focus-visible { outline: 2px solid var(--ui-navy); outline-offset: 3px; }
+.students-page ::selection { background: var(--ui-navy); color: var(--workspace-surface); }
+@media (max-width: 900px) { .students-filter-row { grid-template-columns: 1fr 1fr; } .students-clear { align-self: end; } }
+@media (max-width: 600px) {
+  .students-table-scroll .students-table { min-width: 0; }
+  .students-table-scroll .students-table :is(th, td) { padding-left: 0; padding-right: 0; }
+  .students-filters { padding: 20px; }
+  .students-filter-row { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .students-filter-row:not(.students-filter-row--open) { display: none; }
+  .students-mobile-filter-controls { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+  .students-mobile-filter-summary { display: block; margin: 12px 0 0; font-size: 12px; color: var(--ui-muted); }
+  .students-filter-help:not(.students-filter-help--open) { display: none; }
+  .students-results { padding: 12px 20px; }
+  .students-table, .students-table tbody, .students-table tr, .students-table td { display: block; }
+  .students-table thead { display: none; }
+  .students-table tr { padding: 20px; border-bottom: 1px solid var(--ui-border); }
+  .students-table td { padding: 0; border: 0; margin-bottom: 12px; }
+  .students-table td:last-child { margin: 0; }
+  .students-table td:empty { display: none; }
+  .students-cell-label { display: block; color: var(--ui-muted); font-size: 12px; margin-bottom: 4px; }
+  .students-view { width: 100%; justify-content: center; }
+  .students-pagination { padding: 16px 20px; flex-wrap: wrap; }
+  .students-pagination > div { width: 100%; justify-content: space-between; }
+}

@@ -74,6 +74,11 @@ public class ChessClassController {
     return StudentResponse.from(classService.addStudent(teacherId, classId, request.toCommand()));
   }
 
+  @PostMapping("/{classId}/students/{studentId}")
+  public StudentResponse addExistingStudent(@PathVariable UUID teacherId, @PathVariable UUID classId, @PathVariable UUID studentId) {
+    return StudentResponse.from(classService.addExistingStudent(teacherId, classId, studentId));
+  }
+
   @PutMapping("/{classId}/schedule")
   public ClassResponse updateSchedule(@PathVariable UUID teacherId, @PathVariable UUID classId, @RequestBody ScheduleRequest request) {
     if (request != null && "RECURRING".equals(request.mode())) {
@@ -106,8 +111,8 @@ public class ChessClassController {
   }
   public record CreateClassRequest(String name, BigDecimal feePerSession, List<StudentRequest> students, ScheduleRequest schedule) { }
   public record UpdateClassRequest(String name, BigDecimal feePerSession) { }
-  public record StudentRequest(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber) {
-    ChessClassService.StudentCommand toCommand() { return new ChessClassService.StudentCommand(fullName, birthDate, parentName, parentPhoneNumber); }
+  public record StudentRequest(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes) {
+    ChessClassService.StudentCommand toCommand() { return new ChessClassService.StudentCommand(fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes); }
   }
   public record ScheduleRequest(String mode, List<SessionRequest> sessions, List<Integer> weekdays, LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime, String previewToken) {
     ClassScheduleService.RecurringRequest toRecurring() { return new ClassScheduleService.RecurringRequest(startDate, endDate, weekdays, startTime, endTime, previewToken); }
@@ -120,9 +125,9 @@ public class ChessClassController {
   }
   public record SessionRequest(LocalDate date, LocalTime startTime, LocalTime endTime) { }
   public record CreateClassResponse(ClassResponse chessClass) { }
-  public record StudentResponse(UUID id, String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber) {
+  public record StudentResponse(UUID id, String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes) {
     static StudentResponse from(vn.chesshub.entity.Student student) {
-      return new StudentResponse(student.getId(), student.getFullName(), student.getBirthDate(), student.getParentName(), student.getParentPhoneNumber());
+      return new StudentResponse(student.getId(), student.getFullName(), student.getBirthDate(), student.getParentName(), student.getParentPhoneNumber(), student.getPhoneNumber(), student.getNotes());
     }
   }
   public record SessionResponse(UUID id, LocalDate date, LocalTime startTime, LocalTime endTime, boolean hasAttendance, boolean scheduleOverride) {

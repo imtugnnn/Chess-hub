@@ -28,14 +28,14 @@ export function RegisterPage({ onNavigate, onRegistered }) {
         <div className="auth-showcase__copy"><p className="eyebrow">Bắt đầu thật đơn giản</p><h1>Tập trung vào<br />việc dạy cờ.</h1><p>ChessHub giữ mọi việc vận hành lớp học của bạn rõ ràng, để bạn có thêm thời gian cho học sinh.</p></div>
         <div className="benefit-list">
           <p><b>01</b><span><strong>Lớp học & lịch dạy</strong>Không bỏ sót bất kỳ buổi học nào.</span></p>
-          <p><b>02</b><span><strong>Điểm danh & học phí</strong>Nắm rõ chuyên cần và các khoản cần thu.</span></p>
+          <p><b>02</b><span><strong>Điểm danh & học phí</strong>Nắm rõ chuyên cần và học phí tạm tính.</span></p>
           <p><b>03</b><span><strong>Bảng đấu Swiss</strong>Tạo sân chơi ngay trong lớp của bạn.</span></p>
         </div>
       </section>
       <section className="auth-panel auth-panel--register">
         <div className="auth-panel__inner">
           <div className="mobile-brand"><Brand compact /></div>
-          <p className="eyebrow">Tạo tài khoản giáo viên</p><h2>Bắt đầu với ChessHub</h2><p className="auth-subtitle">Miễn phí thiết lập. Chỉ mất chưa đến một phút.</p>
+          <p className="eyebrow">Tạo tài khoản giáo viên</p><h2>Bắt đầu với ChessHub</h2><p className="auth-subtitle">Tạo tài khoản để bắt đầu quản lý lớp cờ của bạn.</p>
           <form className="auth-form" onSubmit={submit}>
             <label>Họ và tên<span className="input-wrap"><span aria-hidden="true">♙</span><input value={form.name} onChange={update("name")} placeholder="Ví dụ: Nguyễn Minh Anh" required /></span></label>
             <label>Email<span className="input-wrap"><span aria-hidden="true">✉</span><input type="email" value={form.email} onChange={update("email")} placeholder="ban@example.com" required /></span></label>

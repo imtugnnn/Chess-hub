@@ -1,0 +1,37 @@
+/* Route files own composition; this foundation owns the shared UI vocabulary. */
+:root {
+  --ui-navy: #234b87;
+  --ui-text: #27354a;
+  --ui-muted: #52647c;
+  --ui-border: #dce3ec;
+  --ui-soft: #f0f4f9;
+  --ui-control-radius: 8px;
+  --ui-page-gap: 24px;
+  --workspace-radius: 12px;
+  --workspace-surface: #fff;
+  --workspace-success: #25735a;
+  --workspace-danger: #a13f4b;
+  --workspace-warning: #87491b;
+  --ui-danger-soft: #fff1f3;
+  --ui-warning-soft: #fff4df;
+}
+.app-shell { color: var(--ui-text); background: var(--ui-soft); }
+.app-shell > main.dashboard { min-width: 0; }
+.app-shell .dashboard-header__title { font-size: 28px; font-weight: 600; line-height: 1.3; letter-spacing: -.02em; }
+.app-shell .dashboard-header__description { font-size: 14px; line-height: 1.7; color: var(--ui-muted); }
+.dashboard :is(.workspace-card, .overview-panel, .overview-metric, .settings-card, .create-class-card, .calendar-panel, .material-library, .tournament-match-card, .standing-card, .center-card) {
+  border-color: var(--ui-border); border-radius: var(--workspace-radius); background: var(--workspace-surface); box-shadow: none;
+}
+.dashboard :is(.primary-button, .secondary-button), .auth-page .primary-button {
+  min-height: 44px; border-radius: var(--ui-control-radius); font-size: 14px; font-weight: 600; box-shadow: none; transform: none;
+}
+.dashboard .primary-button, .auth-page .primary-button { background: var(--ui-navy); }
+.dashboard .primary-button:hover, .auth-page .primary-button:hover { background: #173d75; }
+.dashboard :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea) { border-radius: var(--ui-control-radius); color: var(--ui-text); caret-color: var(--ui-navy); }
+.dashboard :is(input, textarea)::placeholder { color: var(--ui-muted); opacity: 1; }
+.dashboard :is(button, a, input, select, textarea):focus-visible, .sidebar :is(button, a):focus-visible { outline: 2px solid var(--ui-navy); outline-offset: 3px; }
+.sidebar :is(button, a):focus-visible { outline-color: #e8b54d; }
+.dashboard button:disabled { cursor: not-allowed; }
+.dashboard ::selection { color: #fff; background: var(--ui-navy); }
+@media (max-width: 560px) { .app-shell .dashboard-header__title { font-size: 24px; } }
+@media (prefers-reduced-motion: reduce) { .app-shell *, .app-shell *::before, .app-shell *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

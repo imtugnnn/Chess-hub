@@ -44,6 +44,22 @@ public class InvitationMailService {
       throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Chưa cấu hình Gmail OAuth. Không thể mời người chưa có tài khoản.");
   }
   public void send(String email, String password, String centerName) {
+    sendMessage(email, "Lời mời tham gia " + centerName + " trên ChessHub",
+      "Bạn được mời tham gia trung tâm " + centerName + " trên ChessHub.\n\n"
+        + "Đăng nhập: " + origin + "/login\nTài khoản: " + email + "\nMật khẩu tạm thời: " + password
+        + "\n\nSau khi đăng nhập, bạn phải tạo mật khẩu mới trước khi sử dụng ứng dụng. "
+        + "Sau đó mở Trung tâm để chấp nhận hoặc từ chối lời mời.\nKhông chia sẻ mật khẩu tạm thời này.");
+  }
+
+  public void sendPasswordReset(String email, String token) {
+    sendMessage(email, "Đặt lại mật khẩu ChessHub",
+      "Bạn đã yêu cầu đặt lại mật khẩu ChessHub.\n\n"
+        + "Mở link sau để tạo mật khẩu mới: " + origin + "/reset-password#token=" + token
+        + "\n\nLink có hiệu lực trong 30 phút và chỉ dùng được một lần."
+        + "\nNếu bạn không yêu cầu thay đổi, hãy bỏ qua email này. Không chia sẻ link với người khác.");
+  }
+
+  private void sendMessage(String email, String subject, String text) {
     requireConfigured();
     try {
       var form = new LinkedMultiValueMap<String, String>();
@@ -56,11 +72,8 @@ public class InvitationMailService {
       var message = new MimeMessage(Session.getInstance(new Properties()));
       message.setFrom(new InternetAddress(from, true));
       message.setRecipients(jakarta.mail.Message.RecipientType.TO, InternetAddress.parse(email, true));
-      message.setSubject("Lời mời tham gia " + centerName + " trên ChessHub", "UTF-8");
-      message.setText("Bạn được mời tham gia trung tâm " + centerName + " trên ChessHub.\n\n"
-        + "Đăng nhập: " + origin + "/login\nTài khoản: " + email + "\nMật khẩu tạm thời: " + password
-        + "\n\nSau khi đăng nhập, bạn phải tạo mật khẩu mới trước khi sử dụng ứng dụng. "
-        + "Sau đó mở Trung tâm để chấp nhận hoặc từ chối lời mời.\nKhông chia sẻ mật khẩu tạm thời này.", "UTF-8");
+      message.setSubject(subject, "UTF-8");
+      message.setText(text, "UTF-8");
       var bytes = new ByteArrayOutputStream();
       message.writeTo(bytes);
       http.post().uri("https://gmail.googleapis.com/gmail/v1/users/me/messages/send")
@@ -69,7 +82,7 @@ public class InvitationMailService {
         .body(Map.of("raw", Base64.getUrlEncoder().withoutPadding().encodeToString(bytes.toByteArray())))
         .retrieve().toBodilessEntity();
     } catch (Exception error) {
-      throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Không gửi được email mời. Vui lòng kiểm tra Gmail OAuth rồi thử lại.");
+      throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Không gửi được email. Vui lòng thử lại sau.");
     }
   }
 }

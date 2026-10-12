@@ -5,6 +5,7 @@ import { ScheduleDatePicker, localDateKey, formatScheduleDate } from "../compone
 import { WeeklyTimeFields } from "../components/WeeklyTimeFields";
 import { generateRecurringSessions } from "../components/recurringSessions";
 import { createTeacherClass, getStudentNameSuggestions } from "../services/api";
+import { StudentOptionalFields } from "../components/StudentOptionalFields";
 
 const emptyForm = {
   name: "", feePerSession: "", students: [emptyStudent()],
@@ -79,6 +80,8 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
       birthDate: suggestion.birthDate ?? "",
       parentName: suggestion.parentName ?? "",
       parentPhoneNumber: suggestion.parentPhoneNumber ?? "",
+      phoneNumber: suggestion.phoneNumber ?? "",
+      notes: suggestion.notes ?? "",
     } : student) }));
     setNameSuggestions((current) => ({ ...current, [index]: [] }));
   }
@@ -120,7 +123,7 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
       const schedule = form.scheduleMode === "MANUAL"
         ? { mode: "MANUAL", sessions: form.manualSessions }
         : { mode: "RECURRING", weekdays: form.weekdays, startDate: form.startDate, endDate: form.endDate, startTime: recurringSessions[0].startTime, endTime: recurringSessions[0].endTime, sessions: recurringSessions };
-      await createTeacherClass(teacherId, { name: form.name, feePerSession: Number(form.feePerSession), students: students.map(({ fullName, birthDate, parentName, parentPhoneNumber }) => ({ fullName, birthDate, parentName, parentPhoneNumber })), schedule });
+      await createTeacherClass(teacherId, { name: form.name, feePerSession: Number(form.feePerSession), students: students.map(({ fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes }) => ({ fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes })), schedule });
       onNavigate("/homepage");
     } catch (error) {
       setMessage(error.message);
@@ -238,7 +241,7 @@ function StudentDraft({ student, index, suggestions, onChange, onSelect, onRemov
     <div className={`student-draft__panel ${collapsed ? "student-draft__panel--collapsed" : ""}`} id={panelId} inert={collapsed} aria-hidden={collapsed}>
       <div className="student-draft__panel-inner"><div className="student-draft__inputs" ref={fieldsRef}>
         <label className="student-draft__name">Họ và tên học sinh<span className="student-name-autocomplete"><input value={student.fullName} onChange={onChange(index, "fullName")} placeholder="Nguyễn Minh Khang" autoComplete="off" required={hasStudentDetails(student)} />{suggestions.length > 0 && <span className="student-name-suggestions" role="listbox" aria-label="Gợi ý học sinh">{suggestions.map((suggestion) => <button type="button" role="option" key={suggestion.id} onClick={() => onSelect(index, suggestion)}><strong>{suggestion.fullName}</strong><small>{formatBirthDate(suggestion.birthDate)} · PH: {suggestion.parentName || "Chưa có tên"} · {suggestion.parentPhoneNumber || "Chưa có SĐT"}</small></button>)}</span>}</span></label>
-        <div className="student-draft__fields"><label>Ngày sinh<input type="date" value={student.birthDate} onChange={onChange(index, "birthDate")} required={hasStudentDetails(student)} /></label><label>Họ và tên phụ huynh<input value={student.parentName} onChange={onChange(index, "parentName")} placeholder="Nguyễn Minh Anh" required={hasStudentDetails(student)} /></label><label>Số điện thoại phụ huynh<input type="tel" value={student.parentPhoneNumber} onChange={onChange(index, "parentPhoneNumber")} placeholder="0987 654 321" required={hasStudentDetails(student)} /></label></div>
+        <div className="student-draft__fields"><label>Ngày sinh<input type="date" value={student.birthDate} onChange={onChange(index, "birthDate")} required={hasStudentDetails(student)} /></label><label>Họ và tên phụ huynh<input value={student.parentName} onChange={onChange(index, "parentName")} placeholder="Nguyễn Minh Anh" required={hasStudentDetails(student)} /></label><label>Số điện thoại phụ huynh<input type="tel" value={student.parentPhoneNumber} onChange={onChange(index, "parentPhoneNumber")} placeholder="0987 654 321" required={hasStudentDetails(student)} /></label><StudentOptionalFields values={student} onChange={(key, value) => onChange(index, key)({ target: { value } })} /></div>
         <button type="button" className="secondary-button student-confirm" onClick={confirm} aria-controls={panelId}>Xác nhận học sinh</button>
       </div></div>
     </div>
@@ -246,8 +249,8 @@ function StudentDraft({ student, index, suggestions, onChange, onSelect, onRemov
   </fieldset>;
 }
 
-function emptyStudent() { return { draftId: crypto.randomUUID(), fullName: "", birthDate: "", parentName: "", parentPhoneNumber: "" }; }
-function hasStudentDetails(student) { return [student.fullName, student.birthDate, student.parentName, student.parentPhoneNumber].some((value) => value.trim() !== ""); }
+function emptyStudent() { return { draftId: crypto.randomUUID(), fullName: "", birthDate: "", parentName: "", parentPhoneNumber: "", phoneNumber: "", notes: "" }; }
+function hasStudentDetails(student) { return [student.fullName, student.birthDate, student.parentName, student.parentPhoneNumber, student.phoneNumber, student.notes].some((value) => value.trim() !== ""); }
 function hasDuplicateStudent(students) {
   const seen = new Set();
   for (const student of students) {

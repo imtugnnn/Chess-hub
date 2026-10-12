@@ -5,6 +5,7 @@ import "./fonts.css";
 import "./styles.css";
 import "./ui-refresh.css";
 import "./class-workspace.css";
+import "./design-system.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode><App /></StrictMode>

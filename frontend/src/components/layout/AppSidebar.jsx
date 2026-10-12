@@ -68,6 +68,7 @@ export function AppSidebar({ activeSection, teacherId, teacherName, onLogout, on
       <p className="nav-group-label">Giảng dạy</p>
       <button className={`nav-item ${activeSection === "home" ? "nav-item--active" : ""}`} type="button" onClick={() => onNavigate("/homepage")}><span><UiIcon name="home" /></span>Tổng quan</button>
       <button className={`nav-item ${activeSection === "calendar" ? "nav-item--active" : ""}`} type="button" onClick={() => onNavigate("/calendar")}><span><UiIcon name="calendar" /></span>Lịch</button>
+      <button className={`nav-item ${activeSection === "students" ? "nav-item--active" : ""}`} type="button" onClick={() => { setMobileOpen(false); onNavigate("/students"); }}><span><UiIcon name="students" /></span>Học sinh</button>
       <button className={`nav-item ${activeSection === "attendance" ? "nav-item--active" : ""}`} type="button" onClick={() => onNavigate("/attendance-summary")}><span><UiIcon name="check" /></span>Điểm danh</button>
       <button className={`nav-item ${activeSection === "materials" ? "nav-item--active" : ""}`} type="button" onClick={() => { setMobileOpen(false); onNavigate("/materials"); }}><span><UiIcon name="book" /></span>Quản lý bài giảng</button>
       <div className="class-menu">

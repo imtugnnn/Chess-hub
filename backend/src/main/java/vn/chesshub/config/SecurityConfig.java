@@ -56,7 +56,8 @@ public class SecurityConfig {
         .authenticationEntryPoint((request, response, exception) -> writeError(response, HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập."))
         .accessDeniedHandler((request, response, exception) -> writeError(response, HttpStatus.FORBIDDEN, "Bạn không có quyền truy cập.")))
       .authorizeHttpRequests(authorize -> authorize
-        .requestMatchers("/health", "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/csrf", "/api/v1/auth/providers").permitAll()
+        .requestMatchers("/health", "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/csrf", "/api/v1/auth/providers",
+          "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
         .requestMatchers("/api/v1/teachers/**", "/api/v1/users/**").access(ownAccount())
         .anyRequest().authenticated());
     if (clients.getIfAvailable() != null) {

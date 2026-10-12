@@ -78,3 +78,10 @@
   .class-detail-page .management-actions button { flex: 1 1 140px; }
   .class-detail-page .workspace-tournament > .secondary-button { margin-left: auto; }
 }
+/* Student profiles are edited in the shared directory; membership stays here. */
+.class-student-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.class-student-picker { display: grid; gap: 16px; }
+.class-student-matches { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; max-height: 320px; overflow-y: auto; }
+.class-student-matches > button { flex-direction: column; align-items: start; text-align: left; white-space: normal; padding: 12px; gap: 4px; }
+.class-student-matches > button[aria-pressed="true"] { border-color: var(--ui-navy); background: var(--ui-soft); }
+.class-student-matches span, .class-student-matches small { color: var(--ui-muted); font-size: 12px; }

@@ -1,0 +1,104 @@
+// Synthetic API fixtures only; no real data is read or written.
+const { chromium } = require('C:/Users/imtun/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const base = process.env.REVIEW_BASE_URL || 'http://127.0.0.1:5182';
+const names = ['Cờ căn bản A', 'Cờ nâng cao B', 'Cờ thi đấu C', 'Cờ căn bản D', 'Cờ nâng cao E', 'Cờ thi đấu F', 'Cờ căn bản G', 'Cờ nâng cao H'];
+const classes = names.map((className, i) => ({ classId: `22222222-2222-2222-2222-${String(i).padStart(12, '0')}`, className, sessionCount: 8, feePerSession: i === 7 ? 200000 : 150000, students: [
+  ...(i >= 6 ? [{ studentId: '33333333-3333-3333-3333-333333333333', studentName: 'Nguyễn Minh An', attendedDays: i + 1, absentSessions: 0, tuitionAmount: String((i + 1) * (i === 7 ? 200000 : 150000)), leftClass: false }] : []),
+  { studentId: '44444444-4444-4444-4444-444444444444', studentName: 'Đặng Gia Bảo', attendedDays: 2, absentSessions: 1, tuitionAmount: String(2 * (i === 7 ? 200000 : 150000)), leftClass: i === 7 },
+  { studentId: `55555555-5555-5555-5555-${String(i).padStart(12, '0')}`, studentName: `Nguyễn Học sinh ${i}`, attendedDays: i === 0 ? 0 : 1, absentSessions: 0, tuitionAmount: i === 0 ? '0' : String(i === 7 ? 200000 : 150000), leftClass: false },
+] }));
+classes.push({ classId: '66666666-6666-6666-6666-666666666666', className: 'Lớp ngoài tháng', sessionCount: 0, feePerSession: 1000000, students: [{ studentId: '33333333-3333-3333-3333-333333333333', studentName: 'Nguyễn Minh An', attendedDays: 0, absentSessions: 0, tuitionAmount: 0 }] });
+(async () => {
+  fs.mkdirSync('../.impeccable/review/attendance-summary', { recursive: true });
+  const browser = await chromium.launch({ channel: 'msedge', headless: true });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const errors = []; let fail = false, empty = false, onlyOutside = false;
+  page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/api/**', async route => {
+    const path = new URL(route.request().url()).pathname; let body = [];
+    if (path.endsWith('/auth/me')) body = { id: '11111111-1111-1111-1111-111111111111', fullName: 'Nguyễn Minh Anh' };
+    else if (path.endsWith('/center')) body = { center: null, incomingInvitations: [], outgoingInvitations: [], members: [] };
+    else if (path.endsWith('/attendance-summary')) {
+      if (fail) return route.fulfill({ status: 503, json: { message: 'Không thể tải báo cáo.' } });
+      body = empty ? [] : onlyOutside ? [classes.at(-1)] : classes;
+    }
+    await route.fulfill({ json: body });
+  });
+  await page.goto(`${base}/attendance-summary`);
+  await page.getByRole('heading', { name: 'Học phí theo lớp', exact: true }).waitFor();
+  assert.equal(await page.getByLabel('Sắp xếp kết quả').inputValue(), 'tuition');
+  assert.equal(await page.locator('.attendance-class-table tbody th').first().textContent(), names[7]);
+  assert.equal(await page.getByText('Lớp ngoài tháng', { exact: true }).count(), 0);
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: '../.impeccable/review/attendance-summary/desktop.png' });
+  await page.getByRole('combobox', { name: /Lớp học/ }).click();
+  assert.equal(await page.getByRole('option', { name: 'Lớp ngoài tháng' }).count(), 0);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: `Xem học sinh lớp ${names[7]}`, exact: true }).click();
+  await page.getByRole('dialog').waitFor();
+  assert((await page.getByRole('dialog').locator('tbody th').first().textContent()).startsWith('Nguyễn Minh An'));
+  await page.getByRole('button', { name: 'Đóng chi tiết' }).click();
+  await page.getByLabel('Tìm học sinh', { exact: true }).fill('nguyen minh an');
+  await page.getByRole('heading', { name: 'Kết quả tìm học sinh', exact: true }).waitFor();
+  assert.equal(await page.locator('.attendance-result-name').count(), 1);
+  assert.equal(await page.locator('.attendance-student-class-row').count(), 2);
+  assert.deepEqual(await page.locator('.attendance-group-class-link').allTextContents(), [names[7], names[6]]);
+  const first = page.locator('.attendance-student-class-row').first();
+  assert((await first.locator('td').nth(0).textContent()).endsWith('8/8'));
+  assert((await first.locator('td').nth(1).textContent()).includes('200.000'));
+  assert((await first.locator('td').nth(2).textContent()).includes('1.600.000'));
+  assert((await page.locator('.attendance-group-total').textContent()).includes('2.650.000'));
+  await page.screenshot({ path: '../.impeccable/review/attendance-summary/search-desktop.png' });
+  await page.getByLabel('Tìm tên lớp', { exact: true }).fill('nang cao');
+  assert.equal(await page.locator('.attendance-student-class-row').count(), 1);
+  assert((await page.locator('.attendance-group-total').textContent()).includes('1.600.000'));
+  await page.getByLabel('Tìm tên lớp', { exact: true }).fill('');
+  await page.getByLabel('Tìm học sinh', { exact: true }).fill('nguyen');
+  assert.equal(await page.locator('.attendance-result-name').count(), 6);
+  await page.getByRole('button', { name: 'Trang học sinh sau', exact: true }).click();
+  await page.getByRole('status').filter({ hasText: '7–9 / 9 học sinh' }).waitFor();
+  await page.getByLabel('Sắp xếp kết quả').selectOption('name');
+  await page.getByRole('status').filter({ hasText: '1–6 / 9 học sinh' }).waitFor();
+  assert.equal(await page.locator('.attendance-result-name').first().textContent(), 'Nguyễn Học sinh 0');
+  assert((await page.locator('.attendance-student-class-row').first().textContent()).includes('0/0'));
+  await page.getByLabel('Sắp xếp kết quả').selectOption('tuition');
+  assert.equal(await page.locator('.attendance-result-name').first().textContent(), 'Nguyễn Minh An');
+  await page.getByLabel('Tìm học sinh', { exact: true }).fill('dang');
+  assert.equal(await page.locator('.attendance-result-name').count(), 1);
+  assert.equal(await page.locator('.attendance-student-class-row').count(), 8);
+  await page.getByText('Đã rời lớp', { exact: true }).waitFor();
+  assert((await page.locator('.attendance-student-class-row').first().textContent()).includes('2/3'));
+  await page.getByLabel('Tìm tên lớp', { exact: true }).fill('không tồn tại');
+  await page.getByText('Không tìm thấy học sinh phù hợp. Thử tên khác hoặc xóa bộ lọc.').waitFor();
+  await page.getByRole('button', { name: 'Xóa bộ lọc', exact: true }).first().click();
+  await page.getByRole('heading', { name: 'Học phí theo lớp', exact: true }).waitFor();
+  await page.getByLabel('Tìm tên lớp', { exact: true }).fill('thi dau');
+  assert.deepEqual(await page.locator('.attendance-class-table tbody th').allTextContents(), [names[2], names[5]]);
+  await page.getByRole('button', { name: 'Xóa bộ lọc', exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: '../.impeccable/review/attendance-summary/mobile.png', fullPage: true });
+  await page.getByLabel('Tìm học sinh', { exact: true }).fill('nguyen minh an');
+  assert.equal(await page.locator('.attendance-result-name').count(), 1);
+  await page.screenshot({ path: '../.impeccable/review/attendance-summary/search-mobile.png', fullPage: true });
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile overflow');
+  const nameSize = await page.locator('.attendance-result-name').evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+  const classSize = await page.locator('.attendance-group-class-link').first().evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+  assert(nameSize > classSize, 'Student must lead visually');
+  fail = true;
+  await page.getByRole('button', { name: 'Tháng trước' }).click();
+  await page.getByRole('heading', { name: 'Không thể tải báo cáo tháng này' }).waitFor();
+  fail = false;
+  await page.getByRole('button', { name: 'Thử lại', exact: true }).click();
+  await page.getByRole('heading', { name: 'Kết quả tìm học sinh' }).waitFor();
+  onlyOutside = true;
+  await page.getByRole('button', { name: 'Tháng trước' }).click();
+  await page.getByRole('heading', { name: 'Chưa có lớp có lịch học trong tháng' }).waitFor();
+  empty = true;
+  await page.getByRole('button', { name: 'Tháng trước' }).click();
+  await page.getByRole('heading', { name: 'Chưa có lớp có lịch học trong tháng' }).waitFor();
+  assert.deepEqual(errors, []);
+  await browser.close();
+  console.log('PASS: monthly-only classes/options, one student group, ratios/prices/totals, aggregate sort/group pagination, combined search/reset, former/unmarked students, drawer, empty/error/retry, desktop/mobile. API mocked.');
+})().catch(error => { console.error(error); process.exit(1); });
