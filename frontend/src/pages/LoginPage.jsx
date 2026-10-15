@@ -66,8 +66,8 @@ export function LoginPage({ onNavigate, onAuthenticated }) {
           <h2>Đăng nhập vào ChessHub</h2>
           <p className="auth-subtitle">Tiếp tục quản lý những lớp cờ của bạn.</p>
           <form className="auth-form" onSubmit={submit}>
-            <label>Email<span className="input-wrap"><span aria-hidden="true">✉</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ban@example.com" required /></span></label>
-            <label>Mật khẩu<PasswordInput aria-label="Mật khẩu" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nhập mật khẩu" autoComplete="current-password" required /></label>
+            <label>Email<span className="input-wrap"><span aria-hidden="true">✉</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></span></label>
+            <label>Mật khẩu<PasswordInput aria-label="Mật khẩu" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>
             <div className="form-row login-options">
               <div className="remember-login-control">
                 <button id="remember-login" type="button" className="remember-login-button" aria-pressed={rememberMe}

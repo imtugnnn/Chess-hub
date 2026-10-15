@@ -20,7 +20,7 @@ export function ForgotPasswordPage({ onNavigate, locationSearch = "" }) {
     <h1>{changing ? "Thay đổi mật khẩu" : "Quên mật khẩu?"}</h1>
     <p className="auth-subtitle">Nhập email của tài khoản. ChessHub sẽ gửi link để bạn tạo mật khẩu mới. Link có hiệu lực trong 30 phút.</p>
     {message ? <p className="password-recovery-success" role="status">{message}</p> : <form className="auth-form" onSubmit={submit}>
-      <label>Email<span className="input-wrap"><span aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 6 9 7 9-7" /></svg></span><input aria-label="Email" type="email" autoComplete="email" maxLength={255} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ban@example.com" required disabled={submitting} /></span></label>
+      <label>Email<span className="input-wrap"><span aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 6 9 7 9-7" /></svg></span><input aria-label="Email" type="email" autoComplete="email" maxLength={255} value={email} onChange={(event) => setEmail(event.target.value)} required disabled={submitting} /></span></label>
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="primary-button" type="submit" disabled={submitting}>{submitting ? "Đang gửi…" : "Gửi link đặt lại mật khẩu"}</button>
     </form>}

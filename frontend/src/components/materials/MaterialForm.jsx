@@ -24,10 +24,10 @@ export function MaterialForm({ material, onSave, onCancel, note }) {
   return <form className="material-form" onSubmit={submit}>
     {note && <p className="material-help">{note}</p>}
     <fieldset disabled={busy}>
-      <label>Tên bài giảng (không bắt buộc)<input autoFocus maxLength={255} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ví dụ: Chiếu hết bằng hai xe" /></label>
-      <label>Mô tả (không bắt buộc)<textarea rows={3} maxLength={4000} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Nội dung, trình độ hoặc lưu ý khi giảng dạy" /></label>
+      <label>Tên bài giảng (không bắt buộc)<input autoFocus maxLength={255} value={title} onChange={(event) => setTitle(event.target.value)} /></label>
+      <label>Mô tả (không bắt buộc)<textarea rows={3} maxLength={4000} value={description} onChange={(event) => setDescription(event.target.value)} /></label>
       <div className="material-tabs" role="group" aria-label="Nguồn bài giảng"><button type="button" aria-pressed={kind === "link"} onClick={() => setKind("link")}>Liên kết</button><button type="button" aria-pressed={kind === "file"} onClick={() => setKind("file")}>Tải tệp lên</button></div>
-      {kind === "link" ? <label>Liên kết bài giảng<input type="url" required pattern="https://.*" maxLength={2048} value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://…" /><small>Canva, Google Slides hoặc liên kết HTTPS khác. Đảm bảo người dùng có quyền mở tại nguồn.</small></label>
+      {kind === "link" ? <label>Liên kết bài giảng<input type="url" required pattern="https://.*" maxLength={2048} value={url} onChange={(event) => setUrl(event.target.value)} /><small>Canva, Google Slides hoặc liên kết HTTPS khác. Đảm bảo người dùng có quyền mở tại nguồn.</small></label>
         : <label>Tệp PDF hoặc PowerPoint<input type="file" accept=".pdf,.ppt,.pptx" onChange={(event) => setFile(event.target.files[0] ?? null)} /><small>{material?.fileName ? `Tệp hiện tại: ${material.fileName}. Chọn tệp mới để thay thế.` : "Hỗ trợ PDF, PPT, PPTX · Tối đa 20 MB."}</small></label>}
     </fieldset>
     {error && <p className="material-error" role="alert">{error}</p>}

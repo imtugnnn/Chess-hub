@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AppPageHeader } from "../components/layout/AppPageHeader";
 import { AppSidebar } from "../components/layout/AppSidebar";
 import { ScheduleDatePicker, localDateKey, formatScheduleDate } from "../components/ScheduleDatePicker";
 import { WeeklyTimeFields } from "../components/WeeklyTimeFields";
 import { generateRecurringSessions } from "../components/recurringSessions";
-import { createTeacherClass, getStudentNameSuggestions } from "../services/api";
-import { StudentOptionalFields } from "../components/StudentOptionalFields";
+import { createTeacherClass } from "../services/api";
+import { StudentEntryFields } from "../components/StudentEntryFields";
+import { emptyStudentValues, studentSuggestionValues } from "../components/studentEntry";
 
 const emptyForm = {
   name: "", feePerSession: "", students: [emptyStudent()],
@@ -24,14 +25,10 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
     const validDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(new Date(`${date}T12:00:00`).getTime()) && localDateKey(new Date(`${date}T12:00:00`)) === date;
     return { ...emptyForm, students: [emptyStudent()], manualSessions: validDate ? [{ date, startTime: "", endTime: "" }] : [] };
   });
-  const [nameSuggestions, setNameSuggestions] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
-  const suggestionTimer = useRef(null);
-  const suggestionRequest = useRef(0);
   const recurringSessions = useMemo(() => generateRecurringSessions(form), [form]);
   const recurringSessionCount = recurringSessions.length;
-  useEffect(() => () => { window.clearTimeout(suggestionTimer.current); suggestionRequest.current++; }, []);
 
   function update(key) {
     return (event) => {
@@ -40,50 +37,18 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
     };
   }
 
-  function updateStudent(index, key) {
-    return (event) => {
-      const value = event.target.value;
-      setForm((current) => ({ ...current, students: current.students.map((student, itemIndex) => itemIndex === index ? { ...student, [key]: value } : student) }));
-      if (key === "fullName") scheduleNameSuggestions(index, value);
-    };
+  function updateStudent(index, key, value) {
+    setForm(current => ({ ...current, students: current.students.map((student, itemIndex) => itemIndex === index
+      ? { ...(key === "fullName" && student.studentId ? { ...emptyStudentValues(), draftId: student.draftId } : student), [key]: value } : student) }));
   }
-
   function addStudent() {
-    window.clearTimeout(suggestionTimer.current); suggestionRequest.current++;
     const student = emptyStudent();
-    setForm((current) => ({ ...current, students: [student, ...current.students] }));
-    setNameSuggestions({});
-    window.requestAnimationFrame(() => document.getElementById(`student-fields-${student.draftId}`)?.querySelector("input")?.focus({ preventScroll: true }));
+    setForm(current => ({ ...current, students: [student, ...current.students] }));
+    requestAnimationFrame(() => document.getElementById(`student-fields-${student.draftId}`)?.querySelector("input")?.focus());
   }
-  function removeStudent(index) { window.clearTimeout(suggestionTimer.current); suggestionRequest.current++; setForm((current) => ({ ...current, students: current.students.filter((_, itemIndex) => itemIndex !== index) })); setNameSuggestions({}); }
-
-  function scheduleNameSuggestions(index, value) {
-    window.clearTimeout(suggestionTimer.current);
-    const request = ++suggestionRequest.current;
-    const query = value.trim();
-    if (query.length < 2) { setNameSuggestions((current) => ({ ...current, [index]: [] })); return; }
-    suggestionTimer.current = window.setTimeout(async () => {
-      try {
-        const suggestions = await getStudentNameSuggestions(teacherId, query);
-        if (request === suggestionRequest.current) setNameSuggestions((current) => ({ ...current, [index]: suggestions }));
-      } catch {
-        if (request === suggestionRequest.current) setNameSuggestions((current) => ({ ...current, [index]: [] }));
-      }
-    }, 220);
-  }
-
+  function removeStudent(index) { setForm(current => ({ ...current, students: current.students.filter((_, itemIndex) => itemIndex !== index) })); }
   function selectNameSuggestion(index, suggestion) {
-    window.clearTimeout(suggestionTimer.current); suggestionRequest.current++;
-    setForm((current) => ({ ...current, students: current.students.map((student, itemIndex) => itemIndex === index ? {
-      ...student,
-      fullName: suggestion.fullName,
-      birthDate: suggestion.birthDate ?? "",
-      parentName: suggestion.parentName ?? "",
-      parentPhoneNumber: suggestion.parentPhoneNumber ?? "",
-      phoneNumber: suggestion.phoneNumber ?? "",
-      notes: suggestion.notes ?? "",
-    } : student) }));
-    setNameSuggestions((current) => ({ ...current, [index]: [] }));
+    setForm(current => ({ ...current, students: current.students.map((student, itemIndex) => itemIndex === index ? { ...student, ...studentSuggestionValues(suggestion) } : student) }));
   }
 
   function updateManualSession(index, key) {
@@ -116,14 +81,14 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
     const invalidTime = form.scheduleMode === "MANUAL" && form.manualSessions.some((session) => session.endTime <= session.startTime);
     if (invalidTime) { setMessage("Giờ kết thúc phải sau giờ bắt đầu của mỗi buổi học."); return; }
     const students = form.students.filter(hasStudentDetails);
-    if (hasDuplicateStudent(students)) { setMessage("Một học sinh được nhập nhiều lần. Hãy kiểm tra họ tên, ngày sinh và số điện thoại phụ huynh."); return; }
+    if (hasDuplicateStudent(students)) { setMessage("Một học sinh được nhập nhiều lần. Hãy kiểm tra hồ sơ, họ tên và ngày sinh."); return; }
     setMessage("");
     setSubmitting(true);
     try {
       const schedule = form.scheduleMode === "MANUAL"
         ? { mode: "MANUAL", sessions: form.manualSessions }
         : { mode: "RECURRING", weekdays: form.weekdays, startDate: form.startDate, endDate: form.endDate, startTime: recurringSessions[0].startTime, endTime: recurringSessions[0].endTime, sessions: recurringSessions };
-      await createTeacherClass(teacherId, { name: form.name, feePerSession: Number(form.feePerSession), students: students.map(({ fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes }) => ({ fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes })), schedule });
+      await createTeacherClass(teacherId, { name: form.name, feePerSession: Number(form.feePerSession), students: students.map(({ studentId, fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes }) => ({ studentId, fullName, birthDate: birthDate || null, parentName, parentPhoneNumber, phoneNumber, notes })), schedule });
       onNavigate("/homepage");
     } catch (error) {
       setMessage(error.message);
@@ -146,10 +111,10 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
           <section className="create-class-column" aria-labelledby="class-information-title">
           <div className="form-section-heading"><span aria-hidden="true">🏫</span><div><strong id="class-information-title">Thông tin lớp</strong><small>Thiết lập tên lớp, học phí và lịch học.</small></div></div>
           <label>Tên lớp
-            <input value={form.name} onChange={update("name")} placeholder="Ví dụ: Lớp Căn bản A" required />
+            <input value={form.name} onChange={update("name")} required />
           </label>
           <label>Học phí mỗi buổi (VNĐ)
-            <input type="number" min="0" step="1000" value={form.feePerSession} onChange={update("feePerSession")} placeholder="Ví dụ: 100000" required />
+            <input type="number" min="0" step="1000" value={form.feePerSession} onChange={update("feePerSession")} required />
           </label>
           <fieldset className="schedule-section">
             <legend><span>◷</span> Lịch học</legend>
@@ -177,7 +142,7 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
           <section className="create-class-column" aria-labelledby="student-information-title">
           <div className="form-section-heading"><span aria-hidden="true">♙</span><div><strong id="student-information-title">Thông tin học sinh · Không bắt buộc</strong><small>Có thể để trống và thêm học sinh sau khi tạo lớp.</small></div></div>
           <button type="button" className="add-session" onClick={addStudent} disabled={submitting}>＋ Thêm học sinh</button>
-          <div className="student-drafts">{form.students.map((student, index) => <StudentDraft key={student.draftId} student={student} index={index} suggestions={nameSuggestions[index] ?? []} onChange={updateStudent} onSelect={selectNameSuggestion} onRemove={removeStudent} disabled={submitting} />)}</div>
+          <div className="student-drafts">{form.students.map((student, index) => <StudentDraft key={student.draftId} student={student} index={index} teacherId={teacherId} onChange={updateStudent} onSelect={selectNameSuggestion} onRemove={removeStudent} disabled={submitting} />)}</div>
           </section>
         </form>
       </section>
@@ -211,50 +176,44 @@ function RecurringDateField({ form, onDate }) {
   </div>;
 }
 
-function StudentDraft({ student, index, suggestions, onChange, onSelect, onRemove, disabled }) {
+function StudentDraft({ student, index, teacherId, onChange, onSelect, onRemove, disabled }) {
   const [collapsed, setCollapsed] = useState(false);
   const fieldsRef = useRef(null);
   const editRef = useRef(null);
+  const confirmRef = useRef(null);
   const panelId = `student-fields-${student.draftId}`;
-
   function confirm() {
-    const inputs = [...fieldsRef.current.querySelectorAll("input")];
-    const invalid = inputs.find((input) => !input.value.trim() || !input.checkValidity());
-    if (invalid) {
-      if (!invalid.value.trim()) invalid.setCustomValidity("Vui lòng nhập thông tin này trước khi xác nhận học sinh.");
-      invalid.reportValidity();
-      invalid.setCustomValidity("");
-      return;
+    const invalid = [...fieldsRef.current.querySelectorAll("input, textarea")].find(input => !input.checkValidity());
+    if (!student.fullName.trim() || !student.studentId && !student.birthDate) {
+      const missing = fieldsRef.current.querySelector(!student.fullName.trim() ? 'input' : 'input[type="date"]');
+      missing.setCustomValidity("Vui lòng nhập họ tên và ngày sinh.");
+      missing.reportValidity(); missing.setCustomValidity(""); return;
     }
+    if (invalid) { invalid.reportValidity(); return; }
     setCollapsed(true);
-    window.requestAnimationFrame(() => editRef.current?.focus({ preventScroll: true }));
+    requestAnimationFrame(() => editRef.current?.focus({ preventScroll: true }));
   }
-
-  function edit() {
-    setCollapsed(false);
-    window.requestAnimationFrame(() => fieldsRef.current.querySelector("input")?.focus({ preventScroll: true }));
-  }
-
+  function edit() { setCollapsed(false); requestAnimationFrame(() => fieldsRef.current.querySelector("input")?.focus()); }
   return <fieldset className={`student-draft ${collapsed ? "student-draft--confirmed" : ""}`} disabled={disabled}>
     <legend>Học sinh {index + 1}</legend>
-    {collapsed && <div className="student-draft__summary"><div><strong>{student.fullName}</strong><small>{formatBirthDate(student.birthDate)} · PH: {student.parentName} · {student.parentPhoneNumber}</small></div><div className="student-draft__actions"><button ref={editRef} type="button" className="secondary-button" aria-expanded={!collapsed} aria-controls={panelId} aria-label={`Chỉnh sửa học sinh ${student.fullName}`} onClick={edit}>Chỉnh sửa</button><button type="button" className="remove-student" onClick={() => onRemove(index)} aria-label={`Xóa học sinh ${student.fullName}`}>Xóa</button></div></div>}
-    <div className={`student-draft__panel ${collapsed ? "student-draft__panel--collapsed" : ""}`} id={panelId} inert={collapsed} aria-hidden={collapsed}>
+    {collapsed && <div className="student-draft__summary"><div><strong>{student.fullName}</strong><small>{formatBirthDate(student.birthDate)}{student.studentId ? " · Hồ sơ có sẵn" : ""}</small></div><div className="student-draft__actions"><button ref={editRef} type="button" className="secondary-button" aria-expanded={!collapsed} aria-controls={panelId} aria-label={`Chỉnh sửa học sinh ${student.fullName}`} onClick={edit}>Chỉnh sửa</button><button type="button" className="remove-student" onClick={() => onRemove(index)} aria-label={`Xóa học sinh ${student.fullName}`}>Xóa</button></div></div>}
+    <div className={`student-draft__panel ${collapsed ? "student-draft__panel--collapsed" : ""}`} id={panelId} hidden={collapsed} inert={collapsed} aria-hidden={collapsed}>
       <div className="student-draft__panel-inner"><div className="student-draft__inputs" ref={fieldsRef}>
-        <label className="student-draft__name">Họ và tên học sinh<span className="student-name-autocomplete"><input value={student.fullName} onChange={onChange(index, "fullName")} placeholder="Nguyễn Minh Khang" autoComplete="off" required={hasStudentDetails(student)} />{suggestions.length > 0 && <span className="student-name-suggestions" role="listbox" aria-label="Gợi ý học sinh">{suggestions.map((suggestion) => <button type="button" role="option" key={suggestion.id} onClick={() => onSelect(index, suggestion)}><strong>{suggestion.fullName}</strong><small>{formatBirthDate(suggestion.birthDate)} · PH: {suggestion.parentName || "Chưa có tên"} · {suggestion.parentPhoneNumber || "Chưa có SĐT"}</small></button>)}</span>}</span></label>
-        <div className="student-draft__fields"><label>Ngày sinh<input type="date" value={student.birthDate} onChange={onChange(index, "birthDate")} required={hasStudentDetails(student)} /></label><label>Họ và tên phụ huynh<input value={student.parentName} onChange={onChange(index, "parentName")} placeholder="Nguyễn Minh Anh" required={hasStudentDetails(student)} /></label><label>Số điện thoại phụ huynh<input type="tel" value={student.parentPhoneNumber} onChange={onChange(index, "parentPhoneNumber")} placeholder="0987 654 321" required={hasStudentDetails(student)} /></label><StudentOptionalFields values={student} onChange={(key, value) => onChange(index, key)({ target: { value } })} /></div>
-        <button type="button" className="secondary-button student-confirm" onClick={confirm} aria-controls={panelId}>Xác nhận học sinh</button>
+        <StudentEntryFields values={student} teacherId={teacherId} required={hasStudentDetails(student)} onChange={(key, value) => onChange(index, key, value)} onSelect={suggestion => onSelect(index, suggestion)} onComplete={() => confirmRef.current?.focus()} />
+        <button ref={confirmRef} type="button" className="secondary-button student-confirm" onClick={confirm} aria-controls={panelId}>Xác nhận học sinh</button>
+        <small className="student-entry-help">Enter chuyển trường; ở ghi chú, Enter chọn nút xác nhận, Enter lần nữa để thêm vào danh sách. Hồ sơ mới được lưu khi tạo lớp.</small>
       </div></div>
     </div>
     {!collapsed && <button type="button" className="remove-student" onClick={() => onRemove(index)} aria-label={`Xóa học sinh ${student.fullName || index + 1}`}>Xóa học sinh</button>}
   </fieldset>;
 }
 
-function emptyStudent() { return { draftId: crypto.randomUUID(), fullName: "", birthDate: "", parentName: "", parentPhoneNumber: "", phoneNumber: "", notes: "" }; }
+function emptyStudent() { return { ...emptyStudentValues(), draftId: crypto.randomUUID() }; }
 function hasStudentDetails(student) { return [student.fullName, student.birthDate, student.parentName, student.parentPhoneNumber, student.phoneNumber, student.notes].some((value) => value.trim() !== ""); }
 function hasDuplicateStudent(students) {
   const seen = new Set();
   for (const student of students) {
-    const identity = `${student.fullName.trim().toLocaleLowerCase("vi-VN")}|${student.birthDate}|${student.parentPhoneNumber.replaceAll(/[ .()-]/g, "")}`;
+    const identity = student.studentId || `${student.fullName.trim().toLocaleLowerCase("vi-VN")}|${student.birthDate}`;
     if (seen.has(identity)) return true;
     seen.add(identity);
   }

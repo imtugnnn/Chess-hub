@@ -48,7 +48,7 @@ export function StudentDetailPage({ studentId, teacherId, teacherName, onLogout,
     draft.current = { dirty: false, busy: false };
     window.dispatchEvent(new Event("students-updated"));
     if (creating) {
-      onNavigate(`/students/${record.id}?${new URLSearchParams({ returnTo: returnUrl, created: "1" })}`);
+      onNavigate(`/students/${record.id}?${new URLSearchParams({ returnTo: returnUrl, ...(record.reused ? {} : { created: "1" }) })}`);
     } else {
       setDetail(current => ({ ...current, student: { ...current.student, ...record, classes: current.student.classes } }));
       setEditing(false); setNotice(`Đã cập nhật hồ sơ ${record.fullName}.`);

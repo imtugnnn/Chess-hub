@@ -153,11 +153,19 @@ public class StudentManagementService {
   }
   static Input validate(Input input) {
     if (input == null) throw error(HttpStatus.BAD_REQUEST, "Thông tin học sinh là bắt buộc.");
-    String name = required(input.fullName(), "Họ tên học sinh"), parent = required(input.parentName(), "Họ tên phụ huynh");
-    String phone = required(input.parentPhoneNumber(), "Số điện thoại phụ huynh").replaceAll("[ .()-]", "");
-    if (!phone.matches("\\d{9,15}")) throw error(HttpStatus.BAD_REQUEST, "Số điện thoại phải có 9–15 chữ số.");
+    String name = required(input.fullName(), "Họ tên học sinh"), parent = optionalParentName(input.parentName());
+    String phone = optionalParentPhone(input.parentPhoneNumber());
     if (input.birthDate() == null || input.birthDate().isAfter(LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")))) throw error(HttpStatus.BAD_REQUEST, "Ngày sinh là bắt buộc và không được ở tương lai.");
     return new Input(name, input.birthDate(), parent, phone, input.centerId(), optionalStudentPhone(input.phoneNumber()), optionalNotes(input.notes()));
+  }
+  static String optionalParentName(String value) {
+    return value == null || value.isBlank() ? null : required(value, "Họ tên phụ huynh");
+  }
+  static String optionalParentPhone(String value) {
+    if (value == null || value.isBlank()) return "";
+    String phone = value.trim().replaceAll("[ .()-]", "");
+    if (!phone.matches("\\d{9,15}")) throw error(HttpStatus.BAD_REQUEST, "Số điện thoại phụ huynh phải có 9–15 chữ số hoặc để trống.");
+    return phone;
   }
   static String optionalStudentPhone(String value) {
     if (value == null || value.isBlank()) return null;

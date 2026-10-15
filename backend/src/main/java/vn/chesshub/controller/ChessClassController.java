@@ -111,8 +111,8 @@ public class ChessClassController {
   }
   public record CreateClassRequest(String name, BigDecimal feePerSession, List<StudentRequest> students, ScheduleRequest schedule) { }
   public record UpdateClassRequest(String name, BigDecimal feePerSession) { }
-  public record StudentRequest(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes) {
-    ChessClassService.StudentCommand toCommand() { return new ChessClassService.StudentCommand(fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes); }
+  public record StudentRequest(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes, UUID studentId) {
+    ChessClassService.StudentCommand toCommand() { return new ChessClassService.StudentCommand(fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes, studentId); }
   }
   public record ScheduleRequest(String mode, List<SessionRequest> sessions, List<Integer> weekdays, LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime, String previewToken) {
     ClassScheduleService.RecurringRequest toRecurring() { return new ClassScheduleService.RecurringRequest(startDate, endDate, weekdays, startTime, endTime, previewToken); }

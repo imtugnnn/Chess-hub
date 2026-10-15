@@ -56,12 +56,12 @@ export function StudentsPage({ teacherId, teacherName, onLogout, onNavigate, loc
     <div className="students-layout">
       <section className="students-directory" aria-label="Danh sách học sinh">
         <div className="students-filters">
-          <label className="students-search">Tìm học sinh<div><UiIcon name="search" size={18} /><input ref={searchRef} type="search" maxLength={255} value={filters.query} onChange={e => change("query", e.target.value)} placeholder="Tên học sinh, phụ huynh hoặc số điện thoại" /></div></label>
+          <label className="students-search">Tìm học sinh<div><UiIcon name="search" size={18} /><input ref={searchRef} type="search" maxLength={255} value={filters.query} onChange={e => change("query", e.target.value)} /></div></label>
           <div className="students-mobile-filter-controls"><button className="secondary-button" aria-expanded={filtersOpen} aria-controls="students-secondary-filters" onClick={() => setFiltersOpen(open => !open)}>Bộ lọc{filterCount > 0 ? ` (${filterCount})` : ""}</button>{filtered && <button className="secondary-button" onClick={clear}>Xóa bộ lọc</button>}</div>
           {!filtersOpen && filterCount > 0 && <p className="students-mobile-filter-summary">{[filters.scope === "personal" ? "Cá nhân" : options.centers.find(c => c.id === filters.scope)?.name, selectedClass?.name, filters.enrollment === "enrolled" ? "Đang có lớp" : filters.enrollment === "unassigned" ? "Chưa có lớp" : null].filter(Boolean).join(" · ")}</p>}
           <div id="students-secondary-filters" className={`students-filter-row ${filtersOpen ? "students-filter-row--open" : ""}`}>
             <label>Trung tâm<select aria-label="Trung tâm" value={filters.scope} onChange={e => change("scope", e.target.value)}><option value="all">Tất cả</option><option value="personal">Cá nhân</option>{options.centers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-            <label>Lớp học<input type="search" list="student-class-options" value={classSearch || selectedClass?.name || ""} placeholder="Tìm và chọn lớp" onChange={e => {
+            <label>Lớp học<input type="search" list="student-class-options" value={classSearch || selectedClass?.name || ""} onChange={e => {
               const value = e.target.value; setClassSearch(value);
               const found = options.classes.find(c => `${c.name} · ${c.id.slice(0, 6)}` === value);
               change("classId", found?.id ?? "");

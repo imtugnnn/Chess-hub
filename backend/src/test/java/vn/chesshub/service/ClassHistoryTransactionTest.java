@@ -57,6 +57,24 @@ class ClassHistoryTransactionTest {
   }
   void mark() { attendanceApi.save(teacherId, classId, sessionId, new AttendanceController.AttendanceRequest(List.of(new AttendanceController.AttendanceRecord(studentId, "PRESENT")))); }
 
+  @Test void addingStudentAcceptsOnlyNameAndBirthAndReusesExplicitProfileWithoutCopying() {
+    var created = classService.addStudent(teacherId, classId, new ChessClassService.StudentCommand("New child", LocalDate.of(2016, 1, 2), null, null));
+    assertEquals("", created.getParentPhoneNumber());
+    assertNull(created.getParentName());
+    long count = students.count();
+    var reused = classService.addStudent(teacherId, otherClassId, new ChessClassService.StudentCommand(null, null, null, null, null, null, created.getId()));
+    assertEquals(created.getId(), reused.getId());
+    assertEquals(count, students.count());
+    assertThrows(ResponseStatusException.class, () -> classService.addStudent(teacherId, otherClassId,
+      new ChessClassService.StudentCommand(null, null, null, null, null, null, created.getId())));
+    UUID foreignId = tx.execute(status -> {
+      User other = users.save(new User("Other teacher", UUID.randomUUID() + "@example.com", "hash"));
+      return students.save(new Student("Foreign", LocalDate.of(2016, 1, 2), null, "", null, other.getId())).getId();
+    });
+    assertThrows(ResponseStatusException.class, () -> classService.addStudent(teacherId, classId,
+      new ChessClassService.StudentCommand(null, null, null, null, null, null, foreignId)));
+  }
+
   @Test void removingMembershipPreservesAttendanceTuitionOtherClassAndTournamentRows() {
     mark();
     UUID tournamentId = tx.execute(status -> tournaments.save(new Tournament(teacherId, classes.findById(classId).orElseThrow(), sessions.findById(sessionId).orElseThrow(), "Giải")).getId());

@@ -82,7 +82,7 @@ export function AccountSettingsPage({ account, onAccountUpdated, teacherId, teac
         <h2 id="account-meet-heading">Google Meet</h2>
         <p>Dùng chung một link cho các lớp học.</p>
         <form onSubmit={(event) => submit("meet", event)}>
-          <SettingsField id="google-meet-url" label="Link phòng học"><input id="google-meet-url" type="url" autoComplete="off" maxLength={512} placeholder="Dán link Google Meet" value={meetUrl} onChange={(event) => setMeetUrl(event.target.value)} disabled={!!busy} aria-describedby="meet-url-hint" /><p id="meet-url-hint" className="settings-hint">Dùng link meet.google.com/abc-defg-hij. Để trống nếu muốn gỡ.</p></SettingsField>
+          <SettingsField id="google-meet-url" label="Link phòng học"><input id="google-meet-url" type="url" autoComplete="off" maxLength={512} value={meetUrl} onChange={(event) => setMeetUrl(event.target.value)} disabled={!!busy} aria-describedby="meet-url-hint" /><p id="meet-url-hint" className="settings-hint">Dùng link meet.google.com/abc-defg-hij. Để trống nếu muốn gỡ.</p></SettingsField>
           <SettingsFormFooter feedback={feedback.meet}><button className="secondary-button" type="submit" disabled={!!busy || meetUrl.trim() === (account.googleMeetUrl ?? "")} aria-busy={busy === "meet"}>{busy === "meet" ? "Đang lưu…" : "Lưu link Meet"}</button></SettingsFormFooter>
         </form>
       </section>

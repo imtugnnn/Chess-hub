@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { LoginPage } from "./pages/LoginPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
@@ -22,6 +22,8 @@ import { getSessionUser, logoutSession } from "./services/api";
 import { createNavigation } from "./services/navigation";
 import { canonicalClassUrl } from "./components/workspaceState";
 
+const BoardEditorPage = lazy(() => import("./pages/BoardEditorPage").then((module) => ({ default: module.BoardEditorPage })));
+
 const VALID_PATHS = new Set(["/", "/login", "/register", "/forgot-password", "/reset-password", "/homepage", "/classes/new", "/tournaments/new", "/calendar", "/attendance-summary", "/settings", "/center", "/materials", "/students"]);
 const TOURNAMENT_CREATION_PATH = /^\/classes\/([0-9a-f-]{36})\/sessions\/([0-9a-f-]{36})\/tournaments\/new$/i;
 const CLASS_TOURNAMENT_CREATION_PATH = /^\/classes\/([0-9a-f-]{36})\/tournaments\/new$/i;
@@ -39,7 +41,7 @@ function getPathname() {
     window.history.replaceState(window.history.state, "", canonicalClassUrl(`${path}${window.location.search}`, window.location.origin));
     path = window.location.pathname;
   }
-  if (VALID_PATHS.has(path)) return path;
+  if (path === "/board-lab" || VALID_PATHS.has(path)) return path;
   if (TOURNAMENT_CREATION_PATH.test(path)) return path;
   if (CLASS_TOURNAMENT_CREATION_PATH.test(path)) return path;
   if (TOURNAMENT_DETAIL_PATH.test(path)) return path;
@@ -89,7 +91,7 @@ export default function App() {
       navigation.current.sync();
       return;
     }
-    if (sessionChecked && (path === "/students" || path.startsWith("/students/") || path === "/materials" || path === "/homepage" || path === "/classes/new" || path === "/calendar" || path === "/attendance-summary" || path === "/settings" || path === "/center" || path.startsWith("/classes/") || path.startsWith("/tournaments/")) && !teacher) {
+    if (sessionChecked && (path === "/board-lab" || path === "/students" || path.startsWith("/students/") || path === "/materials" || path === "/homepage" || path === "/classes/new" || path === "/calendar" || path === "/attendance-summary" || path === "/settings" || path === "/center" || path.startsWith("/classes/") || path.startsWith("/tournaments/")) && !teacher) {
       window.history.replaceState({}, "", "/login");
       setPath("/login");
       navigation.current.sync();
@@ -130,6 +132,7 @@ export default function App() {
   if (path === "/settings" && teacher) return <AccountSettingsPage account={teacher} onAccountUpdated={setTeacher} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   if (path === "/center" && teacher) return <CenterPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
   if (path === "/materials" && teacher) return <MaterialsPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} />;
+  if (path === "/board-lab" && teacher) return <Suspense fallback={<p className="page-loading" role="status">Đang tải bàn cờ…</p>}><BoardEditorPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} /></Suspense>;
   if (path === "/students" && teacher) return <StudentsPage teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} locationSearch={locationSearch} syncNavigationLocation={syncNavigationLocation} />;
   const studentPath = path.match(STUDENT_DETAIL_PATH);
   if (studentPath && teacher) return <StudentDetailPage key={path} studentId={studentPath[1]} teacherId={teacher.id} teacherName={teacher.fullName} onLogout={logout} onNavigate={navigate} locationSearch={locationSearch} registerNavigationGuard={registerNavigationGuard} />;

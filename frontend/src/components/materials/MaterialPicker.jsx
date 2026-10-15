@@ -32,7 +32,7 @@ export function MaterialPicker({ teacherId, classId, sessionId, attachedIds, onA
       try { onAdded(await createSessionMaterial(teacherId, classId, sessionId, form)); }
       finally { setBusy(false); }
     }} /> : <>
-      <label className="material-search">Tìm bài giảng<input autoFocus type="search" maxLength={255} value={query} disabled={busy} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên hoặc nội dung bài giảng…" /></label>
+      <label className="material-search">Tìm bài giảng<input autoFocus type="search" maxLength={255} value={query} disabled={busy} onChange={(event) => setQuery(event.target.value)} /></label>
       <p className="material-help">Bài giảng của bạn và bài mặc định của trung tâm · Tối đa 100 kết quả, nhập từ khóa để thu hẹp.</p>
       {error && <div className="material-error" role="alert">{error} <button type="button" className="text-button" disabled={busy} onClick={() => setRetry((value) => value + 1)}>Thử lại</button></div>}
       {loading ? <p className="material-empty" role="status">Đang tìm bài giảng…</p> : !error && (items.length ? <MaterialList items={items} teacherId={teacherId} action={(item) => <button type="button" className="primary-button" disabled={busy || attachedIds.includes(item.id)} onClick={() => attach(item)}>{attachedIds.includes(item.id) ? "Đã thêm" : busy ? "Đang thêm…" : "Chọn bài"}</button>} /> : <p className="material-empty">Không tìm thấy bài giảng. Bạn có thể thêm bài mới.</p>)}

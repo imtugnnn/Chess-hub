@@ -111,6 +111,17 @@ class StudentManagementServiceTest {
     assertThrows(ResponseStatusException.class, () -> list(teacher, "", "all", null, "all", -1));
   }
 
+  @Test void onlyNameAndBirthDateAreRequiredAndBlankParentPhoneStillDeduplicates() {
+    var created = service.create(teacher, new StudentManagementService.Input("Không có phụ huynh", birth, null, null, null));
+    assertNull(created.parentName());
+    assertEquals("", created.parentPhoneNumber());
+    assertEquals(created.id(), service.detail(teacher, created.id(), 0).student().id());
+    assertEquals(HttpStatus.CONFLICT, assertThrows(ResponseStatusException.class, () -> service.create(teacher,
+      new StudentManagementService.Input("Không có phụ huynh", birth, "", " ", null))).getStatusCode());
+    assertThrows(ResponseStatusException.class, () -> service.create(teacher, new StudentManagementService.Input("Missing birth", null, null, null, null)));
+    assertThrows(ResponseStatusException.class, () -> service.create(teacher, new StudentManagementService.Input(" ", birth, null, null, null)));
+  }
+
   @Test void optionalStudentPhoneAndMultilineNotesRoundTripThroughCreateListAndUpdate() {
     var created = service.create(teacher, new StudentManagementService.Input("Phone student", birth, "Parent", "0901234567", null, "091 234 5678", " First line\nSecond line "));
     assertEquals("0912345678", created.phoneNumber()); assertEquals("First line\nSecond line", created.notes());

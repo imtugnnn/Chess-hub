@@ -66,7 +66,7 @@ export function CalendarFilter({ label, options, value, onChange, searchable = f
       <span id={`${id}-value`}>{selectedLabel ?? selected?.label}</span><span className="schedule-filter__chevron"><UiIcon name="chevron" size={16} /></span>
     </button>
     {open && position && createPortal(<div ref={popup} className="schedule-filter-popup" style={position} onKeyDown={moveFocus}>
-      {searchable && <div className="schedule-filter-popup__search"><input aria-label={`Tìm ${label.toLocaleLowerCase("vi-VN")}`} placeholder={`Tìm ${label.toLocaleLowerCase("vi-VN")}…`} value={query} onChange={(event) => setQuery(event.target.value)} /></div>}
+      {searchable && <div className="schedule-filter-popup__search"><input aria-label={`Tìm ${label.toLocaleLowerCase("vi-VN")}`} value={query} onChange={(event) => setQuery(event.target.value)} /></div>}
       <div id={`${id}-list`} role="listbox" aria-labelledby={`${id}-label`}>
         {visibleOptions.map((option) => <button key={option.value} type="button" role="option" aria-selected={value === option.value} onClick={() => { onChange(option.value); close(); }}>
           <span>{option.label}</span>{value === option.value && <UiIcon name="check" size={16} />}

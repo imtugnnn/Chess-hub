@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { createStudent, updateStudent } from "../services/api";
-import { StudentOptionalFields } from "./StudentOptionalFields";
+import { StudentEntryFields } from "./StudentEntryFields";
+import { emptyStudentValues, studentSuggestionValues } from "./studentEntry";
 
 export function StudentForm({ student, centerId, options, teacherId, onSaved, onCancel, onDraftChange }) {
   const [form, setForm] = useState({ fullName: student?.fullName ?? "", birthDate: student?.birthDate ?? "", parentName: student?.parentName ?? "", parentPhoneNumber: student?.parentPhoneNumber ?? "", centerId: student?.centerId ?? centerId ?? "", phoneNumber: student?.phoneNumber ?? "", notes: student?.notes ?? "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const formRef = useRef(null);
+  const confirmRef = useRef(null);
   const dirty = useRef(false);
   useEffect(() => { formRef.current?.querySelector("input")?.focus(); }, []);
   useEffect(() => { onDraftChange({ dirty: dirty.current, busy }); }, [form, busy]);
@@ -16,9 +18,10 @@ export function StudentForm({ student, centerId, options, teacherId, onSaved, on
     window.addEventListener("beforeunload", beforeUnload);
     return () => window.removeEventListener("beforeunload", beforeUnload);
   }, []);
-  function change(key, value) { dirty.current = true; setForm(current => ({ ...current, [key]: value })); }
+  function change(key, value) { dirty.current = true; setForm(current => ({ ...(key === "fullName" && current.studentId ? { ...emptyStudentValues(), centerId: current.centerId } : current), [key]: value })); }
   async function submit(event) {
     event.preventDefault(); setBusy(true); setError("");
+    if (!student && form.studentId) { dirty.current = false; onSaved({ id: form.studentId, reused: true }); setBusy(false); return; }
     try { const input = { ...form, centerId: form.centerId || null }; const result = student ? await updateStudent(teacherId, student.id, input) : await createStudent(teacherId, input); dirty.current = false; onSaved(result); }
     catch (failure) { setError(failure.message); }
     finally { setBusy(false); }
@@ -26,16 +29,12 @@ export function StudentForm({ student, centerId, options, teacherId, onSaved, on
   return <form ref={formRef} className="students-form" onSubmit={submit}>
     <p>{student ? "Thay đổi thông tin chung áp dụng cho mọi lớp đang sử dụng hồ sơ này." : "Tạo hồ sơ trước. Bạn có thể thêm học sinh vào lớp sau."}</p>
     <fieldset className="students-form-fields" disabled={busy}>
-    <label>Họ tên học sinh<input required maxLength={255} autoComplete="off" value={form.fullName} onChange={e => change("fullName", e.target.value)} /></label>
-    <label>Ngày sinh<input required type="date" max={new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())} value={form.birthDate} onChange={e => change("birthDate", e.target.value)} /></label>
-    <label>Họ tên phụ huynh<input required maxLength={255} autoComplete="off" value={form.parentName} onChange={e => change("parentName", e.target.value)} /></label>
-    <label>Số điện thoại phụ huynh<input required type="tel" maxLength={30} autoComplete="off" value={form.parentPhoneNumber} onChange={e => change("parentPhoneNumber", e.target.value)} /></label>
+    <StudentEntryFields values={form} teacherId={teacherId} suggestionsEnabled={!student} onChange={change} onSelect={selected => { dirty.current = true; setForm(current => ({ ...current, ...studentSuggestionValues(selected) })); }} onComplete={() => confirmRef.current?.focus()} />
     <label>Lưu vào<select disabled={Boolean(student)} value={form.centerId} onChange={e => change("centerId", e.target.value)}><option value="">Cá nhân</option>{options.centers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-    <StudentOptionalFields values={form} onChange={change} />
     </fieldset>
     {form.centerId && !student && <p className="students-muted">Hồ sơ dùng chung trong trung tâm. Sau khi tạo, chỉ chủ trung tâm được sửa thông tin.</p>}
     {error && <p role="alert" tabIndex={-1} className="students-form-error">{error}</p>}
-    <div className="students-form-actions"><button className="secondary-button" disabled={busy} type="button" onClick={onCancel}>Hủy</button><button className="primary-button" disabled={busy}>{busy ? "Đang lưu…" : student ? "Lưu thay đổi" : "Tạo hồ sơ"}</button></div>
+    <div className="students-form-actions"><button className="secondary-button" disabled={busy} type="button" onClick={onCancel}>Hủy</button><button ref={confirmRef} className="primary-button" disabled={busy}>{busy ? "Đang lưu…" : student ? "Lưu thay đổi" : form.studentId ? "Mở hồ sơ" : "Tạo hồ sơ"}</button></div>
   </form>;
 }
 

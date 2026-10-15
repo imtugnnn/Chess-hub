@@ -148,10 +148,20 @@ public class ChessClassService {
     Map<String, Student> resolved = new LinkedHashMap<>();
     for (StudentCommand command : studentCommands) {
       if (command == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thông tin học sinh không hợp lệ.");
+      if (command.studentId() != null) {
+        Student existing = students.findById(command.studentId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy học sinh."));
+        boolean personal = existing.getCenterId() == null && teacher.getId().equals(existing.getOwnerUserId());
+        boolean shared = centerId != null && centerId.equals(existing.getCenterId());
+        if (!personal && !shared) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy học sinh trong phạm vi được cấp quyền.");
+        if (resolved.values().stream().anyMatch(student -> student.getId().equals(existing.getId()))) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Một học sinh chỉ được thêm một lần.");
+        resolved.put(existing.getId().toString(), existing);
+        continue;
+      }
       String name = required(command.fullName(), "Họ tên học sinh");
       LocalDate birthDate = requiredDate(command.birthDate(), "Ngày sinh");
-      String parentName = required(command.parentName(), "Họ tên phụ huynh");
-      String parentPhone = normalizedPhone(command.parentPhoneNumber(), "Số điện thoại phụ huynh");
+      if (birthDate.isAfter(LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")))) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ngày sinh không được ở tương lai.");
+      String parentName = StudentManagementService.optionalParentName(command.parentName());
+      String parentPhone = StudentManagementService.optionalParentPhone(command.parentPhoneNumber());
       String studentPhone = StudentManagementService.optionalStudentPhone(command.phoneNumber());
       String notes = StudentManagementService.optionalNotes(command.notes());
       String identity = name.toLowerCase() + "|" + birthDate + "|" + parentPhone;
@@ -159,6 +169,7 @@ public class ChessClassService {
       Student student = findStudentInScope(teacher, centerId, name, birthDate, parentPhone)
         .orElseGet(() -> students.save(new Student(name, birthDate, parentName, parentPhone,
           centerId, centerId == null ? teacher.getId() : null, studentPhone, notes)));
+      if (resolved.values().stream().anyMatch(existing -> existing.getId().equals(student.getId()))) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Một học sinh chỉ được thêm một lần.");
       resolved.put(identity, student);
     }
     return List.copyOf(resolved.values());
@@ -311,7 +322,8 @@ public class ChessClassService {
   }
 
   public record CreateClassCommand(String name, BigDecimal feePerSession, List<StudentCommand> students, ScheduleCommand schedule) { }
-  public record StudentCommand(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes) {
+  public record StudentCommand(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes, UUID studentId) {
+    public StudentCommand(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes) { this(fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes, null); }
     public StudentCommand(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber) { this(fullName, birthDate, parentName, parentPhoneNumber, null, null); }
   }
   public record ScheduleCommand(String mode, List<SessionCommand> sessions, List<Integer> weekdays, LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime) { }

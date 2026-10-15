@@ -20,7 +20,7 @@ export function TimeRangePicker({ startTime, endTime, onChange, onDone }) {
   return <div className="time-range-picker">
     <strong>Giờ học · 24h</strong>
     <div className="time-range-picker__fields">
-      {[["startTime", "Bắt đầu"], ["endTime", "Kết thúc"]].map(([key, label]) => <label key={key} className={active === key ? "time-range-picker__field--active" : ""}><span>{label}</span><input type="text" inputMode="numeric" autoComplete="off" placeholder="HH:mm" maxLength={5} value={draft[key]} onFocus={() => setActive(key)} onChange={(event) => update(key, event.target.value)} onBlur={() => { const value = normalizeTime(draft[key]); if (value) update(key, value); }} aria-invalid={Boolean(draft[key] && !normalizeTime(draft[key]))} aria-describedby={feedbackId} /></label>)}
+      {[["startTime", "Bắt đầu"], ["endTime", "Kết thúc"]].map(([key, label]) => <label key={key} className={active === key ? "time-range-picker__field--active" : ""}><span>{label}</span><input type="text" inputMode="numeric" autoComplete="off" maxLength={5} value={draft[key]} onFocus={() => setActive(key)} onChange={(event) => update(key, event.target.value)} onBlur={() => { const value = normalizeTime(draft[key]); if (value) update(key, value); }} aria-invalid={Boolean(draft[key] && !normalizeTime(draft[key]))} aria-describedby={feedbackId} /></label>)}
     </div>
     <div className="time-range-picker__columns">
       <TimeColumn label="Giờ" count={24} value={hour} onChoose={(value) => choose("hour", value)} />
