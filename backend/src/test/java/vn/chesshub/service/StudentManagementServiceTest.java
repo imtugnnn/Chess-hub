@@ -27,16 +27,16 @@ class StudentManagementServiceTest {
     db.execute("create table if not exists center_memberships (center_id uuid, user_id uuid, status varchar(32))");
     db.execute("create table if not exists student (id uuid primary key, full_name varchar(255), birth_date date, parent_name varchar(255), parent_phone_number varchar(255), phone_number varchar(255), notes varchar(4000), center_id uuid, owner_user_id uuid, created_at timestamp)");
     db.execute("create table if not exists chess_classes (id uuid primary key, name varchar(255), teacher_id uuid)");
-    db.execute("create table if not exists chess_class_students (chess_class_id uuid, student_id uuid)");
+    db.execute("create table if not exists chess_class_students (chess_class_id uuid, student_id uuid, active boolean default true, id uuid default random_uuid())");
     db.execute("create table if not exists class_sessions (id uuid primary key, class_id uuid, session_date date, start_time time)");
-    db.execute("create table if not exists session_attendance (id uuid primary key, student_id uuid, session_id uuid, status varchar(32))");
+    db.execute("create table if not exists session_attendance (id uuid primary key, student_id uuid, session_id uuid, status varchar(32), membership_id uuid)");
     db.update("insert into users values (?, ?), (?, ?), (?, null)", owner, center, teacher, center, stranger);
     db.update("insert into centers values (?, 'ChessHub', ?)", center, owner);
     db.update("insert into center_memberships values (?, ?, 'ACTIVE'), (?, ?, 'ACTIVE')", center, owner, center, teacher);
     personal = service.create(teacher, input("Nguyễn Minh An", null)).id();
     shared = service.create(teacher, input("Trần Gia Bảo", center)).id();
     db.update("insert into chess_classes values (?, 'Lớp A', ?), (?, 'Lớp B', ?)", classId, teacher, otherClass, stranger);
-    db.update("insert into chess_class_students values (?, ?), (?, ?)", classId, shared, otherClass, shared);
+    db.update("insert into chess_class_students (chess_class_id, student_id) values (?, ?), (?, ?)", classId, shared, otherClass, shared);
   }
   StudentManagementService.Input input(String name, UUID scope) { return new StudentManagementService.Input(name, birth, "Lê Thu Hà", "090 123 4567", scope); }
   StudentManagementService.Page list(UUID user, String query, String scope, UUID cls, String enrollment, int page) { return service.list(user, query, scope, cls, enrollment, page, 25); }
@@ -91,8 +91,9 @@ class StudentManagementServiceTest {
   @Test void attendanceHistoryPreservesFormerMembershipAndNeverLeaksOtherTeachers() {
     UUID ownSession = UUID.randomUUID(), foreignSession = UUID.randomUUID();
     db.update("insert into class_sessions values (?, ?, ?, '17:00:00'), (?, ?, ?, '18:00:00')", ownSession, classId, birth, foreignSession, otherClass, birth);
-    db.update("insert into session_attendance values (?, ?, ?, 'PRESENT'), (?, ?, ?, 'ABSENT')", UUID.randomUUID(), shared, ownSession, UUID.randomUUID(), shared, foreignSession);
-    db.update("delete from chess_class_students where chess_class_id = ?", classId);
+    db.update("insert into session_attendance (id, student_id, session_id, status) values (?, ?, ?, 'PRESENT'), (?, ?, ?, 'ABSENT')", UUID.randomUUID(), shared, ownSession, UUID.randomUUID(), shared, foreignSession);
+    db.update("update session_attendance a set membership_id = (select cs.id from chess_class_students cs join class_sessions se on se.class_id = cs.chess_class_id where cs.student_id = a.student_id and se.id = a.session_id)");
+    db.update("update chess_class_students set active = false where chess_class_id = ?", classId);
     var detail = service.detail(teacher, shared, 0);
     assertTrue(detail.student().classes().isEmpty()); assertEquals(1, detail.historyTotal());
     assertEquals(ownSession, detail.history().getFirst().sessionId());
@@ -118,7 +119,7 @@ class StudentManagementServiceTest {
     assertEquals(created.id(), service.detail(teacher, created.id(), 0).student().id());
     assertEquals(HttpStatus.CONFLICT, assertThrows(ResponseStatusException.class, () -> service.create(teacher,
       new StudentManagementService.Input("Không có phụ huynh", birth, "", " ", null))).getStatusCode());
-    assertThrows(ResponseStatusException.class, () -> service.create(teacher, new StudentManagementService.Input("Missing birth", null, null, null, null)));
+    assertNull(service.create(teacher, new StudentManagementService.Input("Missing birth", null, "Parent", null, null)).birthDate());
     assertThrows(ResponseStatusException.class, () -> service.create(teacher, new StudentManagementService.Input(" ", birth, null, null, null)));
   }
 

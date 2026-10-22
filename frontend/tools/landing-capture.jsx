@@ -12,6 +12,8 @@ import "../src/styles.css";
 import "../src/ui-refresh.css";
 import "../src/class-workspace.css";
 import "../src/design-system.css";
+import "../src/motion.css";
+import "../src/pastel-theme.css";
 
 const students = ["An Khang", "Mai Linh", "Gia Phúc", "Minh Anh"].map((fullName, index) => ({ id: `student-${index}`, fullName, birthDate: "2016-05-12", parentName: "Phụ huynh mẫu", parentPhoneNumber: "" }));
 const classroom = { id: "demo-class", name: "Cờ vua căn bản", schedule: "Thứ Ba, Thứ Năm · 17:30 – 19:00", feePerSession: 100000, studentCount: 4 };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppSidebar } from "../components/layout/AppSidebar";
+import { AppChrome } from "../components/layout/AppChrome";
 import { AppPageHeader } from "../components/layout/AppPageHeader";
 import { deleteUnusedAccount, getAccountDeletionEligibility, updateAccountEmail, updateAccountPassword, updateAccountGoogleMeet } from "../services/api";
 import "./accountSettings.css";
@@ -66,7 +66,7 @@ export function AccountSettingsPage({ account, onAccountUpdated, teacherId, teac
   }
 
   const blockers = eligibility?.blockers ?? [];
-  return <div className="app-shell"><AppSidebar activeSection="settings" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} />
+  return <div className="app-shell"><AppChrome title="Cài đặt tài khoản" activeSection="settings" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} />
     <main className="dashboard settings-page">
       <AppPageHeader section="Cài đặt" title="Cài đặt tài khoản" description="Quản lý email, mật khẩu và phòng học Google Meet của bạn." />
       <div className="settings-grid">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppSidebar } from "../components/layout/AppSidebar";
+import { AppChrome } from "../components/layout/AppChrome";
 import { AppPageHeader } from "../components/layout/AppPageHeader";
 import { UiIcon } from "../components/UiIcon";
 import { MaterialDialog } from "../components/materials/MaterialDialog";
@@ -43,7 +43,7 @@ export function MaterialsPage({ teacherId, teacherName, onLogout, onNavigate }) 
     catch (failure) { setError(failure.message); }
     finally { setBusy(false); }
   }
-  return <div className="app-shell"><AppSidebar activeSection="materials" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard materials-page">
+  return <div className="app-shell"><AppChrome title="Quản lý bài giảng" activeSection="materials" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard materials-page">
     <AppPageHeader section="Giảng dạy" title="Quản lý bài giảng" description="Lưu tài liệu và dùng lại cho các tiết học của bạn." actions={canCreate && <button className="primary-button" type="button" disabled={loading || Boolean(error)} onClick={() => setEditor({ centerId: tab === "center" ? center.id : null })}><UiIcon name="plus" size={18} />{tab === "center" ? "Thêm bài mặc định" : "Thêm bài giảng"}</button>} />
     <section className="material-library" aria-label="Thư viện bài giảng">
       <div className="material-tabs" role="group" aria-label="Danh sách bài giảng"><button type="button" aria-pressed={tab === "mine"} onClick={() => setTab("mine")}>Bài giảng của tôi</button><button type="button" aria-pressed={tab === "center"} onClick={() => setTab("center")}>Mặc định trung tâm</button></div>

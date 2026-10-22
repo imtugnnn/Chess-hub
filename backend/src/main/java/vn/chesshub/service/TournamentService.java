@@ -64,7 +64,7 @@ public class TournamentService {
     if (participantIds.stream().anyMatch(Objects::isNull)) throw bad("Danh sách học sinh không hợp lệ.");
     Set<UUID> participantSet = Set.copyOf(participantIds);
     if (participantSet.size() != participantIds.size()) throw bad("Danh sách học sinh không được trùng lặp.");
-    List<Student> classStudents = classroom.getStudents().stream().filter(student -> participantSet.contains(student.getId())).toList();
+    List<vn.chesshub.entity.ClassMembership> classStudents = classroom.getActiveMemberships().stream().filter(student -> participantSet.contains(student.getId())).toList();
     if (classStudents.size() != participantSet.size()) throw bad("Chỉ được chọn học sinh thuộc lớp này.");
     return createRoster(teacherId, classroom, session, name == null ? classroom.getName() : name, classStudents, participantNames, requestedTieBreaks);
   }
@@ -74,7 +74,7 @@ public class TournamentService {
     return createRoster(teacherId, null, null, name, List.of(), participantNames, requestedTieBreaks);
   }
 
-  private Tournament createRoster(UUID teacherId, ChessClass classroom, ClassSession session, String name, List<Student> students, List<String> names, List<String> requestedTieBreaks) {
+  private Tournament createRoster(UUID teacherId, ChessClass classroom, ClassSession session, String name, List<vn.chesshub.entity.ClassMembership> students, List<String> names, List<String> requestedTieBreaks) {
     String title = validateName(name, "Tên giải đấu");
     List<String> guestNames = names == null ? List.of() : names.stream().map(value -> validateName(value, "Tên người chơi")).toList();
     if (students.size() + guestNames.size() < 2) throw bad("Giải Swiss cần ít nhất 2 người chơi.");
@@ -85,7 +85,7 @@ public class TournamentService {
     List<Object> seeded = new ArrayList<>(students); seeded.addAll(guestNames); Collections.shuffle(seeded);
     for (int index = 0; index < seeded.size(); index++) {
       Object player = seeded.get(index);
-      roster.add(player instanceof Student student ? new TournamentParticipant(tournament, student, index + 1) : new TournamentParticipant(tournament, (String) player, index + 1));
+      roster.add(player instanceof vn.chesshub.entity.ClassMembership member ? (member.getStudent() == null ? new TournamentParticipant(tournament, member.getFullName(), index + 1) : new TournamentParticipant(tournament, member.getStudent(), index + 1)) : new TournamentParticipant(tournament, (String) player, index + 1));
     }
     participants.saveAll(roster);
     List<TournamentTieBreak> savedTieBreaks = new ArrayList<>();

@@ -42,8 +42,8 @@ public class AttendanceController {
   @Transactional(readOnly = true)
   public List<AttendanceResponse> list(@PathVariable UUID teacherId, @PathVariable UUID classId, @PathVariable UUID sessionId) {
     ClassSession session = session(teacherId, classId, sessionId);
-    Set<UUID> current = session.getChessClass().getStudents().stream().map(student -> student.getId()).collect(java.util.stream.Collectors.toSet());
-    return attendance.findBySessionId(sessionId).stream().map(item -> AttendanceResponse.from(item, !current.contains(item.getStudent().getId()))).toList();
+    Set<UUID> current = session.getChessClass().getActiveMemberships().stream().map(student -> student.getId()).collect(java.util.stream.Collectors.toSet());
+    return attendance.findBySessionId(sessionId).stream().map(item -> AttendanceResponse.from(item, !current.contains(item.getMembership().getId()))).toList();
   }
 
   @PutMapping
@@ -55,21 +55,22 @@ public class AttendanceController {
     ClassSession session = session(teacherId, classId, sessionId);
     if (request == null || request.records() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Danh sách điểm danh là bắt buộc.");
     Map<UUID, SessionAttendance> existing = attendance.findBySessionId(sessionId).stream()
-      .collect(java.util.stream.Collectors.toMap(item -> item.getStudent().getId(), item -> item));
+      .collect(java.util.stream.Collectors.toMap(item -> item.getMembership().getId(), item -> item));
     Set<UUID> requested = new java.util.HashSet<>();
     List<SessionAttendance> updates = request.records().stream().map(record -> {
-      if (record == null || record.studentId() == null || record.status() == null || !STATUSES.contains(record.status()) || !requested.add(record.studentId())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Danh sách hoặc trạng thái điểm danh không hợp lệ.");
-      var student = students.findById(record.studentId())
-        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Học sinh không tồn tại."));
-      boolean belongsToClass = classroom.getStudents().stream().anyMatch(member -> member.getId().equals(student.getId()));
+      if (record == null || (record.membershipId() == null && record.studentId() == null) || record.status() == null || !STATUSES.contains(record.status()) || !requested.add(record.membershipId() != null ? record.membershipId() : record.studentId())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Danh sách hoặc trạng thái điểm danh không hợp lệ.");
+      UUID requestedId = record.membershipId() != null ? record.membershipId() : record.studentId();
+      var student = classroom.getMemberships().stream().filter(m -> requestedId.equals(m.getId()) || record.membershipId() == null && requestedId.equals(m.getStudentId())).findFirst()
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Học sinh không thuộc lớp."));
+      boolean belongsToClass = classroom.getActiveMemberships().stream().anyMatch(member -> member.getId().equals(student.getId()));
       if (!belongsToClass && !existing.containsKey(student.getId())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể tạo điểm danh mới cho học sinh đã rời lớp.");
       SessionAttendance saved = existing.get(student.getId());
       if (saved == null) return new SessionAttendance(session, student, record.status());
       saved.updateStatus(record.status());
       return saved;
     }).toList();
-    Set<UUID> current = classroom.getStudents().stream().map(student -> student.getId()).collect(java.util.stream.Collectors.toSet());
-    return attendance.saveAll(updates).stream().map(item -> AttendanceResponse.from(item, !current.contains(item.getStudent().getId()))).toList();
+    Set<UUID> current = classroom.getActiveMemberships().stream().map(student -> student.getId()).collect(java.util.stream.Collectors.toSet());
+    return attendance.saveAll(updates).stream().map(item -> AttendanceResponse.from(item, !current.contains(item.getMembership().getId()))).toList();
   }
 
   private ClassSession session(UUID teacherId, UUID classId, UUID sessionId) {
@@ -78,8 +79,10 @@ public class AttendanceController {
   }
 
   public record AttendanceRequest(List<AttendanceRecord> records) { }
-  public record AttendanceRecord(UUID studentId, String status) { }
-  public record AttendanceResponse(UUID studentId, String status, String fullName, String parentPhoneNumber, boolean leftClass) {
-    static AttendanceResponse from(SessionAttendance item, boolean leftClass) { return new AttendanceResponse(item.getStudent().getId(), item.getStatus(), item.getStudent().getFullName(), item.getStudent().getParentPhoneNumber(), leftClass); }
+  public record AttendanceRecord(UUID membershipId, UUID studentId, String status) {
+    public AttendanceRecord(UUID studentId, String status) { this(null, studentId, status); }
+  }
+  public record AttendanceResponse(UUID membershipId, UUID studentId, String status, String fullName, String parentPhoneNumber, boolean leftClass) {
+    static AttendanceResponse from(SessionAttendance item, boolean leftClass) { return new AttendanceResponse(item.getMembership().getId(), item.getMembership().getStudentId(), item.getStatus(), item.getMembership().getFullName(), item.getMembership().getParentPhoneNumber(), leftClass); }
   }
 }

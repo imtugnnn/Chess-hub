@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AppSidebar } from "../components/layout/AppSidebar";
+import { AppChrome } from "../components/layout/AppChrome";
 import { AppPageHeader } from "../components/layout/AppPageHeader";
 import { UiIcon } from "../components/UiIcon";
 import { studentDetailUrl, studentCreateUrl } from "../services/studentNavigation";
@@ -22,6 +22,8 @@ export function StudentsPage({ teacherId, teacherName, onLogout, onNavigate, loc
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [classSearch, setClassSearch] = useState("");
+  const [importClass, setImportClass] = useState('');
+  const [chooseImportClass, setChooseImportClass] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const searchRef = useRef(null);
   const initialSearch = useRef(locationSearch);
@@ -51,8 +53,9 @@ export function StudentsPage({ teacherId, teacherName, onLogout, onNavigate, loc
   const pageCount = Math.max(1, Math.ceil(data.total / filters.size));
   const selectedClass = options.classes.find(c => c.id === filters.classId);
   const filterCount = Number(filters.scope !== "all") + Number(Boolean(filters.classId)) + Number(filters.enrollment !== "all");
-  return <div className="app-shell"><AppSidebar activeSection="students" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard students-page">
-    <AppPageHeader icon={<UiIcon name="students" size={24} />} title="Quản lý học sinh" description="Hồ sơ và thông tin liên hệ ở một nơi. Quản lý việc học tại từng lớp." actions={<button className="primary-button" disabled={loading || Boolean(error)} onClick={() => onNavigate(studentCreateUrl(filters.scope, window.location.search))}><UiIcon name="plus" size={18} />Tạo học sinh</button>} />
+  return <div className="app-shell"><AppChrome title="Học sinh" activeSection="students" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard students-page">
+    <AppPageHeader icon={<UiIcon name="students" size={24} />} title="Quản lý học sinh" description="Hồ sơ và thông tin liên hệ ở một nơi. Quản lý việc học tại từng lớp." actions={<><button className="secondary-button" disabled={loading || Boolean(error)} onClick={() => setChooseImportClass(v => !v)}>Nhập Excel</button><button className="primary-button" disabled={loading || Boolean(error)} onClick={() => onNavigate(studentCreateUrl(filters.scope, window.location.search))}><UiIcon name="plus" size={18} />Tạo học sinh</button></>} />
+    {chooseImportClass && <section className="management-card workspace-form"><h2>Chọn lớp để nhập Excel</h2><p>Hồ sơ được lưu theo phạm vi của lớp đã chọn.</p><label>Lớp học<select value={importClass} onChange={e => setImportClass(e.target.value)}><option value="">Chọn lớp</option>{options.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>{!options.classes.length && <p>Bạn cần tạo lớp trước khi nhập Excel.</p>}<div className="management-actions"><button className="secondary-button" onClick={() => setChooseImportClass(false)}>Đóng</button><button className="primary-button" disabled={!importClass} onClick={() => onNavigate(`/classes/${importClass}?tab=students&add=excel`)}>Tiếp tục</button></div></section>}
     <div className="students-layout">
       <section className="students-directory" aria-label="Danh sách học sinh">
         <div className="students-filters">

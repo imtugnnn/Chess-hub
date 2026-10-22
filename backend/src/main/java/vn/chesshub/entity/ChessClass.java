@@ -42,9 +42,26 @@ public class ChessClass {
   @Column(name = "fee_per_session", nullable = false, precision = 12, scale = 0)
   private BigDecimal feePerSession = BigDecimal.ZERO;
 
-  @ManyToMany
-  @JoinTable(name = "chess_class_students", joinColumns = @JoinColumn(name = "chess_class_id"), inverseJoinColumns = @JoinColumn(name = "student_id"))
-  private Set<Student> students = new LinkedHashSet<>();
+  @Column(name = "center_id") private UUID centerId;
+  @Column(name = "scope_confirmed", nullable = false) private boolean scopeConfirmed;
+  @jakarta.persistence.OneToMany(mappedBy = "chessClass", cascade = jakarta.persistence.CascadeType.ALL)
+  private Set<ClassMembership> memberships = new LinkedHashSet<>();
+
+  public UUID getCenterId() { return centerId; }
+  public boolean isScopeConfirmed() { return scopeConfirmed; }
+  public void confirmScope(UUID value) { centerId = value; scopeConfirmed = true; }
+  public Set<ClassMembership> getMemberships() { return memberships; }
+  public Set<ClassMembership> getActiveMemberships() {
+    return memberships.stream().filter(ClassMembership::isActive).collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+  }
+  public ClassMembership addMembership(String name, Student student) {
+    if (student != null) {
+      var existing = memberships.stream().filter(m -> student.getId() != null && student.getId().equals(m.getStudentId())).findFirst();
+      if (existing.isPresent()) { existing.get().setActive(true); recount(); return existing.get(); }
+    }
+    var member = new ClassMembership(this, name, student); memberships.add(member); recount(); return member;
+  }
+  public void recount() { studentCount = getActiveMemberships().size(); }
 
   protected ChessClass() { }
 
@@ -63,18 +80,16 @@ public class ChessClass {
 
   public ChessClass(User teacher, String name, String schedule, int studentCount, String tone, Student student) {
     this(teacher, name, schedule, studentCount, tone);
-    this.students.add(student);
+    addStudent(student);
   }
 
   public void updateName(String value) { this.name = value; }
   public void updateSchedule(String value) { this.schedule = value; }
   public void updateFeePerSession(BigDecimal value) { this.feePerSession = value; }
-  public void addStudent(Student student) {
-    if (students.add(student)) this.studentCount = students.size();
-  }
-  public void removeStudent(UUID studentId) {
-    students.removeIf(student -> student.getId().equals(studentId));
-    this.studentCount = students.size();
+  public void addStudent(Student student) { addMembership(student.getFullName(), student); }
+  public void removeStudent(UUID id) {
+    memberships.stream().filter(m -> m.getId().equals(id) || id.equals(m.getStudentId())).forEach(m -> m.setActive(false));
+    recount();
   }
 
   public UUID getId() { return id; }
@@ -84,5 +99,5 @@ public class ChessClass {
   public int getStudentCount() { return studentCount; }
   public String getTone() { return tone; }
   public BigDecimal getFeePerSession() { return feePerSession; }
-  public Set<Student> getStudents() { return students; }
+  public Set<Student> getStudents() { return getActiveMemberships().stream().map(ClassMembership::getStudent).filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new)); }
 }

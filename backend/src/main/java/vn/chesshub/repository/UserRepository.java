@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import vn.chesshub.entity.User;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
+  @Query(value = "select id from centers where id = :centerId for update", nativeQuery = true)
+  java.util.List<Object> lockStudentScope(UUID centerId);
   @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
   @Query("select u from User u where u.id = :userId")
   Optional<User> findForScheduleUpdate(UUID userId);

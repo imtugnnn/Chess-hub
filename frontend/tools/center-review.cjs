@@ -1,6 +1,8 @@
 // Development-only review with synthetic data. All API requests are intercepted.
 const { chromium } = require('C:/Users/imtun/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const output = '../agent/.impeccable/review/center';
 const user = { id: 'review-owner', fullName: 'Nguyễn Minh Anh', email: 'minhanh@example.com' };
 const members = [
   { ...user, role: 'OWNER' },
@@ -9,7 +11,7 @@ const members = [
 ];
 const initial = { center: { name: 'Trung tâm cờ vua ChessHub', ownerUserId: user.id, ownerName: user.fullName }, members, incomingInvitations: [], outgoingInvitations: [{ id: 'invite-1', personName: 'Phạm Gia Huy', personEmail: 'giahuy@example.com' }] };
 (async () => {
-  require('node:fs').mkdirSync('../agent/.impeccable/review/center', { recursive: true });
+  fs.mkdirSync(output, { recursive: true });
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = [];
@@ -29,13 +31,26 @@ const initial = { center: { name: 'Trung tâm cờ vua ChessHub', ownerUserId: u
     else if (path.endsWith('/center')) body = dashboard;
     await route.fulfill({ json: body });
   });
-  await page.goto('http://127.0.0.1:5174/center');
+  await page.goto(`${process.env.CENTER_REVIEW_URL || 'http://127.0.0.1:5174'}/center`);
   await page.getByText(initial.center.name, { exact: true }).waitFor();
   await page.evaluate(() => document.fonts.ready);
   const before = process.argv.includes('--before');
   const capture = !process.argv.includes('--no-capture');
-  if (capture) await page.screenshot({ path: `../agent/.impeccable/review/center/center-${before ? 'before' : 'desktop'}.png`, fullPage: true });
+  if (capture) await page.screenshot({ path: `${output}/center-${before ? 'before' : 'desktop'}.png`, fullPage: true });
   if (!before) {
+    assert.equal(await page.getByRole('heading', { name: 'Quản lý trung tâm', exact: true }).count(), 1);
+    assert.equal(await page.locator('.center-summary').count(), 0);
+    assert.equal(await page.locator('.center-identity').getByText(user.fullName).count(), 0);
+    assert.equal(await page.locator('.center-count').count(), 2);
+    const membersPanel = await page.locator('.center-members').boundingBox();
+    const invitePanel = await page.locator('.center-invite').boundingBox();
+    assert.equal(membersPanel.y, invitePanel.y, 'Member and invitation cards align on desktop');
+    assert(invitePanel.x >= membersPanel.x + membersPanel.width, 'Invitation card is to the right of members');
+    const memberTop = await page.locator('.center-member-row').first().boundingBox();
+    assert(memberTop.y < 470, 'First member is visible near the top of the workspace');
+    await page.getByText('Cách nhận lời mời', { exact: true }).click();
+    await page.getByText(/Người đã có tài khoản nhận lời mời/).waitFor({ state: 'visible' });
+    await page.getByText('Cách nhận lời mời', { exact: true }).click();
     const avatarSize = await page.locator('.center-avatar').first().boundingBox();
     assert.equal(avatarSize.width, 36);
     assert.equal(avatarSize.height, 36);
@@ -62,8 +77,19 @@ const initial = { center: { name: 'Trung tâm cờ vua ChessHub', ownerUserId: u
     await page.reload();
     await page.getByText(initial.center.name, { exact: true }).waitFor();
     await page.setViewportSize({ width: 390, height: 844 });
-    if (capture) await page.screenshot({ path: '../agent/.impeccable/review/center/center-mobile.png', fullPage: true });
+    const emailField = await page.getByLabel('Email giáo viên').boundingBox();
+    assert(emailField.height <= 48, 'Mobile invitation input keeps its normal control height');
+    if (capture) await page.screenshot({ path: `${output}/center-mobile.png`, fullPage: true });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile horizontal overflow');
+    dashboard.members[1].fullName = 'Giáo viên có tên rất dài cần xuống dòng để hiển thị đầy đủ';
+    dashboard.members[1].email = `${'teacher'.repeat(10)}@example.com`;
+    await page.reload();
+    await page.getByText(dashboard.members[1].email, { exact: true }).waitFor();
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Long content overflow at ${width}px`);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
     dashboard = { ...structuredClone(initial), center: { ...initial.center, ownerUserId: 'someone-else' } };
     await page.reload();
     await page.getByText(initial.center.name, { exact: true }).waitFor();
@@ -81,11 +107,11 @@ const initial = { center: { name: 'Trung tâm cờ vua ChessHub', ownerUserId: u
     await page.getByRole('heading', { name: 'Tạo trung tâm' }).waitFor();
     dashboard = structuredClone(initial);
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('http://127.0.0.1:5174/homepage');
+    await page.goto(`${process.env.CENTER_REVIEW_URL || 'http://127.0.0.1:5174'}/homepage`);
     await page.getByRole('heading', { name: 'Chào Anh, hôm nay dạy lớp nào?', exact: true }).waitFor();
-    if (capture) await page.screenshot({ path: '../agent/.impeccable/review/center/design-system-overview.png', fullPage: true });
+    if (capture) await page.screenshot({ path: `${output}/design-system-overview.png`, fullPage: true });
     assert.deepEqual(errors, []);
-    console.log('PASS: search/empty results, avatars, class details, invitation, cancel/confirm removal, mobile overflow, teacher permissions, no-center invitation, error/retry, overview, browser errors');
+    console.log('PASS: single title and counts, compact member position, invitation help, search/empty results, avatars, class details, invitation, cancel/confirm removal, mobile overflow, teacher permissions, no-center invitation, error/retry, browser errors');
   }
   await browser.close();
 })().catch(error => { console.error(error); process.exitCode = 1; });

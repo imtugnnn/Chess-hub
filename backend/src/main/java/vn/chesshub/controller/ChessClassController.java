@@ -48,7 +48,7 @@ public class ChessClassController {
   public ClassDetailResponse detail(@PathVariable UUID teacherId, @PathVariable UUID classId) {
     ChessClass chessClass = classes.findByIdAndTeacherId(classId, teacherId)
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
-    List<StudentResponse> students = chessClass.getStudents().stream()
+    List<StudentResponse> students = chessClass.getActiveMemberships().stream()
       .sorted((left, right) -> left.getFullName().compareToIgnoreCase(right.getFullName()))
       .map(StudentResponse::from).toList();
     List<SessionResponse> plannedSessions = sessions.findByChessClassIdOrderBySessionDateAscStartTimeAsc(classId).stream()
@@ -59,7 +59,7 @@ public class ChessClassController {
   @PostMapping
   public CreateClassResponse create(@PathVariable UUID teacherId, @RequestBody CreateClassRequest request) {
     ChessClassService.CreatedClass created = classService.create(teacherId,
-      new ChessClassService.CreateClassCommand(request.name(), request.feePerSession(), request.students() == null ? List.of() : request.students().stream().map(StudentRequest::toCommand).toList(), ScheduleRequest.toCommand(request.schedule())));
+      new ChessClassService.CreateClassCommand(request.name(), request.feePerSession(), request.students() == null ? List.of() : request.students().stream().map(StudentRequest::toCommand).toList(), ScheduleRequest.toCommand(request.schedule()), request.centerId()));
     return new CreateClassResponse(ClassResponse.from(created.chessClass()));
   }
 
@@ -71,12 +71,12 @@ public class ChessClassController {
   @PostMapping("/{classId}/students")
   public StudentResponse addStudent(@PathVariable UUID teacherId, @PathVariable UUID classId, @RequestBody StudentRequest request) {
     if (request == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thông tin học sinh là bắt buộc.");
-    return StudentResponse.from(classService.addStudent(teacherId, classId, request.toCommand()));
+    return StudentResponse.from(classService.enroll(teacherId, classId, request.toCommand()));
   }
 
   @PostMapping("/{classId}/students/{studentId}")
   public StudentResponse addExistingStudent(@PathVariable UUID teacherId, @PathVariable UUID classId, @PathVariable UUID studentId) {
-    return StudentResponse.from(classService.addExistingStudent(teacherId, classId, studentId));
+    return StudentResponse.from(classService.enroll(teacherId, classId, new ChessClassService.StudentCommand(null, null, null, null, null, null, studentId)));
   }
 
   @PutMapping("/{classId}/schedule")
@@ -104,15 +104,28 @@ public class ChessClassController {
     return org.springframework.http.ResponseEntity.noContent().build();
   }
 
-  public record ClassResponse(UUID id, String name, String schedule, int studentCount, String tone, BigDecimal feePerSession) {
+  @PostMapping("/{classId}/scope")
+  public ClassResponse scope(@PathVariable UUID teacherId, @PathVariable UUID classId, @RequestBody ScopeRequest request) {
+    if (request == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hãy chọn phạm vi của lớp.");
+    return ClassResponse.from(classService.confirmScope(teacherId, classId, request.centerId()));
+  }
+  @PutMapping("/{classId}/memberships/{membershipId}")
+  public StudentResponse supplement(@PathVariable UUID teacherId, @PathVariable UUID classId, @PathVariable UUID membershipId, @RequestBody StudentRequest request) {
+    if (request == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thông tin học sinh là bắt buộc.");
+    var c = request.toCommand();
+    return StudentResponse.from(classService.supplement(teacherId, classId, new ChessClassService.StudentCommand(c.fullName(), c.birthDate(), c.parentName(), c.parentPhoneNumber(), c.phoneNumber(), c.notes(), c.studentId(), membershipId, c.confirmNew())));
+  }
+  public record ScopeRequest(UUID centerId) { }
+
+  public record ClassResponse(UUID id, String name, String schedule, int studentCount, String tone, BigDecimal feePerSession, UUID centerId, boolean scopeConfirmed) {
     static ClassResponse from(ChessClass chessClass) {
-      return new ClassResponse(chessClass.getId(), chessClass.getName(), chessClass.getSchedule(), chessClass.getStudentCount(), chessClass.getTone(), chessClass.getFeePerSession());
+      return new ClassResponse(chessClass.getId(), chessClass.getName(), chessClass.getSchedule(), chessClass.getStudentCount(), chessClass.getTone(), chessClass.getFeePerSession(), chessClass.getCenterId(), chessClass.isScopeConfirmed());
     }
   }
-  public record CreateClassRequest(String name, BigDecimal feePerSession, List<StudentRequest> students, ScheduleRequest schedule) { }
+  public record CreateClassRequest(String name, BigDecimal feePerSession, List<StudentRequest> students, ScheduleRequest schedule, UUID centerId) { }
   public record UpdateClassRequest(String name, BigDecimal feePerSession) { }
-  public record StudentRequest(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes, UUID studentId) {
-    ChessClassService.StudentCommand toCommand() { return new ChessClassService.StudentCommand(fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes, studentId); }
+  public record StudentRequest(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes, UUID studentId, UUID membershipId, boolean confirmNew) {
+    ChessClassService.StudentCommand toCommand() { return new ChessClassService.StudentCommand(fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes, studentId, membershipId, confirmNew); }
   }
   public record ScheduleRequest(String mode, List<SessionRequest> sessions, List<Integer> weekdays, LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime, String previewToken) {
     ClassScheduleService.RecurringRequest toRecurring() { return new ClassScheduleService.RecurringRequest(startDate, endDate, weekdays, startTime, endTime, previewToken); }
@@ -125,9 +138,9 @@ public class ChessClassController {
   }
   public record SessionRequest(LocalDate date, LocalTime startTime, LocalTime endTime) { }
   public record CreateClassResponse(ClassResponse chessClass) { }
-  public record StudentResponse(UUID id, String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes) {
-    static StudentResponse from(vn.chesshub.entity.Student student) {
-      return new StudentResponse(student.getId(), student.getFullName(), student.getBirthDate(), student.getParentName(), student.getParentPhoneNumber(), student.getPhoneNumber(), student.getNotes());
+  public record StudentResponse(UUID id, UUID membershipId, UUID studentId, String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes) {
+    static StudentResponse from(vn.chesshub.entity.ClassMembership student) {
+      return new StudentResponse(student.getId(), student.getId(), student.getStudentId(), student.getFullName(), student.getBirthDate(), student.getParentName(), student.getParentPhoneNumber(), student.getPhoneNumber(), student.getNotes());
     }
   }
   public record SessionResponse(UUID id, LocalDate date, LocalTime startTime, LocalTime endTime, boolean hasAttendance, boolean scheduleOverride) {

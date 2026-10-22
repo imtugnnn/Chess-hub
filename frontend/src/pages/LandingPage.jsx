@@ -25,6 +25,8 @@ function ProductWalkthrough() {
   const [focused, setFocused] = useState(false);
   const [visible, setVisible] = useState(false);
   const [pageVisible, setPageVisible] = useState(!document.hidden);
+  const elapsed = useRef(0);
+  const progressTrack = useRef(null);
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const section = useRef(null);
   const buttons = useRef([]);
@@ -45,12 +47,29 @@ function ProductWalkthrough() {
 
   useEffect(() => {
     if (!autoPlaying) return;
-    const timer = window.setTimeout(() => setActive((index) => (index + 1) % steps.length), 6000);
-    return () => window.clearTimeout(timer);
+    let frame;
+    let previous = performance.now();
+    let progress = elapsed.current;
+    const tick = (now) => {
+      progress += now - previous;
+      previous = now;
+      if (progress >= 6000) {
+        elapsed.current = 0;
+        setActive((index) => (index + 1) % steps.length);
+        return;
+      }
+      elapsed.current = progress;
+      progressTrack.current?.style.setProperty('--workflow-progress', String((active + progress / 6000) / (steps.length - 1)));
+      frame = window.requestAnimationFrame(tick);
+    };
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
   }, [active, autoPlaying]);
 
   function select(index, focus = false) {
     setPlaying(false);
+    elapsed.current = 0;
+    progressTrack.current?.style.setProperty('--workflow-progress', String(((index + steps.length) % steps.length) / (steps.length - 1)));
     setActive((index + steps.length) % steps.length);
     if (focus) buttons.current[index]?.focus({ preventScroll: true });
   }
@@ -66,7 +85,7 @@ function ProductWalkthrough() {
           <div className="lp-workflow-text" key={step.key} aria-live={autoPlaying ? "off" : "polite"} aria-atomic="true"><h3>{step.title}</h3><p>{step.description}</p><div className="lp-workflow-outcome"><span aria-hidden="true">↳</span>{step.outcome}</div></div>
           <div className="lp-carousel-controls">
             <div className="lp-carousel-heading"><span>{step.label}</span><div className="lp-carousel-actions"><button type="button" aria-label="Ảnh trước" onClick={() => select(active - 1)}>←</button><button type="button" aria-label={playing && !reducedMotion ? "Tạm dừng tự động chuyển ảnh" : "Bật tự động chuyển ảnh"} aria-pressed={playing && !reducedMotion} disabled={reducedMotion} onClick={() => setPlaying((value) => !value)}><svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor" aria-hidden="true">{playing && !reducedMotion ? <path d="M5 4h3v12H5zm7 0h3v12h-3z" /> : <path d="m6 3 10 7-10 7z" />}</svg></button><button type="button" aria-label="Ảnh tiếp theo" onClick={() => select(active + 1)}>→</button></div></div>
-            <nav className="lp-carousel-track" aria-label="Chọn ảnh trong luồng sử dụng">{steps.map((item, index) => <button key={item.key} ref={(node) => { buttons.current[index] = node; }} type="button" aria-label={item.label} aria-pressed={active === index} aria-controls="workflow-panel" onClick={() => select(index)} onKeyDown={(event) => handleKey(event, index)}><span /></button>)}</nav>
+            <nav ref={progressTrack} style={{ "--workflow-progress": active / (steps.length - 1) }} className="lp-carousel-track" aria-label="Chọn ảnh trong luồng sử dụng">{steps.map((item, index) => <button key={item.key} ref={(node) => { buttons.current[index] = node; }} type="button" aria-label={item.label} aria-pressed={active === index} aria-controls="workflow-panel" onClick={() => select(index)} onKeyDown={(event) => handleKey(event, index)}><span /></button>)}</nav>
           </div>
         </div>
         <figure className="lp-product-figure"><div className="lp-product-image-scroll" role="region" aria-label={`Ảnh giao diện: ${step.label}`} tabIndex={0}>{steps.map((item, index) => <img key={item.key} data-screen={item.key} hidden={index !== active} src={imagePath(item.key)} alt={item.alt} width="1265" height="1000" />)}</div></figure>

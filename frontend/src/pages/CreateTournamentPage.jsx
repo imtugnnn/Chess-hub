@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppPageHeader } from "../components/layout/AppPageHeader";
-import { AppSidebar } from "../components/layout/AppSidebar";
+import { AppChrome } from "../components/layout/AppChrome";
 import { createTournament, getTournamentCreation } from "../services/api";
 import { DEFAULT_TIE_BREAKS, TIE_BREAKS } from "./tournamentRules";
 import "./tournament.css";
@@ -49,7 +49,7 @@ export function CreateTournamentPage({ classId, sessionId, teacherId, teacherNam
     catch (error) { setMessage(error.message); } finally { setSaving(false); }
   }
   const back = () => onNavigate(fromClass ? (sessionId ? `/classes/${classId}?sessionId=${sessionId}` : `/classes/${classId}?tab=tournaments`) : "/homepage");
-  const shell = (content) => <div className="app-shell"><AppSidebar activeSection={fromClass ? "classes" : "tournaments"} teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard create-tournament-page">{content}</main></div>;
+  const shell = (content) => <div className="app-shell"><AppChrome title="Tạo giải đấu" activeSection={fromClass ? "classes" : "tournaments"} teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard create-tournament-page">{content}</main></div>;
   if (loading) return shell(<p className="page-loading">Đang tải dữ liệu tạo giải…</p>);
   if (!data) return shell(<><p className="page-error" role="alert">{message || "Không thể tải dữ liệu tạo giải."}</p><button className="secondary-button" onClick={() => setRetry((value) => value + 1)}>Thử lại</button></>);
   return shell(<>

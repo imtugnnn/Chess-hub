@@ -47,8 +47,8 @@ class ClassHistoryTransactionTest {
     tx.executeWithoutResult(status -> {
       User teacher = users.save(new User("Teacher", UUID.randomUUID() + "@example.com", "hash")); teacherId = teacher.getId();
       Student student = students.save(new Student("An", LocalDate.of(2015, 1, 1), "Phụ huynh", "0901234567", null, teacherId)); studentId = student.getId();
-      ChessClass classroom = new ChessClass(teacher, "Class", "", 0, "blue", BigDecimal.valueOf(100000)); classroom.addStudent(student); classroom = classes.save(classroom); classId = classroom.getId();
-      ChessClass other = new ChessClass(teacher, "Other", "", 0, "blue"); other.addStudent(student); otherClassId = classes.save(other).getId();
+      ChessClass classroom = new ChessClass(teacher, "Class", "", 0, "blue", BigDecimal.valueOf(100000)); classroom.confirmScope(null); classroom.addStudent(student); classroom = classes.save(classroom); classId = classroom.getId();
+      ChessClass other = new ChessClass(teacher, "Other", "", 0, "blue"); other.confirmScope(null); other.addStudent(student); otherClassId = classes.save(other).getId();
       sessionId = sessions.save(new ClassSession(classroom, date, LocalTime.of(17, 0), LocalTime.of(18, 0))).getId();
     });
   }

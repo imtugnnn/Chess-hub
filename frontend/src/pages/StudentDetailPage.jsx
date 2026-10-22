@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AppSidebar } from "../components/layout/AppSidebar";
+import { AppChrome } from "../components/layout/AppChrome";
 import { AppPageHeader } from "../components/layout/AppPageHeader";
 import { UiIcon } from "../components/UiIcon";
 import { MaterialDialog } from "../components/materials/MaterialDialog";
@@ -58,7 +58,7 @@ export function StudentDetailPage({ studentId, teacherId, teacherName, onLogout,
     const action = () => { draft.current = { dirty: false, busy: false }; setEditing(false); };
     if (requestAction(action)) action();
   }
-  return <div className="app-shell"><AppSidebar activeSection="students" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard students-page student-detail-page">
+  return <div className="app-shell"><AppChrome title="Hồ sơ học sinh" activeSection="students" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard students-page student-detail-page">
     <AppPageHeader icon={<UiIcon name="students" size={24} />} breadcrumbs={[{ label: "Học sinh", href: returnUrl }]} onNavigate={onNavigate} title={creating ? "Tạo hồ sơ học sinh" : student?.fullName || "Chi tiết học sinh"} description={creating ? "Lưu hồ sơ trước, sau đó thêm học sinh vào lớp." : student?.centerName || (student ? "Hồ sơ cá nhân" : "Thông tin hồ sơ và lịch sử học tập.")} actions={<><button className="secondary-button" onClick={() => onNavigate(returnUrl)}>Quay lại danh sách</button>{student?.canEdit && !editing && <button className="primary-button" onClick={() => { setNotice(""); setEditing(true); }}>Cập nhật</button>}</>} />
     <div ref={heading} tabIndex={-1} className="student-detail-content">
       {(notice || (!creating && new URLSearchParams(locationSearch).get("created") === "1")) && <p className="students-notice" role="status">{notice || `Đã tạo hồ sơ ${student?.fullName ?? "học sinh"}.`}</p>}

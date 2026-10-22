@@ -2,14 +2,14 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { UiIcon } from "./UiIcon";
 
-export function CalendarFilter({ label, options, value, onChange, searchable = false, disabled = false, emptyLabel = "Không tìm thấy lớp học.", selectedLabel }) {
+export function CalendarFilter({ label, options, value, onChange, searchable = false, disabled = false, emptyLabel = "Không tìm thấy lớp học.", selectedLabel, normalizeSearch = value => value.toLocaleLowerCase("vi-VN") }) {
   const id = useId();
   const trigger = useRef(null);
   const popup = useRef(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [position, setPosition] = useState(null);
-  const visibleOptions = options.filter((option) => option.label.toLocaleLowerCase("vi-VN").includes(query.toLocaleLowerCase("vi-VN")));
+  const visibleOptions = options.filter((option) => normalizeSearch(option.label).includes(normalizeSearch(query)));
   const selected = options.find((option) => option.value === value) ?? options[0];
 
   useLayoutEffect(() => {

@@ -20,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 import vn.chesshub.entity.ChessClass;
 import vn.chesshub.entity.ClassSession;
 import vn.chesshub.entity.Student;
+import vn.chesshub.entity.ClassMembership;
 import vn.chesshub.entity.User;
 import vn.chesshub.repository.ChessClassRepository;
 import vn.chesshub.repository.ClassSessionRepository;
@@ -46,13 +47,14 @@ public class ChessClassService {
     String className = required(command.name(), "Tên lớp");
     User teacher = users.findById(teacherId)
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên."));
-    List<Student> classStudents = command.students() == null || command.students().isEmpty()
-      ? List.of() : resolveStudents(teacher, command.students());
     List<SessionSlot> plannedSessions = createSessions(command.schedule());
     validateNoScheduleConflicts(teacherId, plannedSessions, null);
     ChessClass chessClass = new ChessClass(teacher, className, scheduleSummary(command.schedule(), plannedSessions), 0, "blue", validFee(command.feePerSession()));
-    classStudents.forEach(chessClass::addStudent);
+    validateCenter(teacherId, command.centerId());
+    if (command.centerId() != null) users.lockStudentScope(command.centerId());
+    chessClass.confirmScope(command.centerId());
     ChessClass savedClass = classes.save(chessClass);
+    if (command.students() != null) for (var row : command.students()) enrollIn(savedClass, row, false);
     sessions.saveAll(plannedSessions.stream()
       .map(session -> new ClassSession(savedClass, session.date(), session.startTime(), session.endTime())).toList());
     return new CreatedClass(savedClass);
@@ -69,15 +71,112 @@ public class ChessClassService {
 
   @Transactional
   public Student addStudent(UUID teacherId, UUID classId, StudentCommand command) {
-    ChessClass chessClass = classes.findForUpdate(classId, teacherId)
+    return enroll(teacherId, classId, command).getStudent();
+  }
+
+  @Transactional
+  public ClassMembership enroll(UUID teacherId, UUID classId, StudentCommand command) {
+    return enrollWith(teacherId, classId, command, false);
+  }
+
+  @Transactional
+  public ClassMembership supplement(UUID teacherId, UUID classId, StudentCommand command) {
+    if (command == null || command.membershipId() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu thành viên cần bổ sung thông tin.");
+    return enrollWith(teacherId, classId, command, true);
+  }
+
+  private ClassMembership enrollWith(UUID teacherId, UUID classId, StudentCommand command, boolean supplement) {
+    users.findForScheduleUpdate(teacherId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên."));
+    ChessClass classroom = classes.findForUpdate(classId, teacherId)
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
-    Student student = resolveStudents(users.findById(teacherId)
-      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên.")), List.of(command)).getFirst();
-    if (chessClass.getStudents().stream().anyMatch(existing -> existing.getId().equals(student.getId()))) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Học sinh này đã thuộc lớp.");
+    requireScope(classroom);
+    if (classroom.getCenterId() != null) users.lockStudentScope(classroom.getCenterId());
+    return enrollIn(classroom, command, supplement);
+  }
+
+  @Transactional
+  public ChessClass confirmScope(UUID teacherId, UUID classId, UUID centerId) {
+    users.findForScheduleUpdate(teacherId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên."));
+    ChessClass classroom = classes.findForUpdate(classId, teacherId)
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
+    validateCenter(teacherId, centerId);
+    if (classroom.isScopeConfirmed() && !java.util.Objects.equals(centerId, classroom.getCenterId()))
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Lớp đã xác nhận phạm vi. Không thể tự chuyển quyền sở hữu dữ liệu.");
+    classroom.confirmScope(centerId); return classroom;
+  }
+
+  public void requireScope(ChessClass classroom) {
+    if (!classroom.isScopeConfirmed()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Hãy xác nhận lớp cá nhân hoặc trung tâm trước khi thêm học sinh.");
+    validateCenter(classroom.getTeacher().getId(), classroom.getCenterId());
+  }
+  @Transactional(readOnly = true)
+  public ChessClass draftForImport(UUID teacherId, UUID centerId) {
+    User teacher = users.findById(teacherId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên."));
+    validateCenter(teacherId, centerId);
+    ChessClass draft = new ChessClass(teacher, "", "", 0, "blue", BigDecimal.ZERO);
+    draft.confirmScope(centerId);
+    return draft; // Transient only: preview must never create a class or student.
+  }
+
+  private void validateCenter(UUID teacherId, UUID centerId) {
+    if (centerId != null && !users.hasActiveCenterMembershipInCenter(teacherId, centerId))
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không còn quyền thêm học sinh vào trung tâm của lớp.");
+  }
+
+  public StudentManagementService.Input validateStudent(StudentCommand command, UUID centerId) {
+    if (command == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thông tin học sinh là bắt buộc.");
+    return StudentManagementService.validate(new StudentManagementService.Input(command.fullName(), command.birthDate(), command.parentName(), command.parentPhoneNumber(), centerId, command.phoneNumber(), command.notes()));
+  }
+  public static boolean hasProfileData(StudentManagementService.Input v) {
+    return v.birthDate() != null || v.parentName() != null || !v.parentPhoneNumber().isEmpty() || v.phoneNumber() != null || v.notes() != null;
+  }
+  public List<Student> candidates(ChessClass classroom, String name) {
+    return students.scopeCandidates(classroom.getCenterId(), classroom.getTeacher().getId(), name);
+  }
+  public List<ClassMembership> nameMatches(ChessClass classroom, String name) {
+    return classroom.getMemberships().stream().filter(m -> sameStudentName(m.getFullName(), name)).toList();
+  }
+  public static boolean sameStudentName(String left, String right) {
+    return left != null && right != null && left.trim().replaceAll("\\s+", " ").equalsIgnoreCase(right.trim().replaceAll("\\s+", " "));
+  }
+  public void rejectActiveDuplicate(ChessClass classroom, String name, UUID exceptMemberId) {
+    if (classroom.getActiveMemberships().stream().anyMatch(m -> !m.getId().equals(exceptMemberId) && sameStudentName(m.getFullName(), name)))
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Học sinh đã có trong lớp.");
+  }
+  private ClassMembership enrollIn(ChessClass classroom, StudentCommand command, boolean supplement) {
+    if (command == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thông tin học sinh là bắt buộc.");
+    ClassMembership selected = command.membershipId() == null ? null : classroom.getMemberships().stream()
+      .filter(m -> m.getId().equals(command.membershipId())).findFirst()
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thành viên không thuộc lớp này."));
+    if (selected != null && selected.isActive() && !supplement)
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Học sinh đã có trong lớp.");
+    UUID exceptMemberId = supplement && selected != null ? selected.getId() : null;
+    Student profile = null;
+    if (command.studentId() != null) {
+      profile = students.findById(command.studentId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy hồ sơ."));
+      if (!(classroom.getCenterId() == null ? profile.getCenterId() == null && classroom.getTeacher().getId().equals(profile.getOwnerUserId()) : classroom.getCenterId().equals(profile.getCenterId())))
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Hồ sơ không thuộc phạm vi của lớp.");
+    } else if (selected != null && selected.getStudent() != null) {
+      profile = selected.getStudent(); // Explicitly reuse without updating its data or ownership.
+    } else {
+      var v = validateStudent(command, classroom.getCenterId());
+      rejectActiveDuplicate(classroom, v.fullName(), exceptMemberId);
+      List<Student> matches = hasProfileData(v) ? candidates(classroom, v.fullName()) : List.of();
+      if (v.birthDate() != null) profile = matches.stream().filter(p -> v.birthDate().equals(p.getBirthDate()) && v.parentPhoneNumber().equals(p.getParentPhoneNumber())).findFirst().orElse(null);
+      if (profile == null && selected == null && ((v.birthDate() == null && !matches.isEmpty()) || !nameMatches(classroom, v.fullName()).isEmpty()))
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "Có hồ sơ trùng tên. Hãy chọn hồ sơ có sẵn hoặc kiểm tra lại thông tin học sinh.");
+      if (profile == null && hasProfileData(v)) profile = students.save(new Student(v.fullName(), v.birthDate(), v.parentName(), v.parentPhoneNumber(), classroom.getCenterId(), classroom.getCenterId() == null ? classroom.getTeacher().getId() : null, v.phoneNumber(), v.notes()));
+      if (selected == null && profile == null) return classroom.addMembership(v.fullName(), null);
     }
-    chessClass.addStudent(student);
-    return student;
+    if (profile != null) rejectActiveDuplicate(classroom, profile.getFullName(), exceptMemberId);
+    if (selected != null) {
+      Student finalProfile = profile;
+      if (finalProfile != null && classroom.getMemberships().stream().anyMatch(m -> m != selected && finalProfile.getId().equals(m.getStudentId())))
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "Hồ sơ đã có thành viên khác trong lớp. Hãy chọn dùng lại thành viên đó.");
+      if (profile != null) selected.link(profile);
+      selected.setActive(true); classroom.recount(); return selected;
+    }
+    return classroom.addMembership(profile.getFullName(), profile);
   }
 
   @Transactional
@@ -125,60 +224,7 @@ public class ChessClassService {
 
   @Transactional
   public Student addExistingStudent(UUID teacherId, UUID classId, UUID studentId) {
-    users.findForScheduleUpdate(teacherId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên."));
-    ChessClass chessClass = classes.findForUpdate(classId, teacherId)
-      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
-    Student student = students.findById(studentId)
-      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy học sinh."));
-    User teacher = users.findById(teacherId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giáo viên."));
-    boolean personal = student.getCenterId() == null && teacherId.equals(student.getOwnerUserId());
-    boolean shared = student.getCenterId() != null && student.getCenterId().equals(teacher.getCenterId())
-      && users.hasActiveCenterMembershipInCenter(teacherId, student.getCenterId());
-    if (!personal && !shared) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy học sinh trong phạm vi được cấp quyền.");
-    if (chessClass.getStudents().stream().anyMatch(s -> s.getId().equals(studentId)))
-      throw new ResponseStatusException(HttpStatus.CONFLICT, "Học sinh này đã thuộc lớp.");
-    chessClass.addStudent(student);
-    return student;
-  }
-
-  private List<Student> resolveStudents(User teacher, List<StudentCommand> studentCommands) {
-    if (studentCommands == null || studentCommands.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hãy thêm ít nhất một học sinh.");
-    UUID centerId = teacher.getCenterId() != null && users.hasActiveCenterMembershipInCenter(teacher.getId(), teacher.getCenterId())
-      ? teacher.getCenterId() : null;
-    Map<String, Student> resolved = new LinkedHashMap<>();
-    for (StudentCommand command : studentCommands) {
-      if (command == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thông tin học sinh không hợp lệ.");
-      if (command.studentId() != null) {
-        Student existing = students.findById(command.studentId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy học sinh."));
-        boolean personal = existing.getCenterId() == null && teacher.getId().equals(existing.getOwnerUserId());
-        boolean shared = centerId != null && centerId.equals(existing.getCenterId());
-        if (!personal && !shared) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy học sinh trong phạm vi được cấp quyền.");
-        if (resolved.values().stream().anyMatch(student -> student.getId().equals(existing.getId()))) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Một học sinh chỉ được thêm một lần.");
-        resolved.put(existing.getId().toString(), existing);
-        continue;
-      }
-      String name = required(command.fullName(), "Họ tên học sinh");
-      LocalDate birthDate = requiredDate(command.birthDate(), "Ngày sinh");
-      if (birthDate.isAfter(LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")))) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ngày sinh không được ở tương lai.");
-      String parentName = StudentManagementService.optionalParentName(command.parentName());
-      String parentPhone = StudentManagementService.optionalParentPhone(command.parentPhoneNumber());
-      String studentPhone = StudentManagementService.optionalStudentPhone(command.phoneNumber());
-      String notes = StudentManagementService.optionalNotes(command.notes());
-      String identity = name.toLowerCase() + "|" + birthDate + "|" + parentPhone;
-      if (resolved.containsKey(identity)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Một học sinh chỉ được thêm một lần.");
-      Student student = findStudentInScope(teacher, centerId, name, birthDate, parentPhone)
-        .orElseGet(() -> students.save(new Student(name, birthDate, parentName, parentPhone,
-          centerId, centerId == null ? teacher.getId() : null, studentPhone, notes)));
-      if (resolved.values().stream().anyMatch(existing -> existing.getId().equals(student.getId()))) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Một học sinh chỉ được thêm một lần.");
-      resolved.put(identity, student);
-    }
-    return List.copyOf(resolved.values());
-  }
-
-  private Optional<Student> findStudentInScope(User teacher, UUID centerId, String name, LocalDate birthDate, String parentPhone) {
-    return centerId == null
-      ? students.findByOwnerUserIdAndFullNameAndBirthDateAndParentPhoneNumber(teacher.getId(), name, birthDate, parentPhone)
-      : students.findByCenterIdAndFullNameAndBirthDateAndParentPhoneNumber(centerId, name, birthDate, parentPhone);
+    return enroll(teacherId, classId, new StudentCommand(null, null, null, null, null, null, studentId)).getStudent();
   }
 
   private static String required(String value, String fieldName) {
@@ -321,8 +367,11 @@ public class ChessClassService {
     };
   }
 
-  public record CreateClassCommand(String name, BigDecimal feePerSession, List<StudentCommand> students, ScheduleCommand schedule) { }
-  public record StudentCommand(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes, UUID studentId) {
+  public record CreateClassCommand(String name, BigDecimal feePerSession, List<StudentCommand> students, ScheduleCommand schedule, UUID centerId) {
+    public CreateClassCommand(String name, BigDecimal fee, List<StudentCommand> students, ScheduleCommand schedule) { this(name, fee, students, schedule, null); }
+  }
+  public record StudentCommand(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes, UUID studentId, UUID membershipId, boolean confirmNew) {
+    public StudentCommand(String name, LocalDate birth, String parent, String phone, String studentPhone, String notes, UUID studentId) { this(name, birth, parent, phone, studentPhone, notes, studentId, null, false); }
     public StudentCommand(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber, String phoneNumber, String notes) { this(fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes, null); }
     public StudentCommand(String fullName, LocalDate birthDate, String parentName, String parentPhoneNumber) { this(fullName, birthDate, parentName, parentPhoneNumber, null, null); }
   }

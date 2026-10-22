@@ -24,7 +24,11 @@ public class SessionAttendance {
   private ClassSession session;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "student_id", nullable = false)
+  @JoinColumn(name = "membership_id", nullable = false)
+  private ClassMembership membership;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "student_id")
   private Student student;
 
   @Column(nullable = false)
@@ -38,12 +42,18 @@ public class SessionAttendance {
   public SessionAttendance(ClassSession session, Student student, String status) {
     this.session = session;
     this.student = student;
+    this.membership = session.getChessClass().getMemberships().stream().filter(m -> student.getId().equals(m.getStudentId())).findFirst()
+      .orElseGet(() -> { var m = session.getChessClass().addMembership(student.getFullName(), student); m.setActive(false); return m; });
     this.status = status;
   }
 
+  public SessionAttendance(ClassSession session, ClassMembership member, String status) {
+    this.session = session; this.membership = member; this.student = member.getStudent(); this.status = status;
+  }
+  public ClassMembership getMembership() { return membership; }
   public UUID getId() { return id; }
   public ClassSession getSession() { return session; }
-  public Student getStudent() { return student; }
+  public Student getStudent() { return membership.getStudent(); }
   public String getStatus() { return status; }
   public void updateStatus(String value) { this.status = value; this.notedAt = Instant.now(); }
 }

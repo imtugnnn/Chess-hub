@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import vn.chesshub.entity.Student;
 
 public interface StudentRepository extends JpaRepository<Student, UUID> {
+  @Query("select s from Student s where lower(trim(s.fullName)) = lower(:name) and ((:centerId is not null and s.centerId = :centerId) or (:centerId is null and s.centerId is null and s.ownerUserId = :ownerId)) order by s.createdAt, s.id")
+  List<Student> scopeCandidates(UUID centerId, UUID ownerId, String name);
   Optional<Student> findByCenterIdAndFullNameAndBirthDateAndParentPhoneNumber(UUID centerId, String fullName, LocalDate birthDate, String parentPhoneNumber);
   Optional<Student> findByOwnerUserIdAndFullNameAndBirthDateAndParentPhoneNumber(UUID ownerUserId, String fullName, LocalDate birthDate, String parentPhoneNumber);
   boolean existsByOwnerUserId(UUID ownerUserId);

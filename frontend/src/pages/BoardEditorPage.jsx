@@ -1,8 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard, ChessboardProvider, defaultPieces, SparePiece } from "react-chessboard";
-import { AppSidebar } from "../components/layout/AppSidebar";
-import { AppPageHeader } from "../components/layout/AppPageHeader";
+import { AppChrome } from "../components/layout/AppChrome";
 import { UiIcon } from "../components/UiIcon";
 import { AnalysisSettings } from "../components/AnalysisSettings";
 import { editPosition, initialPosition, PIECE_NAMES, positionFen } from "../components/boardPosition";
@@ -146,7 +145,7 @@ export function BoardEditorPage({ teacherId, teacherName, onLogout, onNavigate }
   }
   const bestMove = best?.moves[0];
   const evaluation = evaluationDisplay(best?.score, orientation);
-  const engineTitle = analysis.status === "loading" ? "Đang tải phân tích" : analysis.status === "searching" ? "Đang phân tích" : analysis.status === "done" ? `Độ sâu ${best?.depth ?? "—"}` : "Phân tích đang tắt";
+  const engineTitle = analysis.status === "error" ? "Lỗi phân tích" : analysis.status === "loading" ? "Đang tải phân tích" : analysis.status === "searching" ? "Đang phân tích" : analysis.status === "done" ? `Độ sâu ${best?.depth ?? "—"}` : "Phân tích đang tắt";
   const options = {
     id: "position-editor", position: boardPieces,
     boardOrientation: orientation, allowDragging: !reviewing && !promotion && !finished, allowDragOffBoard: !playing, allowDrawingArrows: false,
@@ -156,7 +155,7 @@ export function BoardEditorPage({ teacherId, teacherName, onLogout, onNavigate }
     dragActivationDistance: 6, animationDurationInMs: reducedMotion ? 0 : 240, showAnimations: !reducedMotion && replay?.phase !== "before",
     darkSquareStyle: { backgroundColor: "#879ab5" }, lightSquareStyle: { backgroundColor: "#e8edf3" },
     darkSquareNotationStyle: { color: "#152b4a" }, lightSquareNotationStyle: { color: "#253d60" },
-    onPieceDrag: ({ piece, square }) => { setDragging(true); setSelection(playing && square ? { source: square, piece: piece.pieceType } : null); }, onPieceDragCancel: () => setDragging(false),
+    onPieceDrag: ({ piece, square }) => { setDragging(true); setSelection(playing && square ? { source: square, piece: piece.pieceType } : !playing && !square ? { piece: piece.pieceType } : null); }, onPieceDragCancel: () => setDragging(false),
     onPieceDrop: ({ piece, sourceSquare, targetSquare }) => {
       setDragging(false);
       if (playing) {
@@ -174,13 +173,13 @@ export function BoardEditorPage({ teacherId, teacherName, onLogout, onNavigate }
       if (event.key === "Escape") setSelection(null);
     }}>{children}{legalTargets.includes(square) && <span className={`be-legal-target ${position[square] ? "be-legal-target--capture" : ""}`} aria-hidden="true" />}{square === latestMove?.to && <span key={fen} className="be-square-arrival" aria-hidden="true" />}</div>,
   };
-  return <div className="app-shell"><AppSidebar activeSection="board" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard board-editor-page">
-    <AppPageHeader section="Giảng dạy" title={playing ? "Đi quân & phân tích" : "Xếp thế cờ"} icon={<UiIcon name="board" size={24} />} />
+  return <div className="app-shell"><AppChrome title="Xếp thế cờ" activeSection="board" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard board-editor-page">
+    <p className="be-intro">{playing ? "Đi quân trên bàn để minh họa và cùng học viên phân tích thế cờ." : "Chọn quân và đặt lên bàn để chuẩn bị bài giảng."}</p>
     <ChessboardProvider options={options}>
       <div className="be-workspace" onKeyDown={(event) => { if (event.key === "Escape") setSelection(null); }}>
         <section className="be-board-section" aria-label={playing ? "Bàn cờ đi quân" : "Bàn cờ xếp quân"}>
           <div className="be-board-toolbar">
-            {playing ? <span className={`be-turn-dot be-turn-dot--${turn}`} role="img" aria-label={`${turn === "w" ? "Trắng" : "Đen"} đến lượt`} title={`${turn === "w" ? "Trắng" : "Đen"} đến lượt`} /> : <div className="be-turn-select" role="group" aria-label="Bên đến lượt">{[["w", "Trắng"], ["b", "Đen"]].map(([value, label]) => <button type="button" key={value} aria-label={label} title={`${label} đến lượt`} aria-pressed={turn === value} onClick={() => { setTurn(value); setError(""); }}><span className={`be-turn-dot be-turn-dot--${value}`} /></button>)}</div>}
+            {playing ? <span className="be-turn-current"><span className={`be-turn-dot be-turn-dot--${turn}`} aria-hidden="true" />{turn === "w" ? "Trắng" : "Đen"} đến lượt</span> : <div className="be-turn-field"><span className="be-control-label">Bên đến lượt</span><div className="be-turn-select" role="group" aria-label="Bên đến lượt">{[["w", "Trắng"], ["b", "Đen"]].map(([value, label]) => <button type="button" key={value} aria-label={label} title={`${label} đến lượt`} aria-pressed={turn === value} onClick={() => { setTurn(value); setError(""); }}><span className={`be-turn-dot be-turn-dot--${value}`} aria-hidden="true" />{label}</button>)}</div></div>}
             <div className="be-board-actions">
               <IconButton label="Lật bàn" note="Đổi góc nhìn Trắng/Đen. Thế cờ được giữ nguyên." icon="flip" onClick={() => setOrientation((value) => value === "white" ? "black" : "white")} />
               {!playing && <IconButton label="Hoàn tác" note="Khôi phục lần xếp quân gần nhất." icon="undo" disabled={!history.length} onClick={undo} />}
@@ -195,7 +194,7 @@ export function BoardEditorPage({ teacherId, teacherName, onLogout, onNavigate }
             </div>}
             <div className="be-board" data-fen={fen} data-reduced-motion={reducedMotion}><Chessboard /></div>
           </div>
-          {!playing && <button type="button" className="primary-button be-confirm" aria-label="Xác nhận thế cờ" onClick={confirmSetup}><UiIcon name="check" size={20} />Xác nhận</button>}
+          {!playing && <button type="button" className="primary-button be-confirm" aria-label="Xác nhận thế cờ" onClick={confirmSetup}><UiIcon name="check" size={20} />Xác nhận thế cờ</button>}
           <span className="be-sr-only be-status" role="status">{message}</span>
           {playing && (finished || activeGame.isCheck()) && <p className="be-event" role="status">{finished ? gameStatus(activeGame) : "Chiếu"}</p>}
           {!playing && error && <p className="be-error" role="alert">{error}</p>}
@@ -203,22 +202,22 @@ export function BoardEditorPage({ teacherId, teacherName, onLogout, onNavigate }
         </section>
         <aside className={`be-controls ${playing ? "be-controls--play" : ""}`} aria-label={playing ? "Công cụ đi quân và phân tích" : "Công cụ xếp thế cờ"}>
           {!playing ? <section className="be-palette" aria-label="Quân cờ">
-            <h2>Quân cờ</h2>
-            {["w", "b"].map((color) => <div className="be-piece-group" key={color} aria-label={color === "w" ? "Quân trắng" : "Quân đen"}><div className="be-piece-tray">{Object.entries(PIECE_NAMES).map(([role, name]) => {
+            <header className="be-palette-heading"><h2>Soạn thế cờ</h2><p>Chọn hoặc kéo quân vào ô trên bàn.</p></header>
+            {["w", "b"].map((color) => <div className="be-piece-group" key={color} aria-label={color === "w" ? "Quân trắng" : "Quân đen"}><h3>{color === "w" ? "Quân trắng" : "Quân đen"}</h3><div className="be-piece-tray">{Object.entries(PIECE_NAMES).map(([role, name]) => {
               const type = `${color}${role}`;
               const label = `Chọn ${name.toLowerCase()} ${color === "w" ? "trắng" : "đen"}`;
-              return <div className={`be-spare ${selection?.piece === type && !selection?.source ? "be-spare--selected" : ""}`} key={type} data-spare={type} title={label}><div className="be-spare-art"><SparePiece pieceType={type} /></div><button type="button" aria-label={label} title={label} aria-pressed={selection?.piece === type && !selection?.source} onClick={() => setSelection({ piece: type })}>{role}</button></div>;
+              return <div className={`be-spare ${selection?.piece === type && !selection?.source ? "be-spare--selected" : ""}`} key={type} data-spare={type} title={label}><button type="button" aria-label={label} title={label} aria-pressed={selection?.piece === type && !selection?.source} onClick={() => setSelection({ piece: type })}><span className="be-spare-art"><SparePiece pieceType={type} /></span></button></div>;
             })}</div></div>)}
-            <div className="be-palette-actions"><IconButton label="Xóa bàn" icon="trash" disabled={!Object.keys(position).length} onClick={() => update({}, "Đã xóa bàn cờ.")} /><IconButton label="Vị trí ban đầu" note="Đặt lại 32 quân ở vị trí xuất phát, Trắng đi trước." icon="reset" onClick={() => { update(initialPosition(), "Đã khôi phục vị trí ban đầu."); setTurn("w"); }} /></div>
-            <button type="button" className={`be-remove-zone ${dragging ? "be-remove-zone--dragging" : ""}`} aria-label="Gỡ quân" title="Kéo quân ra ngoài để gỡ, hoặc chọn công cụ này rồi bấm quân" aria-pressed={Boolean(selection?.erase)} onClick={() => setSelection(selection?.erase ? null : { erase: true })}><UiIcon name="trash" size={24} /></button>
+            <div className="be-palette-actions"><IconButton label="Xóa bàn" visibleLabel tone="danger" icon="trash" disabled={!Object.keys(position).length} onClick={() => update({}, "Đã xóa bàn cờ.")} /><IconButton label="Vị trí ban đầu" visibleLabel note="Đặt lại 32 quân ở vị trí xuất phát, Trắng đi trước." icon="reset" onClick={() => { update(initialPosition(), "Đã khôi phục vị trí ban đầu."); setTurn("w"); }} /></div>
+            <button type="button" className={`be-remove-zone ${dragging ? "be-remove-zone--dragging" : ""}`} aria-label="Gỡ quân" title="Kéo quân ra ngoài để gỡ, hoặc chọn công cụ này rồi bấm quân" aria-pressed={Boolean(selection?.erase)} onClick={() => setSelection(selection?.erase ? null : { erase: true })}><UiIcon name="trash" size={20} /><span><strong>Gỡ quân</strong><small>Kéo quân ra ngoài, hoặc chọn rồi bấm quân.</small></span></button>
           </section> : <>
             <div className="be-analysis-tools" role="group" aria-label="Công cụ phân tích" data-status={analysis.status} data-analysis-enabled={analysisEnabled}>
-              <AnalysisSettings tools={tools} onToggle={(key) => setTools((previous) => ({ ...previous, [key]: !previous[key] }))} />
+              <div className="be-analysis-heading"><h2>Phân tích</h2><span className="be-engine-label" role="status">{engineTitle}</span></div><AnalysisSettings tools={tools} onToggle={(key) => setTools((previous) => ({ ...previous, [key]: !previous[key] }))} />
               {analysisEnabled && <span className={`be-engine-indicator be-engine-indicator--${analysis.status}`} role="img" aria-label={engineTitle} title={engineTitle} />}
             </div>
             {analysis.error && <div className="be-error" role="alert">{analysis.error}<button type="button" className="text-button" onClick={analysis.retry}>Thử lại</button></div>}
             {tools.variations && analysis.variations.length > 0 && <ol className="be-variations" aria-label="Các phương án tiếp diễn">{analysis.variations.map((variation) => <li key={variation.rank}><div><span>{variation.rank}</span><strong>{scoreText(variation.score)}</strong></div><p>{variationSan(fen, variation.moves)}</p></li>)}</ol>}
-            <section className="be-history" aria-label="Nước đã đi"><div className="be-history-heading"><h2>Nước đi</h2>{reviewing && <button type="button" className="be-live-button" disabled={replay.busy} onClick={returnToLive}><UiIcon name="chevron" size={16} />Hiện tại</button>}</div>{moves.length ? <div ref={historyViewport} className="be-history-scroll" role="region" aria-label="Lịch sử nước đi" tabIndex={0} onScroll={(event) => { const viewport = event.currentTarget; followHistory.current = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 40; }}><table className="be-move-table"><colgroup><col className="be-move-number-col" /><col /><col /></colgroup><thead className="be-sr-only"><tr><th scope="col">Lượt</th><th scope="col">Trắng</th><th scope="col">Đen</th></tr></thead><tbody>{moveRows.map((row) => <tr key={row.number}><th scope="row">{row.number}.</th>{[row.white, row.black].map((move, column) => <td key={column} aria-current={move?.index === currentMoveIndex ? "step" : undefined}>{move && <button type="button" className="be-history-move" aria-label={`Xem nước ${row.number}, ${column === 0 ? "Trắng" : "Đen"}: ${move.san}`} aria-current={move.index === currentMoveIndex ? "step" : undefined} disabled={Boolean(promotion) || Boolean(replay?.busy)} onClick={() => reviewMove(move.index)}>{move.san}</button>}</td>)}</tr>)}</tbody></table></div> : <span className="be-empty-moves" aria-label="Chưa có nước đi">—</span>}<div className="be-history-navigation" role="group" aria-label="Điều hướng nước đi">{[{ label: "Về thế cờ ban đầu", icon: "firstMove", index: -1, boundary: currentMoveIndex < 0 }, { label: "Lùi một bước", icon: "previousMove", index: currentMoveIndex - 1, boundary: currentMoveIndex < 0 }, { label: "Tiến một bước", icon: "nextMove", index: currentMoveIndex + 1, boundary: currentMoveIndex >= moves.length - 1 }, { label: "Đến nước cuối cùng", icon: "lastMove", index: moves.length - 1, boundary: currentMoveIndex >= moves.length - 1 }].map(({ label, icon, index, boundary }) => <IconButton key={icon} label={label} icon={icon} disabled={!moves.length || boundary || Boolean(promotion) || Boolean(replay?.busy)} onClick={() => navigateHistory(index)} />)}</div></section>
+            <section className="be-history" aria-label="Nước đã đi"><div className="be-history-heading"><h2>Nước đi</h2>{reviewing && <button type="button" className="be-live-button" disabled={replay.busy} onClick={returnToLive}><UiIcon name="chevron" size={16} />Hiện tại</button>}</div>{moves.length ? <div ref={historyViewport} className="be-history-scroll" role="region" aria-label="Lịch sử nước đi" tabIndex={0} onScroll={(event) => { const viewport = event.currentTarget; followHistory.current = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 40; }}><table className="be-move-table"><colgroup><col className="be-move-number-col" /><col /><col /></colgroup><thead className="be-sr-only"><tr><th scope="col">Lượt</th><th scope="col">Trắng</th><th scope="col">Đen</th></tr></thead><tbody>{moveRows.map((row) => <tr key={row.number}><th scope="row">{row.number}.</th>{[row.white, row.black].map((move, column) => <td key={column} aria-current={move?.index === currentMoveIndex ? "step" : undefined}>{move && <button type="button" className="be-history-move" aria-label={`Xem nước ${row.number}, ${column === 0 ? "Trắng" : "Đen"}: ${move.san}`} aria-current={move.index === currentMoveIndex ? "step" : undefined} disabled={Boolean(promotion) || Boolean(replay?.busy)} onClick={() => reviewMove(move.index)}>{move.san}</button>}</td>)}</tr>)}</tbody></table></div> : <span className="be-empty-moves" aria-label="Chưa có nước đi">Chưa có nước đi. Chọn một quân trên bàn để bắt đầu.</span>}<div className="be-history-navigation" role="group" aria-label="Điều hướng nước đi">{[{ label: "Về thế cờ ban đầu", icon: "firstMove", index: -1, boundary: currentMoveIndex < 0 }, { label: "Lùi một bước", icon: "previousMove", index: currentMoveIndex - 1, boundary: currentMoveIndex < 0 }, { label: "Tiến một bước", icon: "nextMove", index: currentMoveIndex + 1, boundary: currentMoveIndex >= moves.length - 1 }, { label: "Đến nước cuối cùng", icon: "lastMove", index: moves.length - 1, boundary: currentMoveIndex >= moves.length - 1 }].map(({ label, icon, index, boundary }) => <IconButton key={icon} label={label} icon={icon} disabled={!moves.length || boundary || Boolean(promotion) || Boolean(replay?.busy)} onClick={() => navigateHistory(index)} />)}</div></section>
           </>}
         </aside>
       </div>
@@ -226,9 +225,9 @@ export function BoardEditorPage({ teacherId, teacherName, onLogout, onNavigate }
   </main></div>;
 }
 
-function IconButton({ label, note, icon, onClick, disabled = false, pressed }) {
+function IconButton({ label, note, icon, onClick, disabled = false, pressed, visibleLabel = false, tone }) {
   const id = useId();
-  const button = <button type="button" className="be-icon-button" aria-label={label} title={note ? undefined : label} aria-describedby={note ? id : undefined} aria-pressed={pressed} disabled={disabled} onClick={onClick}><UiIcon name={icon} size={20} /></button>;
+  const button = <button type="button" className={`be-icon-button${visibleLabel ? " be-labeled-button" : ""}${tone ? ` be-button--${tone}` : ""}`} aria-label={label} title={note ? undefined : label} aria-describedby={note ? id : undefined} aria-pressed={pressed} disabled={disabled} onClick={onClick}><UiIcon name={icon} size={20} />{visibleLabel && <span>{label}</span>}</button>;
   return note ? <span className="be-button-tip">{button}<span id={id} role="tooltip" className="be-button-note"><strong>{label}</strong><span>{note}</span></span></span> : button;
 }
 

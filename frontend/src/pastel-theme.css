@@ -1,0 +1,107 @@
+/* Semantic accents on a white workspace. See .impeccable/reports/pastel-rollout.md. */
+:root {
+  --ui-sidebar: #fff;
+  --ui-selected: #e3f0ff;
+  --ui-hover: #edf4fc;
+  --pastel-blue: #e3f0ff;
+  --pastel-blue-ink: #264f78;
+  --pastel-purple: #f0e8fb;
+  --pastel-purple-ink: #604783;
+  --pastel-mint: #e1f3e9;
+  --pastel-mint-ink: #296249;
+  --pastel-peach: #fff0dc;
+  --pastel-peach-ink: #80501c;
+  --pastel-rose: #fce9ed;
+  --pastel-rose-ink: #8c354b;
+}
+[data-tone="blue"] { --tone-bg: var(--pastel-blue); --tone-ink: var(--pastel-blue-ink); }
+[data-tone="purple"] { --tone-bg: var(--pastel-purple); --tone-ink: var(--pastel-purple-ink); }
+[data-tone="mint"] { --tone-bg: var(--pastel-mint); --tone-ink: var(--pastel-mint-ink); }
+[data-tone="peach"] { --tone-bg: var(--pastel-peach); --tone-ink: var(--pastel-peach-ink); }
+.dashboard :is(.overview-metric, .attendance-metric)[data-tone] {
+  background: var(--tone-bg); color: var(--tone-ink); border: 0; border-radius: 12px;
+}
+.dashboard :is(.overview-metric, .attendance-metric)[data-tone] :is(p, strong, span) { color: var(--tone-ink); }
+.dashboard .overview-metric[data-tone] .overview-metric-icon { background: #ffffff80; color: var(--tone-ink); }
+.dashboard .attendance-metrics { gap: 16px; background: transparent; border: 0; border-radius: 0; }
+.dashboard .attendance-metric + .attendance-metric { border-left: 0; }
+.dashboard .attendance-reconcile-note { background: var(--pastel-peach); color: var(--pastel-peach-ink); border: 0; border-radius: 8px; }
+.dashboard .pastel-value { display: inline-block; padding: 4px 8px; border-radius: 6px; background: var(--tone-bg); color: var(--tone-ink); font-variant-numeric: tabular-nums; }
+
+/* Standalone actions remain real buttons/anchors, with native keyboard behavior. */
+.dashboard :is(.overview-link, .text-button, .attendance-open, .attendance-text-button),
+.dashboard a[href^="tel:"], .auth-page .text-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 8px 12px; border: 1px solid #a9bfd5; border-radius: 8px;
+  background: var(--pastel-blue); color: var(--pastel-blue-ink); font: inherit;
+  font-size: 13px; font-weight: 600; line-height: 1.5; text-decoration: none;
+}
+.dashboard :is(.overview-link, .text-button, .attendance-open, .attendance-text-button):hover,
+.dashboard a[href^="tel:"]:hover, .auth-page .text-button:hover { background: #d3e5f8; }
+.dashboard .overview-link { min-height: 44px; }
+.dashboard .secondary-button { border-color: #a9bfd5; color: var(--pastel-blue-ink); background: #f3f8fe; text-decoration: none; }
+.dashboard :is(.text-button.material-danger, .center-remove-button, .student-remove-button) {
+  background: var(--pastel-rose); color: var(--pastel-rose-ink); border: 1px solid #dca9b5; border-radius: 8px; min-height: 40px; padding: 8px 12px;
+}
+.dashboard :is(.text-button.material-danger, .center-remove-button, .student-remove-button):hover { background: #f6d5dd; }
+.dashboard :is(.text-button, .overview-link, .attendance-open):disabled { opacity: .55; cursor: not-allowed; }
+
+/* Header accents do not tint long forms or large reading areas. */
+.dashboard .overview-panel--schedule > header,
+.dashboard .student-detail-history > h2,
+.dashboard .be-history-heading { background: var(--pastel-purple); color: var(--pastel-purple-ink); }
+.dashboard .overview-panel--classes > header,
+.dashboard .material-section-heading { background: var(--pastel-blue); }
+.dashboard .overview-panel > header { border-radius: 12px 12px 0 0; }
+.dashboard .overview-panel--schedule > header :is(h2, p) { color: var(--pastel-purple-ink); }
+.dashboard .overview-panel--classes > header :is(h2, p) { color: var(--pastel-blue-ink); }
+.dashboard .student-avatar, .dashboard .center-avatar { color: var(--pastel-blue-ink); background: var(--pastel-blue); }
+.dashboard .student-detail-classes > h2 { background: var(--pastel-blue); color: var(--pastel-blue-ink); }
+.dashboard :is(.student-detail-classes, .student-detail-history) > h2 { padding: 12px; border-radius: 8px; }
+.dashboard .students-class-link { border: 1px solid #a9bfd5; border-radius: 8px; background: #f3f8fe; padding: 10px 12px; }
+.dashboard .center-count, .dashboard .center-role { color: var(--pastel-purple-ink); background: var(--pastel-purple); border-radius: 6px; padding: 4px 8px; }
+.dashboard .center-invite { background: #fff9f0; }
+.dashboard .center-invite-note, .dashboard .center-status { background: var(--pastel-peach); color: var(--pastel-peach-ink); }
+.dashboard .material-source-icon { color: var(--pastel-purple-ink); background: var(--pastel-purple); }
+.dashboard .material-row[data-kind="link"] .material-source-icon { color: var(--pastel-blue-ink); background: var(--pastel-blue); }
+.dashboard .material-row[data-kind="file"] .material-source-icon { color: var(--pastel-peach-ink); background: var(--pastel-peach); }
+.dashboard .settings-email { background: #f3f8ff; }
+.dashboard .settings-meet { background: #f1faf5; }
+.dashboard .settings-password { background: #f7f3fc; }
+.dashboard .settings-delete { background: #fff5f7; }
+.dashboard .settings-card input { background: white; }
+.dashboard .settings-card .eyebrow { display: none; }
+.dashboard .create-class-details { border-color: #bed2e5; }
+.dashboard .schedule-section legend, .dashboard .schedule-preview, .dashboard .manual-date-summary {
+  color: var(--pastel-purple-ink); background: var(--pastel-purple); padding: 8px 12px; border-radius: 8px;
+}
+.dashboard .workspace-draft-label { color: var(--pastel-peach-ink); background: var(--pastel-peach); }
+.dashboard .tournament-identity { background: #f3f8ff; }
+.dashboard .tournament-rules { background: #f7f3fc; }
+.dashboard .tournament-overview > div { border: 0; border-radius: 12px; background: var(--tone-bg); }
+.dashboard .tournament-overview > div :is(strong, span) { color: var(--tone-ink); }
+.dashboard .tournament-match-card > header { background: var(--pastel-purple); border-radius: 12px 12px 0 0; }
+.dashboard .standing-card > header { background: var(--pastel-mint); border-radius: 12px 12px 0 0; }
+.dashboard .be-palette { background: #f3f8ff; }
+.dashboard .be-analysis-tools { background: #f7f3fc; }
+
+/* Status colors carry the same meaning across schedule, attendance and payment. */
+.dashboard :is(.overview-status--done, .schedule-session-status--complete, .students-attendance--present) { color: var(--pastel-mint-ink); background: var(--pastel-mint); }
+.dashboard :is(.overview-status--pending, .schedule-session-status--pending, .students-attendance--late) { color: var(--pastel-peach-ink); background: var(--pastel-peach); }
+.dashboard .schedule-session-status--upcoming { color: var(--pastel-purple-ink); background: var(--pastel-purple); }
+.dashboard .students-attendance--absent { color: var(--pastel-rose-ink); background: var(--pastel-rose); }
+
+/* Public surfaces keep their existing composition and product copy. */
+.auth-showcase { background: #f3f8ff; }
+.auth-showcase .benefit-list > li { padding: 12px; border-radius: 12px; background: var(--pastel-blue); }
+.auth-showcase .benefit-list > li:nth-child(2) { background: var(--pastel-purple); }
+.auth-showcase .benefit-list > li:nth-child(3) { background: var(--pastel-mint); }
+.lp-refresh .landing-nav nav > a, .lp-refresh .landing-demo,
+.lp-refresh .lp-footer nav > :is(a, button) { padding: 10px 14px; border: 1px solid #a9bfd5; border-radius: 8px; background: #f3f8fe; color: var(--pastel-blue-ink); text-decoration: none; }
+.lp-refresh .landing-nav nav > a:hover, .lp-refresh .landing-demo:hover,
+.lp-refresh .lp-footer nav > :is(a, button):hover { background: var(--pastel-blue); }
+@media (max-width: 600px) {
+  .dashboard .attendance-metrics { gap: 8px; }
+  .dashboard .attendance-metric { padding: 12px; }
+  .dashboard .attendance-metric > strong { font-size: 20px; }
+}

@@ -26,7 +26,7 @@ public class StudentManagementService {
          and m.status = 'ACTIVE' and u.center_id = m.center_id)
      or s.center_id is null and s.owner_user_id is null and exists (
        select 1 from chess_class_students cs join chess_classes c on c.id = cs.chess_class_id
-       where cs.student_id = s.id and c.teacher_id = :userId))
+       where cs.student_id = s.id and cs.active and c.teacher_id = :userId))
     """;
   // Existing class APIs only authorize the teacher of the class.
   private static final String CLASSES = "c.teacher_id = :userId";
@@ -66,10 +66,10 @@ public class StudentManagementService {
     }
     if (classId != null) {
       if (options(userId).classes().stream().noneMatch(c -> c.id().equals(classId))) throw error(HttpStatus.FORBIDDEN, "Bạn không có quyền xem lớp này.");
-      where += " and exists (select 1 from chess_class_students cs where cs.student_id = s.id and cs.chess_class_id = :classId)";
+      where += " and exists (select 1 from chess_class_students cs where cs.student_id = s.id and cs.active and cs.chess_class_id = :classId)";
       args.addValue("classId", classId);
     }
-    String enrolled = "exists (select 1 from chess_class_students cs join chess_classes c on c.id = cs.chess_class_id where cs.student_id = s.id and " + CLASSES + ")";
+    String enrolled = "exists (select 1 from chess_class_students cs join chess_classes c on c.id = cs.chess_class_id where cs.student_id = s.id and cs.active and " + CLASSES + ")";
     if ("enrolled".equals(enrollment)) where += " and " + enrolled;
     if ("unassigned".equals(enrollment)) where += " and not " + enrolled;
     String normalized = normalize(query);
@@ -85,7 +85,7 @@ public class StudentManagementService {
     if (!rows.isEmpty()) {
       args.addValue("ids", rows.stream().map(StudentRow::id).toList());
       Map<UUID, List<ClassLink>> links = new HashMap<>();
-      db.query("select cs.student_id, c.id, c.name from chess_class_students cs join chess_classes c on c.id = cs.chess_class_id where cs.student_id in (:ids) and " + CLASSES + " order by c.name, c.id", args, (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
+      db.query("select cs.student_id, c.id, c.name from chess_class_students cs join chess_classes c on c.id = cs.chess_class_id where cs.student_id in (:ids) and cs.active and " + CLASSES + " order by c.name, c.id", args, (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
         links.computeIfAbsent(uuid(rs, "student_id"), id -> new ArrayList<>()).add(new ClassLink(uuid(rs, "id"), rs.getString("name")));
       });
       rows = rows.stream().map(s -> s.withClasses(links.getOrDefault(s.id(), List.of()))).toList();
@@ -98,8 +98,8 @@ public class StudentManagementService {
     if (historyPage < 0) throw error(HttpStatus.BAD_REQUEST, "Trang lịch sử không hợp lệ.");
     var args = new MapSqlParameterSource("userId", userId).addValue("id", id);
     var row = requireStudent(args, false);
-    var classes = db.query("select c.id, c.name from chess_class_students cs join chess_classes c on c.id = cs.chess_class_id where cs.student_id = :id and " + CLASSES + " order by c.name, c.id", args, (rs, i) -> new ClassLink(uuid(rs, "id"), rs.getString("name")));
-    String from = " from session_attendance a join class_sessions se on se.id = a.session_id join chess_classes c on c.id = se.class_id where a.student_id = :id and " + CLASSES;
+    var classes = db.query("select c.id, c.name from chess_class_students cs join chess_classes c on c.id = cs.chess_class_id where cs.student_id = :id and cs.active and " + CLASSES + " order by c.name, c.id", args, (rs, i) -> new ClassLink(uuid(rs, "id"), rs.getString("name")));
+    String from = " from session_attendance a join chess_class_students member on member.id = a.membership_id join class_sessions se on se.id = a.session_id join chess_classes c on c.id = se.class_id where member.student_id = :id and " + CLASSES;
     long total = db.queryForObject("select count(*)" + from, args, Long.class);
     args.addValue("offset", (long) historyPage * 20);
     var history = db.query("select se.id, se.session_date, c.id as class_id, c.name, a.status" + from + " order by se.session_date desc, se.start_time desc, a.id limit 20 offset :offset", args,
@@ -111,8 +111,10 @@ public class StudentManagementService {
   public StudentRow create(UUID userId, Input input) {
     lockUser(userId);
     Input valid = validate(input);
+    if (!ChessClassService.hasProfileData(valid)) throw error(HttpStatus.BAD_REQUEST, "Chỉ có tên học sinh thì hãy thêm vào một lớp. Cần ít nhất một thông tin bổ sung để tạo hồ sơ.");
     if (valid.centerId() != null && options(userId).centers().stream().noneMatch(c -> c.id().equals(valid.centerId())))
       throw error(HttpStatus.FORBIDDEN, "Bạn không có quyền tạo học sinh trong trung tâm này.");
+    if (valid.centerId() != null) db.queryForList("select id from centers where id = :id for update", Map.of("id", valid.centerId()));
     UUID id = UUID.randomUUID();
     var args = inputArgs(valid).addValue("id", id).addValue("userId", userId).addValue("ownerId", valid.centerId() == null ? userId : null);
     ensureUnique(args);
@@ -130,6 +132,7 @@ public class StudentManagementService {
     if (!existing.canEdit()) throw error(HttpStatus.FORBIDDEN, "Chỉ chủ hồ sơ cá nhân hoặc chủ trung tâm được sửa thông tin.");
     Input valid = validate(input);
     if (!Objects.equals(existing.centerId(), valid.centerId())) throw error(HttpStatus.BAD_REQUEST, "Không thể chuyển phạm vi sở hữu khi sửa hồ sơ.");
+    if (valid.centerId() != null) db.queryForList("select id from centers where id = :id for update", Map.of("id", valid.centerId()));
     var args = inputArgs(valid).addValue("id", id).addValue("userId", userId).addValue("ownerId", valid.centerId() == null ? userId : null);
     // Older clients omit these new fields. Empty strings explicitly clear them.
     args.addValue("studentPhone", input.phoneNumber() == null ? existing.phoneNumber() : valid.phoneNumber());
@@ -155,7 +158,7 @@ public class StudentManagementService {
     if (input == null) throw error(HttpStatus.BAD_REQUEST, "Thông tin học sinh là bắt buộc.");
     String name = required(input.fullName(), "Họ tên học sinh"), parent = optionalParentName(input.parentName());
     String phone = optionalParentPhone(input.parentPhoneNumber());
-    if (input.birthDate() == null || input.birthDate().isAfter(LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")))) throw error(HttpStatus.BAD_REQUEST, "Ngày sinh là bắt buộc và không được ở tương lai.");
+    if (input.birthDate() != null && input.birthDate().isAfter(LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")))) throw error(HttpStatus.BAD_REQUEST, "Ngày sinh không được ở tương lai.");
     return new Input(name, input.birthDate(), parent, phone, input.centerId(), optionalStudentPhone(input.phoneNumber()), optionalNotes(input.notes()));
   }
   static String optionalParentName(String value) {

@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import vn.chesshub.entity.ClassSession;
 
 public interface ClassSessionRepository extends JpaRepository<ClassSession, UUID> {
-  @EntityGraph(attributePaths = {"chessClass", "chessClass.students"})
+  @EntityGraph(attributePaths = {"chessClass", "chessClass.memberships", "chessClass.memberships.student"})
   List<ClassSession> findByChessClassTeacherIdAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(UUID teacherId, LocalDate from, LocalDate to);
 
   List<ClassSession> findByChessClassIdOrderBySessionDateAscStartTimeAsc(UUID classId);
@@ -25,6 +25,6 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, UUID
   @org.springframework.data.jpa.repository.Query(value = "select exists (select 1 from session_attendance where session_id = :sessionId)", nativeQuery = true)
   boolean hasAttendance(UUID sessionId);
 
-  @EntityGraph(attributePaths = "chessClass.students")
+  @EntityGraph(attributePaths = {"chessClass.memberships", "chessClass.memberships.student"})
   Optional<ClassSession> findByIdAndChessClassIdAndChessClassTeacherId(UUID id, UUID classId, UUID teacherId);
 }

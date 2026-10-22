@@ -1,21 +1,19 @@
+# Build output and local dependencies
 backend/target/
 frontend/node_modules/
 frontend/dist/
-backend/.env
+
+# Local secrets and OS files
 .env
+backend/.env
 .DS_Store
 
-# Impeccable local runtime and downloaded engine
-agent/.impeccable/engine/
-**/skills/impeccable/scripts/bin/
-**/agent/.impeccable/hook.cache.json
-**/agent/.impeccable/hook.pending.json
-agent/.impeccable/config.local.json
-agent/.impeccable/*.log
-agent/.impeccable/live/server.json
-agent/.impeccable/live/sessions/
-agent/.impeccable/live/previews/
-agent/.impeccable/live/cache/
-agent/.impeccable/live/locks/
-agent/.impeccable/live/artifacts/
-agent/.impeccable/live/annotations/
+# One local workspace for all AI tools, documents and generated data
+/agent/
+
+# IDE configuration and legacy AI locations (do not recreate these)
+.idea/
+**/.agents/
+**/.codex/
+**/.specify/
+**/.impeccable/

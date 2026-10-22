@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { AppPageHeader } from "../components/layout/AppPageHeader";
-import { AppSidebar } from "../components/layout/AppSidebar";
+import { AppChrome } from "../components/layout/AppChrome";
 import { CalendarFilter } from "../components/CalendarFilter";
+import { CalendarSessionLink as SessionLink, CalendarSessionPreview } from "../components/CalendarSessionLink";
 import { UiIcon } from "../components/UiIcon";
 import { getAttendanceStatus, sortDaySessions } from "../components/calendarLayout";
 import { getTeacherSessions } from "../services/api";
@@ -18,7 +18,9 @@ const attendanceOptions = [
 
 export function CalendarPage({ teacherId, teacherName, onLogout, onNavigate }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [weekDirection, setWeekDirection] = useState(null);
   const [selectedDate, setSelectedDate] = useState(() => formatDate(new Date()));
+  const [expandedDay, setExpandedDay] = useState(null);
   const [view, setView] = useState("week");
   const [classFilter, setClassFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -48,6 +50,15 @@ export function CalendarPage({ teacherId, teacherName, onLogout, onNavigate }) {
   }, [filteredSessions]);
   const hasFilters = classFilter !== "all" || statusFilter !== "all";
 
+  useEffect(() => { setExpandedDay(null); }, [from, view, classFilter, statusFilter]);
+  useEffect(() => { if (expandedDay) document.getElementById("schedule-expanded-heading")?.focus(); }, [expandedDay]);
+
+  function closeExpandedDay() {
+    const dateKey = expandedDay;
+    setExpandedDay(null);
+    requestAnimationFrame(() => document.getElementById(`schedule-more-${dateKey}`)?.focus());
+  }
+
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -68,11 +79,14 @@ export function CalendarPage({ teacherId, teacherName, onLogout, onNavigate }) {
   }, []);
 
   function changeWeek(offset) {
+    setWeekDirection(offset > 0 ? 'next' : 'previous');
     setWeekStart((current) => addDays(current, offset));
     setSelectedDate((current) => formatDate(addDays(new Date(`${current}T12:00:00`), offset)));
   }
   function goToday() {
     const current = new Date();
+    const target = startOfWeek(current);
+    setWeekDirection(target > weekStart ? 'next' : target < weekStart ? 'previous' : null);
     setWeekStart(startOfWeek(current));
     setSelectedDate(formatDate(current));
     setNow(current);
@@ -80,9 +94,12 @@ export function CalendarPage({ teacherId, teacherName, onLogout, onNavigate }) {
   function clearFilters() { setClassFilter("all"); setStatusFilter("all"); setSelectedClass(null); }
 
   return <div className="app-shell">
-    <AppSidebar activeSection="calendar" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} />
+    <AppChrome title="Lịch dạy" activeSection="calendar" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} />
     <main className="dashboard calendar-page">
-      <AppPageHeader section="Lịch dạy" title="Lịch dạy" description="Theo dõi giờ học và điểm danh các buổi dạy của bạn." actions={<button className="secondary-button" onClick={() => onNavigate("/classes/new")}><UiIcon name="plus" size={18} />Tạo lớp mới</button>} />
+      <div className="calendar-intro">
+        <p>Theo dõi giờ học và điểm danh các buổi dạy của bạn.</p>
+        <button type="button" className="calendar-create" onClick={() => onNavigate("/classes/new")}><UiIcon name="plus" size={18} />Tạo lớp mới</button>
+      </div>
       <section className={`calendar-panel schedule-panel schedule-panel--${view}`} aria-label="Lịch dạy">
         <div className="schedule-toolbar">
           <div className="schedule-toolbar__heading"><h2>{formatWeekRange(days[0], days[6])}</h2><p role="status" aria-live="polite">{loading ? "Đang tải lịch dạy…" : error ? "Lịch dạy chưa tải được" : hasFilters ? `${filteredSessions.length} / ${sessions.length} buổi học trong tuần` : `${sessions.length} buổi học trong tuần`}</p></div>
@@ -99,9 +116,9 @@ export function CalendarPage({ teacherId, teacherName, onLogout, onNavigate }) {
         <div className="schedule-content" aria-busy={loading}>
           {error ? <div className="schedule-feedback ui-error" role="alert"><p>{error}</p><button className="secondary-button" onClick={() => setRetry((value) => value + 1)}>Thử lại</button></div>
             : loading ? <div className="schedule-feedback" role="status"><UiIcon name="calendar" size={28} /><p>Đang tải lịch dạy…</p></div>
-              : <>
+              : <CalendarSessionPreview key={`${from}:${view}:${classFilter}:${statusFilter}:${selectedDate}:${expandedDay}`} now={now}><div key={from} className={`schedule-week-transition ${weekDirection ? `schedule-week-transition--${weekDirection}` : ''}`}>
                 <div className="schedule-day-picker" role="group" aria-label="Chọn ngày xem lịch">{days.map((date, index) => { const dateKey = formatDate(date); return <button type="button" key={dateKey} aria-pressed={dateKey === selectedDate} aria-current={dateKey === today ? "date" : undefined} aria-label={`${dayNames[index]}, ${date.toLocaleDateString("vi-VN")}, ${(sessionsByDate[dateKey] ?? []).length} buổi học`} onClick={() => setSelectedDate(dateKey)}><span>{shortDayNames[index]}</span><strong>{date.getDate()}</strong><i className={(sessionsByDate[dateKey] ?? []).length ? "schedule-day-picker__dot" : ""} aria-hidden="true" /></button>; })}</div>
-                {view === "week" && <WeekSchedule days={days} sessionsByDate={sessionsByDate} now={now} onNavigate={onNavigate} />}
+                {view === "week" && <WeekSchedule days={days} sessionsByDate={sessionsByDate} now={now} onNavigate={onNavigate} hasFilters={hasFilters} expandedDay={expandedDay} onOpenDay={setExpandedDay} onCloseDay={closeExpandedDay} />}
                 <div className={`schedule-agenda ${!filteredSessions.length ? "schedule-agenda--empty" : ""}`} aria-label="Danh sách buổi học">{days.map((date, index) => {
                   const dateKey = formatDate(date);
                   const dailySessions = sessionsByDate[dateKey] ?? [];
@@ -110,23 +127,31 @@ export function CalendarPage({ teacherId, teacherName, onLogout, onNavigate }) {
                     {dailySessions.length ? dailySessions.map((session) => <SessionLink key={session.id} session={session} now={now} onNavigate={onNavigate} className="schedule-agenda-session" />) : <p className="schedule-empty-day">{hasFilters ? "Không có buổi học phù hợp trong ngày này." : "Chưa có buổi học trong ngày này."}</p>}
                   </section>;
                 })}</div>
-              </>}
+              </div></CalendarSessionPreview>}
         </div>
       </section>
     </main>
   </div>;
 }
 
-function WeekSchedule({ days, sessionsByDate, now, onNavigate }) {
+function WeekSchedule({ days, sessionsByDate, now, onNavigate, hasFilters, expandedDay, onOpenDay, onCloseDay }) {
   const today = formatDate(now);
+  if (expandedDay) {
+    const date = new Date(`${expandedDay}T12:00:00`);
+    const dailySessions = sessionsByDate[expandedDay] ?? [];
+    return <section className="schedule-expanded-day" aria-label="Tất cả buổi học trong ngày">
+      <header><div><h3 id="schedule-expanded-heading" tabIndex={-1}>{date.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long" })}</h3><p>{dailySessions.length} buổi học</p></div><button type="button" className="secondary-button" onClick={onCloseDay}><span className="schedule-previous"><UiIcon name="chevron" size={16} /></span>Về lịch tuần</button></header>
+      <div className="schedule-expanded-day__sessions">{dailySessions.map((session) => <SessionLink key={session.id} session={session} now={now} onNavigate={onNavigate} className="schedule-agenda-session" />)}</div>
+    </section>;
+  }
   return <div className="schedule-week-scroll" tabIndex={0} role="region" aria-label="Lịch tuần, buổi học xếp theo giờ bắt đầu trong từng ngày">
     <div className="schedule-week">
-      <div className="schedule-week__header">{days.map((date, index) => <div key={formatDate(date)} className={formatDate(date) === today ? "schedule-week__day--today" : ""}><span>{dayNames[index]}</span><strong>{date.getDate()}</strong><CreateClassForDate date={date} onNavigate={onNavigate} /></div>)}</div>
+      <div className="schedule-week__header">{days.map((date, index) => <div key={formatDate(date)} className={formatDate(date) === today ? "schedule-week__day--today" : ""}><div className="schedule-week__day-label"><span>{shortDayNames[index]} · {(sessionsByDate[formatDate(date)] ?? []).length} buổi</span><strong>{date.getDate()}</strong></div><CreateClassForDate date={date} onNavigate={onNavigate} /></div>)}</div>
       <div className="schedule-week__body">{days.map((date, index) => {
         const dateKey = formatDate(date);
         const dailySessions = sessionsByDate[dateKey] ?? [];
         return <section className={`schedule-week-day ${dateKey === today ? "schedule-week-day--today" : ""}`} key={dateKey} aria-label={`${dayNames[index]}, ${date.toLocaleDateString("vi-VN")}`}>
-          {dailySessions.length ? dailySessions.map((session) => <SessionLink key={session.id} session={session} now={now} onNavigate={onNavigate} className="schedule-week-session" />) : <p className="schedule-week-day__empty">Chưa có buổi học</p>}
+          {dailySessions.length ? <>{dailySessions.slice(0, 3).map((session) => <SessionLink key={session.id} session={session} now={now} onNavigate={onNavigate} className="schedule-week-session" />)}{dailySessions.length > 3 && <button type="button" id={`schedule-more-${dateKey}`} className="schedule-more" aria-label={`Xem tất cả ${dailySessions.length} buổi ngày ${date.toLocaleDateString("vi-VN")}`} onClick={() => onOpenDay(dateKey)}>+{dailySessions.length - 3} buổi khác</button>}</> : <p className="schedule-week-day__empty">{hasFilters ? "Không có buổi học phù hợp" : "Chưa có buổi học"}</p>}
         </section>;
       })}</div>
     </div>
@@ -136,19 +161,6 @@ function WeekSchedule({ days, sessionsByDate, now, onNavigate }) {
 function CreateClassForDate({ date, onNavigate }) {
   const label = `Tạo lớp ngày ${date.toLocaleDateString("vi-VN")}`;
   return <button type="button" className="schedule-create-class" aria-label={label} title={label} onClick={() => onNavigate(`/classes/new?date=${formatDate(date)}`)}><UiIcon name="plus" size={18} /></button>;
-}
-
-function SessionLink({ session, now, onNavigate, className }) {
-  const status = getAttendanceStatus(session, now);
-  const time = `${session.startTime.slice(0, 5)} – ${session.endTime.slice(0, 5)}`;
-  const description = `${session.className}, ${time}. ${status.label}`;
-  const href = `/classes/${session.classId}?tab=sessions&sessionId=${session.id}`;
-  return <article className={`${className} schedule-session--${status.type}`}>
-    <div className="schedule-session-timing"><time>{time}</time></div>
-    <strong>{session.className}</strong>
-    <span className={`schedule-session-status schedule-session-status--${status.type}`}><i aria-hidden="true" /><span>{status.label}</span></span>
-    <a href={href} className="secondary-button schedule-session-open" aria-label={`Mở buổi học ${description}`} onClick={(event) => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); onNavigate(href); }}>Mở buổi học</a>
-  </article>;
 }
 
 function startOfWeek(date) { const result = new Date(date); const day = result.getDay(); result.setHours(0, 0, 0, 0); result.setDate(result.getDate() + (day === 0 ? -6 : 1 - day)); return result; }

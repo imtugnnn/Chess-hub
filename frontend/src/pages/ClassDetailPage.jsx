@@ -1,6 +1,8 @@
+import { ClassScopeConfirmation } from '../components/ClassScopeConfirmation';
+import { StudentExcelImport } from '../components/StudentExcelImport';
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { AppPageHeader } from "../components/layout/AppPageHeader";
-import { AppSidebar } from "../components/layout/AppSidebar";
+import { AppChrome } from "../components/layout/AppChrome";
 import { ClassWorkspaceNav } from "../components/layout/ClassWorkspaceNav";
 import { UiIcon } from "../components/UiIcon";
 import { SessionMaterials } from "../components/materials/SessionMaterials";
@@ -9,6 +11,8 @@ import { SessionScheduleDialog } from "../components/SessionScheduleDialog";
 import { MaterialDialog } from "../components/materials/MaterialDialog";
 import { ClassScheduleEditor, sessionEditable } from "../components/ClassScheduleEditor";
 import { ClassWorkspaceForm } from "../components/ClassWorkspaceForm";
+import { ActionFeedback } from "../components/ActionFeedback";
+import { useRowHighlight } from "../components/useRowHighlight";
 import { attendanceChanged } from "../components/workspaceState";
 import "./classDetail.css";
 
@@ -24,8 +28,11 @@ export function ClassDetailPage({ classId, locationSearch, registerNavigationGua
   const sessionId = params.get("sessionId");
   const tab = readTab(locationSearch);
   const editingSchedule = tab === "sessions" && params.get("edit") === "schedule";
+  const importingStudents = tab === "students" && params.get("add") === "excel";
   const addingStudent = tab === "students" && params.get("add") === "student";
   const [detail, setDetail] = useState(null);
+  const supplementing = detail?.students.find(s => s.membershipId === params.get("member")) ?? null;
+  const { highlightedIds, highlight } = useRowHighlight(classId);
   const [detailRetry, setDetailRetry] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
   const initialSession = useRef(null);
@@ -87,15 +94,16 @@ export function ClassDetailPage({ classId, locationSearch, registerNavigationGua
   }, [teacherId, classId, tab, tournamentRetry]);
 
   function selectTab(next) {
-    if (next === tab && !addingStudent && !editingSchedule) return;
+    if (next === tab && !addingStudent && !importingStudents && !supplementing && !editingSchedule) return;
     const url = new URL(window.location.href);
     url.searchParams.set("tab", next);
-    url.searchParams.delete("add"); url.searchParams.delete("edit");
+    url.searchParams.delete("add"); url.searchParams.delete("edit"); url.searchParams.delete("member");
     onNavigate(`${url.pathname}${url.search}`);
   }
   function changePanel(key, value) {
     const url = new URL(window.location.href);
     if (value) url.searchParams.set(key, value); else url.searchParams.delete(key);
+    if (key === "add") url.searchParams.delete("member");
     onNavigate(`${url.pathname}${url.search}`);
   }
 
@@ -128,7 +136,7 @@ export function ClassDetailPage({ classId, locationSearch, registerNavigationGua
     setMarked({});
     setSavedMarked({});
     getSessionAttendance(teacherId, classId, selectedId).then((records) => {
-      if (active) { const next = Object.fromEntries(records.map((item) => [item.studentId, item.status])); setMarked(next); setSavedMarked(next); setHistoricalStudents(records.map((item) => ({ id: item.studentId, fullName: item.fullName, parentPhoneNumber: item.parentPhoneNumber, leftClass: item.leftClass }))); }
+      if (active) { const next = Object.fromEntries(records.map((item) => [item.membershipId, item.status])); setMarked(next); setSavedMarked(next); setHistoricalStudents(records.map((item) => ({ id: item.membershipId, fullName: item.fullName, parentPhoneNumber: item.parentPhoneNumber, leftClass: item.leftClass }))); }
     }).catch((error) => { if (active) setAttendanceError(error.message); }).finally(() => { if (active) setAttendanceLoading(false); });
     return () => { active = false; };
   }, [teacherId, classId, selectedId, attendanceRetry]);
@@ -152,6 +160,8 @@ export function ClassDetailPage({ classId, locationSearch, registerNavigationGua
   function markAllPresent() { setMarked(Object.fromEntries(attendanceStudents.map((student) => [student.id, "PRESENT"]))); setMessage(""); }
   async function refresh() {
     const result = await getTeacherClassDetail(teacherId, classId);
+    const previous = new Set((detail?.students ?? []).map(student => student.id));
+    highlight(result.students.filter(student => !previous.has(student.id)).map(student => student.id));
     setDetail(result);
     if (!result.sessions.some((session) => session.id === selectedId)) { initialSession.current = result.sessions[0]?.id ?? null; setSelectedId(initialSession.current); }
   }
@@ -162,12 +172,12 @@ export function ClassDetailPage({ classId, locationSearch, registerNavigationGua
     finally { setRemoving(false); }
   }
   async function save() {
-    const records = Object.entries(marked).map(([studentId, status]) => ({ studentId, status }));
+    const records = Object.entries(marked).map(([membershipId, status]) => ({ membershipId, status }));
     if (!records.length) { setMessage("Hãy chọn trạng thái cho ít nhất một học sinh."); return false; }
     setSaving(true); setMessage("");
     try {
       const saved = await saveSessionAttendance(teacherId, classId, selectedId, records);
-      setHistoricalStudents(saved.map((item) => ({ id: item.studentId, fullName: item.fullName, parentPhoneNumber: item.parentPhoneNumber, leftClass: item.leftClass })));
+      setHistoricalStudents(saved.map((item) => ({ id: item.membershipId, fullName: item.fullName, parentPhoneNumber: item.parentPhoneNumber, leftClass: item.leftClass })));
       setSavedMarked({ ...marked });
       setDetail((current) => ({ ...current, sessions: current.sessions.map((session) => session.id === selectedId ? { ...session, hasAttendance: true } : session) }));
       setMessage("Đã lưu điểm danh cho buổi học này.");
@@ -187,11 +197,11 @@ export function ClassDetailPage({ classId, locationSearch, registerNavigationGua
     const action = pendingAction; setPendingAction(null); action();
   }
 
-  if (loading) return <div className="app-shell"><AppSidebar activeSection="classes" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard class-detail-page"><p className="page-loading">Đang tải lớp học…</p></main></div>;
-  if (!detail) return <div className="app-shell"><AppSidebar activeSection="classes" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard class-detail-page"><p className="page-error" role="alert">{message || "Không tìm thấy lớp học."}</p><div className="schedule-actions"><button className="secondary-button" type="button" onClick={() => onNavigate("/homepage")}>Về màn hình chính</button><button className="primary-button" type="button" onClick={() => setDetailRetry((value) => value + 1)}>Thử lại</button></div></main></div>;
+  if (loading) return <div className="app-shell"><AppChrome title="Lớp học" activeSection="classes" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard class-detail-page"><p className="page-loading">Đang tải lớp học…</p></main></div>;
+  if (!detail) return <div className="app-shell"><AppChrome title="Lớp học" activeSection="classes" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} /><main className="dashboard class-detail-page"><p className="page-error" role="alert">{message || "Không tìm thấy lớp học."}</p><div className="schedule-actions"><button className="secondary-button" type="button" onClick={() => onNavigate("/homepage")}>Về màn hình chính</button><button className="primary-button" type="button" onClick={() => setDetailRetry((value) => value + 1)}>Thử lại</button></div></main></div>;
 
   return <div className="app-shell">
-    <AppSidebar activeSection="classes" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} />
+    <AppChrome title="Lớp học" activeSection="classes" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} />
     <main className="dashboard class-detail-page">
       <AppPageHeader section="Lớp học" breadcrumbs={[{ label: "Lớp học", href: "/homepage" }]} onNavigate={onNavigate} title={detail.chessClass.name} description={`${detail.chessClass.schedule} · ${detail.students.length} học sinh`} actions={<>{googleMeetUrl ? <a className="secondary-button class-meet-link" href={googleMeetUrl} target="_blank" rel="noopener noreferrer"><UiIcon name="video" size={18} />Vào Google Meet</a> : <button className="secondary-button" type="button" onClick={() => onNavigate("/settings#google-meet")}><UiIcon name="video" size={18} />Thiết lập Google Meet</button>}</>} />
       <ClassWorkspaceNav classId={classId} active={tab} studentCount={detail.students.length} onNavigate={onNavigate} onSelect={selectTab} />
@@ -215,15 +225,17 @@ export function ClassDetailPage({ classId, locationSearch, registerNavigationGua
             {message && <p role={message.startsWith("Đã") ? "status" : "alert"} className={`attendance-message ${message.startsWith("Đã") ? "attendance-message--success" : ""}`}>{message}</p>}
             <div className="attendance-list">
               <div className="attendance-list__header"><span>Học sinh</span><span>Trạng thái điểm danh</span></div>
-              {attendanceLoading ? <p className="page-loading">Đang tải điểm danh…</p> : attendanceError ? <p className="page-error" role="alert">Không thể tải điểm danh. <button className="secondary-button" type="button" onClick={() => setAttendanceRetry((value) => value + 1)}>Thử lại</button></p> : !attendanceStudents.length ? <div className="workspace-empty"><h3>Lớp chưa có học sinh</h3><p>Thêm học sinh để bắt đầu điểm danh.</p><button className="secondary-button" type="button" onClick={() => onNavigate(`/classes/${classId}?tab=students&add=student`)}>Thêm học sinh</button></div> : attendanceStudents.map((student) => <article className="attendance-student" key={student.id}><span className="student-avatar">{initials(student.fullName)}</span><span className="student-info"><strong>{student.fullName}{student.leftClass && <span className="student-left-label">Đã rời lớp</span>}</strong></span><div className="status-control">{["PRESENT", "LATE", "ABSENT"].map((status) => <button type="button" key={status} className={`status-button status-button--${STATUS[status].tone} ${marked[student.id] === status ? "status-button--active" : ""}`} aria-pressed={marked[student.id] === status} disabled={saving || attendanceLoading || Boolean(attendanceError)} onClick={() => updateStatus(student.id, status)}>{STATUS[status].label}</button>)}</div></article>)}
+              {attendanceLoading ? <p className="page-loading">Đang tải điểm danh…</p> : attendanceError ? <p className="page-error" role="alert">Không thể tải điểm danh. <button className="secondary-button" type="button" onClick={() => setAttendanceRetry((value) => value + 1)}>Thử lại</button></p> : !attendanceStudents.length ? <div className="workspace-empty"><h3>Lớp chưa có học sinh</h3><p>Thêm học sinh để bắt đầu điểm danh.</p><button className="secondary-button" type="button" onClick={() => onNavigate(`/classes/${classId}?tab=students&add=student`)}>Thêm học sinh</button></div> : attendanceStudents.map((student) => <article className={`attendance-student attendance-student--${STATUS[marked[student.id] ?? "UNMARKED"].tone}`} key={student.id}><span className="student-avatar">{initials(student.fullName)}</span><span className="student-info"><strong>{student.fullName}{student.leftClass && <span className="student-left-label">Đã rời lớp</span>}</strong></span><div className="status-control">{["PRESENT", "LATE", "ABSENT"].map((status) => <button type="button" key={status} className={`status-button status-button--${STATUS[status].tone} ${marked[student.id] === status ? "status-button--active" : ""}`} aria-pressed={marked[student.id] === status} disabled={saving || attendanceLoading || Boolean(attendanceError)} onClick={() => updateStatus(student.id, status)}><span className="status-button__check" aria-hidden="true"><UiIcon name="check" size={14} /></span>{STATUS[status].label}</button>)}</div></article>)}
             </div>
-            <footer className="attendance-footer"><div><span>{Object.keys(marked).length}/{attendanceStudents.length} học sinh đã được chọn</span>{dirty && <strong className="workspace-draft-label" role="status">Có thay đổi chưa lưu</strong>}</div><button className="primary-button" type="button" onClick={save} disabled={!dirty || saving || attendanceLoading || Boolean(attendanceError)}>{saving ? "Đang lưu…" : "Lưu điểm danh"}</button></footer>
+            <footer className="attendance-footer"><div><span>{Object.keys(marked).length}/{attendanceStudents.length} học sinh đã được chọn</span>{dirty && <strong className="workspace-draft-label" role="status">Có thay đổi chưa lưu</strong>}</div><button className="primary-button" type="button" onClick={save} aria-busy={saving} disabled={!dirty || saving || attendanceLoading || Boolean(attendanceError)}><ActionFeedback busy={saving} success={!dirty && message === "Đã lưu điểm danh cho buổi học này."}>Lưu điểm danh</ActionFeedback></button></footer>
           </> : <div className="empty-attendance"><span>✓</span><h2>{detail.sessions.length ? "Chọn một buổi học" : "Lớp chưa có buổi học"}</h2><p>{detail.sessions.length ? "Chọn buổi ở danh sách để bắt đầu điểm danh." : "Dùng nút Thiết lập lịch học để tạo các buổi học cho lớp."}</p></div>}
         </section>
       </section></>}
-      {tab === "students" && <><section className="workspace-card"><div className="workspace-section-heading"><div><h2>Danh sách học sinh</h2><p>{detail.students.length} học sinh · Thông tin liên hệ phụ huynh</p></div>{!addingStudent && <button className="primary-button" type="button" onClick={() => changePanel("add", "student")}><UiIcon name="plus" size={18} />Thêm học sinh</button>}</div>
-        {addingStudent && <ClassWorkspaceForm mode="student" key="student" teacherId={teacherId} classId={classId} classroom={detail.chessClass} onSaved={refresh} onClose={() => changePanel("add", null)} onDraftChange={setFormDraft} />}
-        {detail.students.length ? <div className="workspace-table-scroll"><table className="workspace-table"><thead><tr><th>Học sinh</th><th>Ngày sinh</th><th>Phụ huynh</th><th>SĐT phụ huynh</th><th>SĐT học sinh</th><th>Ghi chú</th><th>Thao tác</th></tr></thead><tbody>{detail.students.map((student) => <tr key={student.id}><td><span className="workspace-person"><span className="student-avatar">{initials(student.fullName)}</span><strong>{student.fullName}</strong></span></td><td>{student.birthDate ? new Date(`${student.birthDate}T12:00:00`).toLocaleDateString("vi-VN") : "Chưa có"}</td><td>{student.parentName || "Chưa có"}</td><td>{student.parentPhoneNumber ? <a className="secondary-button workspace-phone-button" href={`tel:${student.parentPhoneNumber}`} aria-label={`Gọi phụ huynh của ${student.fullName}: ${student.parentPhoneNumber}`}>{student.parentPhoneNumber}</a> : "Chưa có"}</td><td>{student.phoneNumber ? <a href={`tel:${student.phoneNumber}`}>{student.phoneNumber}</a> : "Chưa có"}</td><td><span className="students-note-preview" title={student.notes || undefined}>{student.notes || "—"}</span></td><td><div className="class-student-actions"><button className="secondary-button" type="button" onClick={() => onNavigate(`/students/${student.id}`)}>Xem hồ sơ</button><button className="student-remove-button" type="button" onClick={() => { setRemoveError(""); setRemovingStudent(student); }}>Gỡ khỏi lớp</button></div></td></tr>)}</tbody></table></div> : !addingStudent && <div className="workspace-empty"><UiIcon name="classes" size={32} /><h3>Lớp chưa có học sinh</h3><p>Thêm học sinh để bắt đầu điểm danh và tổ chức giải đấu.</p></div>}
+      {tab === "students" && <><section className="workspace-card"><div className="workspace-section-heading"><div><h2>Danh sách học sinh</h2><p>{detail.students.length} học sinh · Thông tin liên hệ phụ huynh</p></div>{!addingStudent && !importingStudents && <div className="management-actions"><button className="secondary-button" type="button" onClick={() => changePanel("add", "excel")}>Nhập Excel</button><button className="primary-button" type="button" onClick={() => changePanel("add", "student")}><UiIcon name="plus" size={18} />Thêm học sinh</button></div>}</div>
+        {(addingStudent || importingStudents) && !detail.chessClass.scopeConfirmed && <ClassScopeConfirmation teacherId={teacherId} classId={classId} onConfirmed={refresh} />}
+        {importingStudents && detail.chessClass.scopeConfirmed && <StudentExcelImport teacherId={teacherId} classId={classId} onSaved={refresh} onClose={() => changePanel('add', null)} onDraftChange={setFormDraft} />}
+        {addingStudent && detail.chessClass.scopeConfirmed && <ClassWorkspaceForm mode="student" key={supplementing?.id ?? 'student'} member={supplementing} teacherId={teacherId} classId={classId} classroom={detail.chessClass} onSaved={refresh} onClose={() => changePanel("add", null)} onDraftChange={setFormDraft} />}
+        {detail.students.length ? <div className="workspace-table-scroll"><table className="workspace-table"><thead><tr><th>Học sinh</th><th>Ngày sinh</th><th>Phụ huynh</th><th>SĐT phụ huynh</th><th>SĐT học sinh</th><th>Ghi chú</th><th>Thao tác</th></tr></thead><tbody>{detail.students.map((student) => <tr key={student.id} className={highlightedIds.has(student.id) ? "row-added" : undefined}><td><span className="workspace-person"><span className="student-avatar">{initials(student.fullName)}</span><strong>{student.fullName}</strong></span></td><td>{student.birthDate ? new Date(`${student.birthDate}T12:00:00`).toLocaleDateString("vi-VN") : "Chưa có"}</td><td>{student.parentName || "Chưa có"}</td><td>{student.parentPhoneNumber ? <a className="secondary-button workspace-phone-button" href={`tel:${student.parentPhoneNumber}`} aria-label={`Gọi phụ huynh của ${student.fullName}: ${student.parentPhoneNumber}`}>{student.parentPhoneNumber}</a> : "Chưa có"}</td><td>{student.phoneNumber ? <a href={`tel:${student.phoneNumber}`}>{student.phoneNumber}</a> : "Chưa có"}</td><td><span className="students-note-preview" title={student.notes || undefined}>{student.notes || "—"}</span></td><td><div className="class-student-actions">{student.studentId ? <button className="secondary-button" type="button" onClick={() => onNavigate(`/students/${student.studentId}`)}>Xem hồ sơ</button> : <><span className="students-muted">Chưa có hồ sơ</span><button className="secondary-button" type="button" onClick={() => onNavigate(`/classes/${classId}?tab=students&add=student&member=${student.membershipId}`)}>Bổ sung thông tin</button></>}<button className="student-remove-button" type="button" onClick={() => { setRemoveError(""); setRemovingStudent(student); }}>Gỡ khỏi lớp</button></div></td></tr>)}</tbody></table></div> : !addingStudent && !importingStudents && <div className="workspace-empty"><UiIcon name="classes" size={32} /><h3>Lớp chưa có học sinh</h3><p>Thêm học sinh để bắt đầu điểm danh và tổ chức giải đấu.</p></div>}
       </section></>}
       {tab === "tournaments" && <section className="workspace-card"><div className="workspace-section-heading"><div><h2>Giải đấu của lớp</h2><p>Giải Swiss, kết quả từng vòng và bảng xếp hạng.</p></div><button className="primary-button" type="button" onClick={() => onNavigate(`/classes/${classId}/tournaments/new`)}><UiIcon name="plus" size={18} />Tạo giải</button></div>
         {tournamentLoading ? <p className="ui-empty" role="status">Đang tải giải đấu…</p> : tournamentError ? <div className="ui-error" role="alert">{tournamentError}<button className="secondary-button" onClick={() => setTournamentRetry((value) => value + 1)}>Thử lại</button></div> : tournaments.length ? <div className="workspace-tournaments">{tournaments.map((item) => <ClassTournamentRow item={item} key={item.id} onNavigate={onNavigate} />)}</div> : <div className="workspace-empty"><UiIcon name="trophy" size={32} /><h3>Chưa có giải đấu</h3><p>Bấm “Tạo giải” để chọn học sinh của lớp và bắt đầu giải đấu.</p></div>}
@@ -236,7 +248,7 @@ export function ClassDetailPage({ classId, locationSearch, registerNavigationGua
     </MaterialDialog>}
     {editingSession && <SessionScheduleDialog teacherId={teacherId} classId={classId} session={editingSession} onClose={() => setEditingSession(null)} onSaved={refresh} />}
     {removingStudent && <MaterialDialog title="Gỡ học sinh khỏi lớp" className="class-workspace-dialog" onClose={() => setRemovingStudent(null)} busy={removing}>
-      <p className="schedule-dialog-note">Gỡ <strong>{removingStudent.fullName}</strong> khỏi lớp {detail.chessClass.name}? Hồ sơ, điểm danh cũ và kết quả giải đấu vẫn được giữ. Các lớp khác không bị ảnh hưởng.</p>
+      <p className="schedule-dialog-note">Gỡ <strong>{removingStudent.fullName}</strong> khỏi lớp {detail.chessClass.name}? Thông tin, điểm danh cũ và kết quả giải đấu vẫn được giữ. Các lớp khác không bị ảnh hưởng.</p>
       {removeError && <p className="management-message" role="alert">{removeError}</p>}
       <div className="schedule-actions"><button className="secondary-button" type="button" disabled={removing} onClick={() => setRemovingStudent(null)} data-dialog-autofocus>Hủy</button><button className="student-remove-button" type="button" disabled={removing} onClick={removeStudent}>{removing ? "Đang gỡ…" : "Gỡ khỏi lớp"}</button></div>
     </MaterialDialog>}

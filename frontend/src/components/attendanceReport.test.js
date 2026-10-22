@@ -93,10 +93,12 @@ test("groups are keyed by ID rather than name and rank by total rather than larg
   assert.equal(groups[0].classes.length, 2); assert.equal(groups[1].classes.length, 1);
 });
 
-test("attendance denominator is attended plus actual absences, excluding unmarked scheduled sessions", () => {
-  assert.equal(getAttendanceRatio({ attendedDays: 8, absentSessions: 0, sessionCount: 12 }), "8/8");
-  assert.equal(getAttendanceRatio({ attendedDays: 2, absentSessions: 3 }), "2/5");
-  assert.equal(getAttendanceRatio({ attendedDays: 0, absentSessions: 2 }), "0/2");
-  assert.equal(getAttendanceRatio({ attendedDays: 0, absentSessions: 0 }), "0/0");
-  assert.equal(getAttendanceRatio({ attendedDays: 3 }), "3/—");
+test("attendance ratio counts all marks against monthly scheduled sessions in the student's class", () => {
+  assert.equal(getAttendanceRatio({ attendedDays: 6, absentSessions: 1 }, 9), "7/9");
+  assert.equal(getAttendanceRatio({ attendedDays: 0, absentSessions: 0 }, 9), "0/9");
+  assert.equal(getAttendanceRatio({ attendedDays: 0, absentSessions: 2 }, 8), "2/8");
+  assert.equal(getAttendanceRatio({ attendedDays: 2, absentSessions: 1, sessionCount: 4 }, 9), "3/4");
+  assert.equal(getAttendanceRatio({ attendedDays: 0, absentSessions: 0 }, 0), "0/0");
+  assert.equal(getAttendanceRatio({ attendedDays: 3 }, 8), "—/8");
+  assert.equal(getAttendanceRatio({ attendedDays: 3, absentSessions: 1 }), "4/—");
 });

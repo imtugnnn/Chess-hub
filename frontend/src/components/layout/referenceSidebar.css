@@ -1,0 +1,57 @@
+/* Shared reference rail, selected by AppChrome on every authenticated workspace. */
+.app-shell.home-reference:has(> .sidebar) { grid-template-columns: 220px minmax(0, 1fr); }
+.app-shell.home-reference:has(> .sidebar--collapsed) { grid-template-columns: 76px minmax(0, 1fr); }
+.home-reference > .sidebar.sidebar--reference { padding: 26px 16px 20px; border: 0; background: #fff; }
+.sidebar.sidebar--reference .sidebar-header { margin-bottom: 28px; padding-left: 0; }
+.sidebar.sidebar--reference .sidebar-header .brand { font-size: 22px; }
+.sidebar.sidebar--reference .sidebar-collapse-toggle { width: 44px; height: 44px; top: -2px; right: -30px; border: 1px solid #eeedf5; border-radius: 8px; background: #fff; color: #666783; }
+.sidebar.sidebar--reference nav { gap: 7px; margin-bottom: 22px; }
+.sidebar.sidebar--reference .nav-group-label { font-size: 10px; color: #666783; letter-spacing: .05em; margin: 12px 12px 6px; }
+.sidebar.sidebar--reference .nav-item { min-height: 46px; height: auto; padding: 12px; font-size: 12px; font-weight: 500; border-radius: 10px; color: #666783; }
+.sidebar.sidebar--reference .nav-item > span { color: inherit; }
+.sidebar.sidebar--reference .nav-item:hover, .sidebar.sidebar--reference .sidebar-menu-row:hover { background: #f4f1ff; }
+.sidebar.sidebar--reference .nav-item--active, .sidebar.sidebar--reference .sidebar-menu-row--active { background: #5d50df; color: #fff; box-shadow: 0 6px 16px #5d50df1c; }
+.sidebar.sidebar--reference .nav-item--active > span { color: #fff; }
+.sidebar.sidebar--reference .sidebar-menu-row { border-radius: 10px; }
+.sidebar.sidebar--reference .sidebar-menu-row .class-menu__trigger { font-size: 12px; padding-right: 2px; }
+.sidebar.sidebar--reference .sidebar-quick-create, .sidebar.sidebar--reference .sidebar-menu-chevron { color: #666783; flex-basis: 44px; min-height: 44px; }
+.sidebar.sidebar--reference .nav-item b { min-width: 16px; font-size: 10px; color: #5d50df; background: #f0ecff; }
+.sidebar.sidebar--reference .class-menu__list { border-color: #eeedf5; }
+.sidebar.sidebar--reference .class-menu__list :is(a,button) { color: #51497d; }
+.sidebar.sidebar--reference .reference-sidebar-footer { margin-top: auto; padding: 22px 16px 16px; border-radius: 14px; background: #f0edff; color: #443a85; }
+.sidebar.sidebar--reference .reference-sidebar-footer > svg { margin-bottom: 12px; color: #5d50df; }
+.sidebar.sidebar--reference .reference-sidebar-footer strong { display: block; font-size: 13px; line-height: 1.6; }
+.sidebar.sidebar--reference .reference-sidebar-footer p { margin: 8px 0 16px; font-size: 11px; line-height: 1.7; color: #605883; }
+.sidebar.sidebar--reference .reference-sidebar-footer button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; border: 0; border-radius: 8px; background: #5d50df; color: #fff; font-size: 12px; font-weight: 600; }
+.sidebar.sidebar--reference .reference-sidebar-footer button:hover { background: #4b3dc4; }
+.sidebar.sidebar--reference :is(button,a):focus-visible { outline-color: #5d50df; }
+.sidebar.sidebar--reference.sidebar--collapsed .reference-sidebar-footer { padding: 0; background: transparent; }
+.sidebar.sidebar--reference.sidebar--collapsed .reference-sidebar-footer > :is(svg,strong,p), .sidebar.sidebar--reference.sidebar--collapsed .reference-sidebar-footer button span { display: none; }
+.sidebar.sidebar--reference.sidebar--collapsed .sidebar-quick-create, .sidebar.sidebar--reference.sidebar--collapsed .sidebar-menu-chevron { flex-basis: 0; }
+@media (max-width: 760px) {
+  .app-shell.home-reference:has(> .sidebar) { display: block; }
+  .home-reference > .sidebar.sidebar--reference { min-height: 72px; padding: 18px 70px 18px 20px; }
+  .sidebar.sidebar--reference .sidebar-header { margin: 0; }
+  .sidebar.sidebar--reference .mobile-nav-toggle { top: 16px; right: 20px; color: #5d50df; background: #f0edff; border: 0; }
+  .sidebar.sidebar--reference nav { margin-right: -50px; }
+  .sidebar.sidebar--reference .reference-sidebar-footer { display: none; }
+  .sidebar.sidebar--reference.sidebar--open .reference-sidebar-footer { display: block; margin: 16px -50px 0 0; padding: 14px; }
+  .sidebar.sidebar--reference.sidebar--open .reference-sidebar-footer > :is(svg,strong,p) { display: none; }
+}
+
+/* The main class/tournament trigger already expands its list. Avoid a duplicate tiny chevron target. */
+.sidebar.sidebar--reference .sidebar-menu-chevron { display: none; }
+.sidebar.sidebar--reference .sidebar-quick-create { width: 44px; min-width: 44px; height: 44px; }
+@media (min-width: 761px) {
+  .sidebar.sidebar--reference.sidebar--collapsed .sidebar-quick-create { min-width: 0; width: 0; }
+}
+@media (max-width: 760px) {
+  .sidebar.sidebar--reference.sidebar--collapsed .sidebar-quick-create { flex-basis: 44px; }
+  .sidebar.sidebar--reference.sidebar--collapsed .reference-sidebar-footer button span { display: inline; }
+}
+@media (min-width: 761px) {
+  .sidebar.sidebar--reference.sidebar--collapsed .nav-group-label { color: transparent; }
+}
+/* Keep expanded submenu rows at their content height; scroll the navigation as a whole. */
+.sidebar.sidebar--reference nav { grid-auto-rows: max-content; }
+.sidebar.sidebar--reference .class-menu { min-height: auto; }

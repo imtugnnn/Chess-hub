@@ -4,6 +4,7 @@
 .student-entry-fields .student-entry-name, .student-entry-help, .student-entry-fields .student-notes-field { grid-column: 1 / -1; }
 .student-name-autocomplete { position: relative; display: block; min-width: 0; }
 .student-name-autocomplete > input { width: 100%; }
+.student-name-status { position: absolute; inset: calc(100% + 4px) 0 auto; z-index: 31; padding: 10px 12px; border: 1px solid var(--ui-border); border-radius: 8px; background: var(--workspace-surface); color: var(--ui-muted); font-size: 12px; line-height: 1.6; }
 .student-entry-fields input { min-width: 0; width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--ui-border); border-radius: var(--ui-control-radius); color: var(--ui-text); background: var(--workspace-surface); font: inherit; }
 .student-entry-fields input[readonly], .student-entry-fields textarea[readonly] { background: var(--ui-soft); }
 .student-entry-help { margin: 0; color: var(--ui-muted); font-size: 12px; line-height: 1.7; }

@@ -17,3 +17,16 @@ landing page serves static PNGs and never imports the capture entry.
 
 Current assets were captured on 2026-10-10. Total size is approximately 480 KiB;
 the screenshots preserve text sharply. Refresh screenshots when product UI changes.
+
+## Review output conventions
+
+Run review scripts from `frontend/`. Store screenshots and machine-readable
+review evidence in `../agent/.impeccable/review/<surface>/`, and written design reports
+in `../agent/.impeccable/reports/`. Do not write review output into `docs/`.
+`center-review.cjs` creates `../agent/.impeccable/review/center/` automatically.
+The historical reports and screenshots are under `../agent/.impeccable/reports/`.
+
+Most browser scripts currently load Playwright from a local Codex runtime and
+launch Microsoft Edge. Some accept `PLAYWRIGHT_MODULE`; check the script before
+running it on another machine. The scripts are maintained development tools,
+not part of the production bundle.

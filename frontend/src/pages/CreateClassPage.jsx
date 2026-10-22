@@ -1,15 +1,17 @@
-import { useMemo, useRef, useState } from "react";
+import { rememberCreatedClass } from "../components/useRowHighlight";
+import { ActionFeedback } from "../components/ActionFeedback";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppPageHeader } from "../components/layout/AppPageHeader";
-import { AppSidebar } from "../components/layout/AppSidebar";
+import { AppChrome } from "../components/layout/AppChrome";
 import { ScheduleDatePicker, localDateKey, formatScheduleDate } from "../components/ScheduleDatePicker";
-import { WeeklyTimeFields } from "../components/WeeklyTimeFields";
 import { generateRecurringSessions } from "../components/recurringSessions";
-import { createTeacherClass } from "../services/api";
-import { StudentEntryFields } from "../components/StudentEntryFields";
-import { emptyStudentValues, studentSuggestionValues } from "../components/studentEntry";
+import { createTeacherClass, getStudentOptions } from "../services/api";
+import { CreateClassRoster } from "../components/CreateClassRoster";
+import { UiIcon } from "../components/UiIcon";
+import "./createClass.css";
 
 const emptyForm = {
-  name: "", feePerSession: "", students: [emptyStudent()],
+  name: "", centerId: "", feePerSession: "", students: [],
   scheduleMode: "MANUAL", manualSessions: [],
   weekdays: [], startDate: "", endDate: "", weekdayTimes: {},
 };
@@ -18,15 +20,29 @@ const weekdays = [
   { value: 1, label: "T2" }, { value: 2, label: "T3" }, { value: 3, label: "T4" }, { value: 4, label: "T5" },
   { value: 5, label: "T6" }, { value: 6, label: "T7" }, { value: 7, label: "CN" },
 ];
+const PENDING_STUDENT_MESSAGE = 'Hãy thêm hoặc hủy nội dung học sinh đang nhập trước khi tạo lớp.';
 
 export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }) {
   const [form, setForm] = useState(() => {
     const date = new URLSearchParams(window.location.search).get("date");
     const validDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(new Date(`${date}T12:00:00`).getTime()) && localDateKey(new Date(`${date}T12:00:00`)) === date;
-    return { ...emptyForm, students: [emptyStudent()], manualSessions: validDate ? [{ date, startTime: "", endTime: "" }] : [] };
+    return { ...emptyForm, students: [], manualSessions: validDate ? [{ date, startTime: "", endTime: "" }] : [] };
   });
+  const [centers, setCenters] = useState([]);
+  const [scopeError, setScopeError] = useState('');
+  const [scopeLoaded, setScopeLoaded] = useState(false);
+  const [scopeRetry, setScopeRetry] = useState(0);
+  useEffect(() => {
+    let live = true;
+    getStudentOptions(teacherId).then(options => { if (live) { setCenters(options.centers); setScopeLoaded(true); setScopeError(''); } }).catch(e => { if (live) setScopeError(e.message); });
+    return () => { live = false; };
+  }, [teacherId, scopeRetry]);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+  const [pendingStudent, setPendingStudent] = useState(false);
+  useEffect(() => {
+    if (!pendingStudent) setMessage(current => current === PENDING_STUDENT_MESSAGE ? '' : current);
+  }, [pendingStudent]);
   const recurringSessions = useMemo(() => generateRecurringSessions(form), [form]);
   const recurringSessionCount = recurringSessions.length;
 
@@ -35,20 +51,6 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
       const value = event.target.value;
       setForm((current) => ({ ...current, [key]: value }));
     };
-  }
-
-  function updateStudent(index, key, value) {
-    setForm(current => ({ ...current, students: current.students.map((student, itemIndex) => itemIndex === index
-      ? { ...(key === "fullName" && student.studentId ? { ...emptyStudentValues(), draftId: student.draftId } : student), [key]: value } : student) }));
-  }
-  function addStudent() {
-    const student = emptyStudent();
-    setForm(current => ({ ...current, students: [student, ...current.students] }));
-    requestAnimationFrame(() => document.getElementById(`student-fields-${student.draftId}`)?.querySelector("input")?.focus());
-  }
-  function removeStudent(index) { setForm(current => ({ ...current, students: current.students.filter((_, itemIndex) => itemIndex !== index) })); }
-  function selectNameSuggestion(index, suggestion) {
-    setForm(current => ({ ...current, students: current.students.map((student, itemIndex) => itemIndex === index ? { ...student, ...studentSuggestionValues(suggestion) } : student) }));
   }
 
   function updateManualSession(index, key) {
@@ -74,21 +76,24 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
 
   async function submit(event) {
     event.preventDefault();
+    if (pendingStudent) { setMessage(PENDING_STUDENT_MESSAGE); document.querySelector(".roster-editor input, .roster-editor textarea")?.focus(); return; }
+    if (!scopeLoaded) { setMessage('Chưa tải được phạm vi của lớp. Hãy thử lại.'); return; }
     if (form.scheduleMode === "MANUAL" && !form.manualSessions.length) { setMessage("Hãy chọn ít nhất một ngày học trên lịch."); return; }
     if (form.scheduleMode === "RECURRING" && (!form.startDate || !form.endDate || !form.weekdays.length || !recurringSessionCount)) { setMessage("Hãy chọn ngày đầu, ngày cuối và thứ học để có ít nhất một buổi học trong khoảng ngày này."); return; }
     if (form.scheduleMode === "RECURRING" && form.weekdays.some((day) => { const time = form.weekdayTimes[day]; return !time?.startTime || !time?.endTime || time.endTime <= time.startTime; })) { setMessage("Hãy nhập đủ giờ bắt đầu và kết thúc hợp lệ cho mỗi thứ đã chọn."); return; }
     if (form.scheduleMode === "RECURRING" && recurringSessionCount > 500) { setMessage("Khoảng ngày quá dài. Chỉ có thể tạo tối đa 500 buổi học."); return; }
     const invalidTime = form.scheduleMode === "MANUAL" && form.manualSessions.some((session) => session.endTime <= session.startTime);
     if (invalidTime) { setMessage("Giờ kết thúc phải sau giờ bắt đầu của mỗi buổi học."); return; }
-    const students = form.students.filter(hasStudentDetails);
-    if (hasDuplicateStudent(students)) { setMessage("Một học sinh được nhập nhiều lần. Hãy kiểm tra hồ sơ, họ tên và ngày sinh."); return; }
+    const students = form.students;
+    if (hasDuplicateStudent(students)) { setMessage("Học sinh bị trùng trong danh sách lớp. Hãy kiểm tra lại họ tên."); return; }
     setMessage("");
     setSubmitting(true);
     try {
       const schedule = form.scheduleMode === "MANUAL"
         ? { mode: "MANUAL", sessions: form.manualSessions }
         : { mode: "RECURRING", weekdays: form.weekdays, startDate: form.startDate, endDate: form.endDate, startTime: recurringSessions[0].startTime, endTime: recurringSessions[0].endTime, sessions: recurringSessions };
-      await createTeacherClass(teacherId, { name: form.name, feePerSession: Number(form.feePerSession), students: students.map(({ studentId, fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes }) => ({ studentId, fullName, birthDate: birthDate || null, parentName, parentPhoneNumber, phoneNumber, notes })), schedule });
+      const created = await createTeacherClass(teacherId, { name: form.name, centerId: form.centerId || null, feePerSession: Number(form.feePerSession), students: students.map(({ studentId, fullName, birthDate, parentName, parentPhoneNumber, phoneNumber, notes }) => ({ studentId, fullName, birthDate: birthDate || null, parentName, parentPhoneNumber, phoneNumber, notes })), schedule });
+      rememberCreatedClass(teacherId, created.chessClass?.id ?? created.id);
       onNavigate("/homepage");
     } catch (error) {
       setMessage(error.message);
@@ -99,17 +104,18 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
 
   return (
     <div className="app-shell">
-      <AppSidebar activeSection="classes" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} />
+      <AppChrome title="Tạo lớp mới" activeSection="classes" teacherId={teacherId} teacherName={teacherName} onLogout={onLogout} onNavigate={onNavigate} />
       <main className="dashboard create-class-dashboard">
-      <AppPageHeader section="Lớp học" breadcrumbs={[{ label: "Lớp học", href: "/homepage" }]} onNavigate={onNavigate} title="Tạo lớp mới" description="Thiết lập lớp học và lịch dạy đầu tiên." actions={<><button type="button" className="secondary-button" onClick={() => onNavigate("/homepage")} disabled={submitting}>← Quay lại</button><button className="primary-button create-class-submit" type="submit" form="create-class-form" disabled={submitting} aria-busy={submitting}>{submitting ? "Đang tạo lớp…" : "Tạo lớp"}</button></>} />
-      <section className="create-class-card" aria-labelledby="create-class-title">
-        <p className="eyebrow">Thiết lập lớp học</p>
-        <h2 id="create-class-title">Tạo lớp mới</h2>
-        <p className="create-class-lede">Nhập thông tin lớp và lịch học. Bạn có thể thêm học sinh ngay hoặc bổ sung sau.</p>
+      <AppPageHeader section="Lớp học" breadcrumbs={[{ label: "Lớp học", href: "/homepage" }]} onNavigate={onNavigate} title="Tạo lớp mới" icon={false} description="Thiết lập thông tin lớp, lịch học và danh sách học sinh." actions={<><button type="button" className="secondary-button" onClick={() => onNavigate("/homepage")} disabled={submitting}><UiIcon name="previousMove" size={18} />Quay lại</button><button className="primary-button create-class-submit" type="submit" form="create-class-form" disabled={submitting} aria-busy={submitting}><ActionFeedback busy={submitting} busyLabel="Đang tạo lớp…">Tạo lớp</ActionFeedback></button></>} />
+      <div className="create-class-content">
         {message && <p className="form-error create-class-message" role="alert">{message}</p>}
         <form id="create-class-form" className="create-class-form" onSubmit={submit}>
-          <section className="create-class-column" aria-labelledby="class-information-title">
-          <div className="form-section-heading"><span aria-hidden="true">🏫</span><div><strong id="class-information-title">Thông tin lớp</strong><small>Thiết lập tên lớp, học phí và lịch học.</small></div></div>
+          <fieldset className="create-class-form-body" disabled={submitting}>
+          <section className="create-class-column create-class-details" aria-labelledby="class-information-title">
+          <h2 id="class-information-title">Thông tin lớp</h2>
+          <label>Lớp thuộc<select value={form.centerId} onChange={update('centerId')} disabled={!scopeLoaded || submitting || form.students.some(student => student.studentId) || pendingStudent}><option value="">Cá nhân</option>{centers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+          {(pendingStudent || form.students.some(student => student.studentId)) && <p className="student-entry-help">Hoàn tất nội dung đang nhập và bỏ các hồ sơ có sẵn khỏi danh sách trước khi đổi phạm vi lớp.</p>}
+          {scopeError && <p role="alert">{scopeError} <button type="button" className="secondary-button" onClick={() => setScopeRetry(r => r + 1)}>Thử lại</button></p>}
           <label>Tên lớp
             <input value={form.name} onChange={update("name")} required />
           </label>
@@ -117,11 +123,11 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
             <input type="number" min="0" step="1000" value={form.feePerSession} onChange={update("feePerSession")} required />
           </label>
           <fieldset className="schedule-section">
-            <legend><span>◷</span> Lịch học</legend>
-            <p>Chọn từng buổi hoặc để hệ thống tạo lịch định kỳ cho lớp.</p>
+            <legend>Lịch học</legend>
+            <p>Chọn từng ngày hoặc thiết lập lịch định kỳ.</p>
             <div className="schedule-mode-toggle" role="radiogroup" aria-label="Chế độ chọn lịch học">
-              <button type="button" role="radio" aria-checked={form.scheduleMode === "MANUAL"} className={form.scheduleMode === "MANUAL" ? "schedule-mode-toggle__active" : ""} onClick={() => setForm((current) => ({ ...current, scheduleMode: "MANUAL" }))}>Từng ngày</button>
-              <button type="button" role="radio" aria-checked={form.scheduleMode === "RECURRING"} className={form.scheduleMode === "RECURRING" ? "schedule-mode-toggle__active" : ""} onClick={() => setForm((current) => ({ ...current, scheduleMode: "RECURRING" }))}>Định kỳ hàng tuần</button>
+              <button type="button" role="radio" aria-checked={form.scheduleMode === "MANUAL"} onClick={() => setForm((current) => ({ ...current, scheduleMode: "MANUAL" }))}>Từng ngày</button>
+              <button type="button" role="radio" aria-checked={form.scheduleMode === "RECURRING"} onClick={() => setForm((current) => ({ ...current, scheduleMode: "RECURRING" }))}>Định kỳ hàng tuần</button>
             </div>
             {form.scheduleMode === "MANUAL" ? <div className="manual-sessions">
               <ScheduleDatePicker sessions={form.manualSessions} onToggle={toggleManualDate} />
@@ -134,18 +140,15 @@ export function CreateClassPage({ teacherId, teacherName, onLogout, onNavigate }
             </div> : <div className="recurring-schedule">
               <div><span className="schedule-label">Học vào thứ</span><div className="weekday-picker">{weekdays.map((day) => <button type="button" key={day.value} className={form.weekdays.includes(day.value) ? "weekday-picker__selected" : ""} onClick={() => toggleWeekday(day.value)} aria-pressed={form.weekdays.includes(day.value)}>{day.label}</button>)}</div></div>
               <RecurringDateField form={form} onDate={chooseRecurringDate} />
-              {form.weekdays.length > 0 && <WeeklyTimeFields weekdays={form.weekdays} times={form.weekdayTimes} onChange={(day, time) => setForm((current) => ({ ...current, weekdayTimes: { ...current.weekdayTimes, [day]: time } }))} />}
-              {!!recurringSessionCount && <p className={recurringSessionCount > 500 ? "form-error" : "schedule-preview"} role="status">{recurringSessionCount > 500 ? "Khoảng ngày quá dài. Chỉ có thể tạo tối đa 500 buổi học." : `✓ Sẽ tự tạo ${recurringSessionCount} buổi học theo lịch này.`}</p>}
+              {form.weekdays.length > 0 && <div className="create-weekly-times"><div className="create-weekly-times__head"><span>Thứ</span><span>Bắt đầu</span><span>Kết thúc</span></div>{[...form.weekdays].sort((a, b) => a - b).map(day => <div className="create-weekly-times__row" key={day}><strong>{day === 7 ? "Chủ Nhật" : `Thứ ${day + 1}`}</strong>{["startTime", "endTime"].map(key => <label key={key}><span className="create-time-label">{key === "startTime" ? "Bắt đầu" : "Kết thúc"} {day === 7 ? "Chủ Nhật" : `Thứ ${day + 1}`}</span><input type="time" required value={form.weekdayTimes[day]?.[key] || ""} onChange={event => { const value = event.target.value; setForm(current => ({ ...current, weekdayTimes: { ...current.weekdayTimes, [day]: { ...current.weekdayTimes[day], [key]: value } } })); }} /></label>)}</div>)}</div>}
+              {!!recurringSessionCount && <p className={recurringSessionCount > 500 ? "form-error" : "schedule-preview"} role="status">{recurringSessionCount > 500 ? "Khoảng ngày quá dài. Chỉ có thể tạo tối đa 500 buổi học." : `Sẽ tạo ${recurringSessionCount} buổi học theo lịch này.`}</p>}
             </div>}
           </fieldset>
           </section>
-          <section className="create-class-column" aria-labelledby="student-information-title">
-          <div className="form-section-heading"><span aria-hidden="true">♙</span><div><strong id="student-information-title">Thông tin học sinh · Không bắt buộc</strong><small>Có thể để trống và thêm học sinh sau khi tạo lớp.</small></div></div>
-          <button type="button" className="add-session" onClick={addStudent} disabled={submitting}>＋ Thêm học sinh</button>
-          <div className="student-drafts">{form.students.map((student, index) => <StudentDraft key={student.draftId} student={student} index={index} teacherId={teacherId} onChange={updateStudent} onSelect={selectNameSuggestion} onRemove={removeStudent} disabled={submitting} />)}</div>
-          </section>
+          <CreateClassRoster students={form.students} onChange={students => setForm(current => ({ ...current, students }))} teacherId={teacherId} scope={form.centerId || 'personal'} scopeLabel={form.centerId ? centers.find(center => center.id === form.centerId)?.name : 'Cá nhân'} disabled={submitting || !scopeLoaded} onPendingChange={setPendingStudent} />
+          </fieldset>
         </form>
-      </section>
+      </div>
       </main>
     </div>
   );
@@ -176,52 +179,12 @@ function RecurringDateField({ form, onDate }) {
   </div>;
 }
 
-function StudentDraft({ student, index, teacherId, onChange, onSelect, onRemove, disabled }) {
-  const [collapsed, setCollapsed] = useState(false);
-  const fieldsRef = useRef(null);
-  const editRef = useRef(null);
-  const confirmRef = useRef(null);
-  const panelId = `student-fields-${student.draftId}`;
-  function confirm() {
-    const invalid = [...fieldsRef.current.querySelectorAll("input, textarea")].find(input => !input.checkValidity());
-    if (!student.fullName.trim() || !student.studentId && !student.birthDate) {
-      const missing = fieldsRef.current.querySelector(!student.fullName.trim() ? 'input' : 'input[type="date"]');
-      missing.setCustomValidity("Vui lòng nhập họ tên và ngày sinh.");
-      missing.reportValidity(); missing.setCustomValidity(""); return;
-    }
-    if (invalid) { invalid.reportValidity(); return; }
-    setCollapsed(true);
-    requestAnimationFrame(() => editRef.current?.focus({ preventScroll: true }));
-  }
-  function edit() { setCollapsed(false); requestAnimationFrame(() => fieldsRef.current.querySelector("input")?.focus()); }
-  return <fieldset className={`student-draft ${collapsed ? "student-draft--confirmed" : ""}`} disabled={disabled}>
-    <legend>Học sinh {index + 1}</legend>
-    {collapsed && <div className="student-draft__summary"><div><strong>{student.fullName}</strong><small>{formatBirthDate(student.birthDate)}{student.studentId ? " · Hồ sơ có sẵn" : ""}</small></div><div className="student-draft__actions"><button ref={editRef} type="button" className="secondary-button" aria-expanded={!collapsed} aria-controls={panelId} aria-label={`Chỉnh sửa học sinh ${student.fullName}`} onClick={edit}>Chỉnh sửa</button><button type="button" className="remove-student" onClick={() => onRemove(index)} aria-label={`Xóa học sinh ${student.fullName}`}>Xóa</button></div></div>}
-    <div className={`student-draft__panel ${collapsed ? "student-draft__panel--collapsed" : ""}`} id={panelId} hidden={collapsed} inert={collapsed} aria-hidden={collapsed}>
-      <div className="student-draft__panel-inner"><div className="student-draft__inputs" ref={fieldsRef}>
-        <StudentEntryFields values={student} teacherId={teacherId} required={hasStudentDetails(student)} onChange={(key, value) => onChange(index, key, value)} onSelect={suggestion => onSelect(index, suggestion)} onComplete={() => confirmRef.current?.focus()} />
-        <button ref={confirmRef} type="button" className="secondary-button student-confirm" onClick={confirm} aria-controls={panelId}>Xác nhận học sinh</button>
-        <small className="student-entry-help">Enter chuyển trường; ở ghi chú, Enter chọn nút xác nhận, Enter lần nữa để thêm vào danh sách. Hồ sơ mới được lưu khi tạo lớp.</small>
-      </div></div>
-    </div>
-    {!collapsed && <button type="button" className="remove-student" onClick={() => onRemove(index)} aria-label={`Xóa học sinh ${student.fullName || index + 1}`}>Xóa học sinh</button>}
-  </fieldset>;
-}
-
-function emptyStudent() { return { ...emptyStudentValues(), draftId: crypto.randomUUID() }; }
-function hasStudentDetails(student) { return [student.fullName, student.birthDate, student.parentName, student.parentPhoneNumber, student.phoneNumber, student.notes].some((value) => value.trim() !== ""); }
 function hasDuplicateStudent(students) {
   const seen = new Set();
   for (const student of students) {
-    const identity = student.studentId || `${student.fullName.trim().toLocaleLowerCase("vi-VN")}|${student.birthDate}`;
+    const identity = student.fullName.trim().replace(/\s+/g, " ").toLocaleLowerCase("vi-VN");
     if (seen.has(identity)) return true;
     seen.add(identity);
   }
   return false;
 }
-
-function formatBirthDate(value) {
-  if (!value) return "Chưa có ngày sinh";
-  return new Date(`${value}T12:00:00`).toLocaleDateString("vi-VN");
-}
-

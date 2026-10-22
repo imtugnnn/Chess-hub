@@ -134,12 +134,12 @@ class TournamentOpenEndedTest {
   @Test void classTournamentAllowsGuestsAndRejectsStudentsFromOtherClasses() {
     UUID classId = UUID.randomUUID(), sessionId = UUID.randomUUID(), studentId = UUID.randomUUID();
     Student student = mock(Student.class); when(student.getId()).thenReturn(studentId); when(student.getFullName()).thenReturn("Học sinh An");
-    ChessClass classroom = mock(ChessClass.class); when(classroom.getStudents()).thenReturn(Set.of(student)); when(classroom.getName()).thenReturn("Lớp cờ");
+    ChessClass classroom = mock(ChessClass.class); var member = new vn.chesshub.entity.ClassMembership(classroom, student.getFullName(), student); when(classroom.getActiveMemberships()).thenReturn(Set.of(member)); when(classroom.getName()).thenReturn("Lớp cờ");
     ClassSession session = mock(ClassSession.class); when(session.getChessClass()).thenReturn(classroom);
     when(sessions.findByIdAndChessClassIdAndChessClassTeacherId(sessionId, classId, owner)).thenReturn(Optional.of(session));
     when(classes.findForUpdate(classId, owner)).thenReturn(Optional.of(classroom));
     assertThrows(ResponseStatusException.class, () -> service.create(owner, classId, sessionId, null, List.of(UUID.randomUUID()), List.of("Khách"), List.of("WIN_COUNT")));
-    service.create(owner, classId, sessionId, null, List.of(studentId), List.of("Khách"), List.of("WIN_COUNT"));
+    service.create(owner, classId, sessionId, null, List.of(member.getId()), List.of("Khách"), List.of("WIN_COUNT"));
     assertEquals(2, roster.size()); assertEquals(1, roster.stream().filter(player -> player.getStudent() != null).count());
     assertEquals(session, tournament.getSession()); assertEquals("Lớp cờ", tournament.getName());
   }
@@ -147,10 +147,10 @@ class TournamentOpenEndedTest {
   @Test void createsTournamentDirectlyForClassWithoutAnySession() {
     UUID classId = UUID.randomUUID(), studentId = UUID.randomUUID();
     Student student = mock(Student.class); when(student.getId()).thenReturn(studentId); when(student.getFullName()).thenReturn("Học sinh An");
-    ChessClass classroom = mock(ChessClass.class); when(classroom.getId()).thenReturn(classId); when(classroom.getStudents()).thenReturn(Set.of(student)); when(classroom.getName()).thenReturn("Lớp cờ");
+    ChessClass classroom = mock(ChessClass.class); when(classroom.getId()).thenReturn(classId); var member = new vn.chesshub.entity.ClassMembership(classroom, student.getFullName(), student); when(classroom.getActiveMemberships()).thenReturn(Set.of(member)); when(classroom.getName()).thenReturn("Lớp cờ");
     when(classes.findByIdAndTeacherId(classId, owner)).thenReturn(Optional.of(classroom));
     when(classes.findForUpdate(classId, owner)).thenReturn(Optional.of(classroom));
-    service.create(owner, classId, null, "Giải của lớp", List.of(studentId), List.of("Khách"), List.of("WIN_COUNT"));
+    service.create(owner, classId, null, "Giải của lớp", List.of(member.getId()), List.of("Khách"), List.of("WIN_COUNT"));
     assertNull(tournament.getSession()); assertSame(classroom, tournament.getChessClass());
     assertEquals("Lớp cờ", service.details(owner, tournament.getId()).className());
     assertNull(service.details(owner, tournament.getId()).sessionDate());

@@ -88,21 +88,6 @@ public class CenterService {
       """, centerId, userId);
     db.update("update users set center_id = ? where id = ?", centerId, userId);
     db.update("update center_invitations set status = 'CANCELLED', responded_at = current_timestamp where invited_user_id = ? and status = 'PENDING'", userId);
-    db.update("update student set center_id = ?, owner_user_id = null where owner_user_id = ? and center_id is null", centerId, userId);
-    // Records created before student ownership was introduced are linked through classes.
-    // Share only records that are used exclusively by this owner's classes.
-    db.update("""
-      update student s set center_id = ?
-      where s.center_id is null and s.owner_user_id is null
-        and exists (
-          select 1 from chess_class_students cs join chess_classes c on c.id = cs.chess_class_id
-          where cs.student_id = s.id and c.teacher_id = ?
-        )
-        and not exists (
-          select 1 from chess_class_students cs join chess_classes c on c.id = cs.chess_class_id
-          where cs.student_id = s.id and c.teacher_id <> ?
-        )
-      """, centerId, userId, userId);
     return dashboard(userId);
   }
 

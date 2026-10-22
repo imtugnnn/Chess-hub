@@ -36,15 +36,15 @@ public class TournamentController {
   public CreationResponse creation(@PathVariable UUID teacherId, @PathVariable UUID classId, @PathVariable(required = false) UUID sessionId) {
     if (sessionId == null) {
       var classroom = tournamentService.getClass(teacherId, classId);
-      List<StudentResponse> students = classroom.getStudents().stream()
+      List<StudentResponse> students = classroom.getActiveMemberships().stream()
         .sorted((left, right) -> left.getFullName().compareToIgnoreCase(right.getFullName()))
         .map(student -> new StudentResponse(student.getId(), student.getFullName(), student.getParentPhoneNumber(), null, true)).toList();
       return new CreationResponse(null, students, TournamentService.AVAILABLE_TIE_BREAKS, new ClassResponse(classroom.getId(), classroom.getName()));
     }
     ClassSession session = tournamentService.getSession(teacherId, classId, sessionId);
     Map<UUID, String> attendanceByStudent = attendance.findBySessionId(sessionId).stream()
-      .collect(java.util.stream.Collectors.toMap(item -> item.getStudent().getId(), SessionAttendance::getStatus));
-    List<StudentResponse> students = session.getChessClass().getStudents().stream()
+      .collect(java.util.stream.Collectors.toMap(item -> item.getMembership().getId(), SessionAttendance::getStatus));
+    List<StudentResponse> students = session.getChessClass().getActiveMemberships().stream()
       .sorted((left, right) -> left.getFullName().compareToIgnoreCase(right.getFullName()))
       .map(student -> StudentResponse.from(student, attendanceByStudent.get(student.getId())))
       .toList();
@@ -70,7 +70,7 @@ public class TournamentController {
     }
   }
   public record StudentResponse(UUID id, String fullName, String parentPhoneNumber, String attendanceStatus, boolean preselected) {
-    static StudentResponse from(Student student, String attendanceStatus) {
+    static StudentResponse from(vn.chesshub.entity.ClassMembership student, String attendanceStatus) {
       return new StudentResponse(student.getId(), student.getFullName(), student.getParentPhoneNumber(), attendanceStatus,
         attendanceStatus != null && PRESELECTED_ATTENDANCE.contains(attendanceStatus));
     }

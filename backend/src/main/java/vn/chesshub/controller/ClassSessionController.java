@@ -38,10 +38,10 @@ public class ClassSessionController {
     Map<UUID, Long> attendanceCounts = records.stream()
       .collect(java.util.stream.Collectors.groupingBy(item -> item.getSession().getId(), java.util.stream.Collectors.counting()));
     Map<UUID, java.util.Set<UUID>> historicalStudents = records.stream().collect(java.util.stream.Collectors.groupingBy(
-      item -> item.getSession().getId(), java.util.stream.Collectors.mapping(item -> item.getStudent().getId(), java.util.stream.Collectors.toSet())));
+      item -> item.getSession().getId(), java.util.stream.Collectors.mapping(item -> item.getMembership().getId(), java.util.stream.Collectors.toSet())));
     return plannedSessions.stream().map(session -> {
       java.util.Set<UUID> roster = new java.util.HashSet<>(historicalStudents.getOrDefault(session.getId(), java.util.Set.of()));
-      session.getChessClass().getStudents().forEach(student -> roster.add(student.getId()));
+      session.getChessClass().getActiveMemberships().forEach(student -> roster.add(student.getId()));
       return SessionResponse.from(session, attendanceCounts.getOrDefault(session.getId(), 0L).intValue(), roster.size());
     }).toList();
   }

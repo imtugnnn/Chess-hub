@@ -56,3 +56,25 @@ Kịch bản `frontend/tools/board-replay-review.cjs` đã đạt kiểm tra ph�
 
 Nguồn triển khai: `frontend/src/pages/BoardEditorPage.jsx`, `frontend/src/pages/board-editor.css`, `frontend/src/components/UiIcon.jsx`, `frontend/src/components/AnalysisSettings.jsx`, `frontend/src/components/boardPosition.js`, `frontend/src/services/chessGame.js`, `frontend/src/services/stockfishClient.js` và `frontend/src/hooks/useChessAnalysis.js`; route và điều hướng nằm trong `frontend/src/App.jsx` và `frontend/src/components/layout/AppSidebar.jsx`.
 
+## Bố cục soạn thế cờ được duyệt ngày 19/10/2026
+
+Phần này ghi nhận triển khai mới và có ưu tiên khi mô tả bố cục phía trên khác với bản hiện tại. `/board-lab` dùng `AppChrome` trắng/tím chung, một h1 “Xếp thế cờ” tại headbar (24px, mobile 22px). Dòng hướng dẫn trong nội dung đổi theo giai đoạn xếp/đi quân. Không có tiêu đề trang lặp hoặc thẻ số liệu.
+
+Toolbar ghi rõ “Bên đến lượt”, hai nút Trắng/Đen kèm chấm; khi đi quân, hiển thị tên bên đang đi. Bàn giữ màu ô `#879ab5` / `#e8edf3`, quân hiện có, nền nước gần nhất `#d3bf73`, mũi tên và nghĩa điểm đánh giá. Viền bàn hiện là 1px theo `--ui-border`, bo 8px. Nút tím “Xác nhận thế cờ” rộng bằng vùng bàn, cao tối thiểu 48px, nằm ngay dưới bàn; lỗi xác nhận vẫn ở giai đoạn xếp và hiện ngay dưới nút.
+
+Panel trắng “Soạn thế cờ” có hướng dẫn chọn/kéo, nhãn Quân trắng/Quân đen và sáu quân mỗi nhóm. Chọn quân dùng `--ui-selected` với viền `--ui-navy`; Xóa bàn và Vị trí ban đầu có chữ. Vùng Gỡ quân có icon và hướng dẫn kéo ra ngoài hoặc chọn rồi bấm quân. Khi xác nhận thành công, panel chuyển sang phân tích và lịch sử Nước đi; trạng thái engine có chữ, giữ cài đặt, thử lại lỗi, phương án, nút Hiện tại và bốn nút điều hướng. Luật, phong cấp, bàn phím, replay và worker Stockfish tiếp tục dùng hành vi đã mô tả.
+
+Route kế thừa Be Vietnam Pro, nền `--ui-soft`, panel `--workspace-surface`, viền `--ui-border`, bo panel `--workspace-radius` (12px). Trong shell hiện tại, `--ui-navy` là tím `#5d50df`, hover `#4b3dc4`, selected `#f0ecff`, chữ `#24234b` và muted `#666783`; tên token navy không mô tả màu thực tế. Màu rose cho xóa/lỗi và purple pastel ở heading lịch sử giữ vai trò hiện có. Panel khay/phân tích bỏ các nền pastel cũ bằng override riêng route. Không tạo token nhận diện mới.
+
+Desktop dùng hai cột căn giữa, gap 24px; bàn theo `clamp(280px, calc(100dvh - 328px), 600px)`, panel tối đa 340px (300px ở ≤1100px). Ở ≤880px, workspace một cột tối đa 560px: bàn, nút xác nhận rồi panel; trang cuộn dọc. Ở ≤480px, panel padding 16px và gap 20px. Vùng lịch sử giữ cuộn nội bộ tối đa 300px; panel đi quân giới hạn theo viewport. Reduced motion giữ nền trạng thái tĩnh và tắt chuyển động đã quy định.
+
+Bằng chứng QA mới ở `agent/.impeccable/review/board-redesign/`: `desktop.png`, `mobile.png`, `laptop.png`, `tablet.png` cho xếp quân; `desktop-play.png`, `mobile-play.png`, `laptop-play.png`, `tablet-play.png` cho đi quân. `geometry.json` ghi bàn desktop 572px/laptop 440px/mobile 358px/tablet 560px; mép dưới nút xác nhận lần lượt 889/757/714/925px trong viewport cao 900/768/844/1024px. Đây là ảnh kiểm tra, không phải raster phân phối trong sản phẩm. Không tạo shipping raster.
+
+Khay quân dùng gap 2px; nút chọn quân có chiều cao cơ sở tối thiểu 44px. Khi phần nội dung panel rộng ≤290px, container query chuyển khay thành ba cột và giới hạn hình quân tối đa 48px. Kiểm tra hình học xác nhận mỗi nút chọn quân đạt tối thiểu 44×44px ở cả bốn viewport xếp quân.
+
+Kết quả kiểm tra được bàn giao: 47 test đơn vị đạt, build frontend cuối đạt; hồi quy editor với Stockfish thực, hồi quy replay và hồi quy cài đặt phân tích đều đạt. Review độc lập ban đầu có một điểm cần sửa về vùng bấm; verdict pass đã xác nhận điểm này resolved và ship ở phạm vi danh sách sửa. Báo cáo tại agent/specs/006-board-workspace-redesign/finish-review.md. Đối chiếu hệ thống tại `agent/specs/006-board-workspace-redesign/design-system-check.md`.
+
+Ghi nhận drift có sẵn: đoạn tài liệu cũ nói shell navy và tiêu đề 28px/24px đã lỗi thời sau hợp nhất chrome; `DESIGN.md` giữ cả hướng dẫn lịch sử với quy tắc ưu tiên hiện hành. Sidecar `agent/.impeccable/design.json` có trạng thái kế thừa riêng, không được tái tạo trong lần mở rộng route này. Không sửa nhận diện toàn cục hay drift ngoài phạm vi.
+
+
+Cập nhật theo yêu cầu 19/10/2026: khay soạn chỉ hiện hình quân 44px, bỏ ký tự K/Q/R/B/N/P và khung ô lớn. Giữ tên truy cập, tooltip, bấm/chạm chọn, kéo thả và outline quân được chọn. Không thay đổi luật hoặc bàn cờ.

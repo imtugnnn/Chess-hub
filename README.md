@@ -1,21 +1,14 @@
 # ChessHub
 
-Codebase mới cho ứng dụng quản lý trung tâm cờ vua. Frontend React và backend Spring Boot được dựng dưới dạng skeleton sạch; các migration SQL cũ được lưu lại để tham chiếu nhưng không còn được chạy.
+Ứng dụng quản lý trung tâm cờ vua cho giáo viên và chủ trung tâm: quản lý lớp, học sinh, lịch học, chuyên cần/học phí, bài giảng, giải Swiss và bàn cờ phân tích.
 
 ## Tech stack
 
 - Frontend: React + Vite, tách component, page, service và hook.
-- Backend: Java 21 / Spring Boot 3 theo các tầng controller, service, repository / Spring Data JPA (Hibernate).
-- Database: PostgreSQL 17 + PostGIS 3.5.
-- Kiến trúc: modular monolith, tách rõ controller → service → repository.
+- Backend: Java 21 / Spring Boot 3, controller → service → repository / Spring Data JPA.
+- Database local: PostgreSQL 17 + PostGIS 3.5; Flyway chạy migration khi API khởi động, Hibernate dùng `ddl-auto=update` theo cấu hình hiện tại.
 
-PostGIS, ràng buộc lịch giáo viên và dữ liệu mẫu vẫn được định nghĩa trong migration SQL. API nghiệp vụ sẽ được xây lại dần trên cấu trúc mới.
-
-## Phạm vi skeleton hiện tại
-
-- React homepage gọi health check của API qua một custom hook.
-- Spring Boot có health check và API đọc danh sách người dùng mẫu qua JPA/Hibernate.
-- Hibernate tự đồng bộ các entity mới với database (`ddl-auto=update`).
+Tài liệu tính năng và bảo trì ở [docs/md/README.md](docs/md/README.md). Quy ước thư mục cho agent/skill ở [AGENTS.md](AGENTS.md). Toàn bộ workspace AI nằm trong `agent/`, không đưa vào Git hoặc Docker image. `.idea/` là cấu hình IDE cục bộ và cũng được bỏ qua.
 
 ## Chạy toàn bộ bằng Docker
 
@@ -113,22 +106,26 @@ docker compose exec db psql -U chesshub -d chesshub -c "VACUUM (ANALYZE) users;"
 
 ```text
 ChessHub/
-├── docker-compose.yml
-└── backend/
-    ├── pom.xml                       # Maven/Spring Boot dependencies
-    └── src/main/
-        ├── java/vn/chesshub/
-        │   ├── controller/            # HTTP API
-        │   ├── service/               # nghiệp vụ
-        │   ├── repository/            # truy cập dữ liệu JPA
-        │   └── entity/                # Hibernate entities
-        └── resources/db/migration/   # Flyway schema và dữ liệu demo
-└── frontend/
-    └── src/
-        ├── components/
-        ├── pages/
-        ├── services/
-        └── hooks/
+├── backend/                    # Maven / Spring Boot API
+│   ├── pom.xml
+│   ├── src/main/java/vn/chesshub/
+│   │   ├── config/
+│   │   ├── controller/
+│   │   ├── service/
+│   │   ├── repository/
+│   │   └── entity/
+│   ├── src/main/resources/db/migration/
+│   ├── src/test/
+│   └── tools/                  # Kiểm tra migration
+├── frontend/                   # npm / React / Vite
+│   ├── src/                    # pages, components, services, hooks, CSS
+│   ├── public/                 # Asset được phục vụ cho người dùng
+│   ├── tests/fixtures/          # Dữ liệu và entry kiểm tra UI
+│   └── tools/                  # Script review / chụp ảnh
+├── docs/                       # Tài liệu dự án
+├── agent/                      # Toàn bộ công cụ và tài liệu AI cục bộ (Git/Docker ignore)
+├── AGENTS.md                   # Quy ước cho agent/skill
+└── docker-compose.yml
 ```
 
 ### Mời giáo viên vào trung tâm và xem lớp

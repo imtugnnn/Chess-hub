@@ -34,6 +34,7 @@ class StudentRemovalHistoryTest {
   }
   @BeforeEach void setup() {
     ReflectionTestUtils.setField(classroom, "id", classId); ReflectionTestUtils.setField(session, "id", sessionId);
+    classroom.confirmScope(null);
     classroom.addStudent(an); classroom.addStudent(binh);
     when(classes.findForUpdate(classId, teacherId)).thenReturn(Optional.of(classroom));
     when(sessions.findByIdAndChessClassIdAndChessClassTeacherId(sessionId, classId, teacherId)).thenReturn(Optional.of(session));
@@ -74,7 +75,7 @@ class StudentRemovalHistoryTest {
     when(sessions.findByChessClassTeacherIdAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(teacherId, LocalDate.of(2030, 1, 1), LocalDate.of(2030, 1, 31))).thenReturn(List.of(session));
     when(attendance.findBySessionChessClassTeacherIdAndSessionSessionDateBetween(teacherId, LocalDate.of(2030, 1, 1), LocalDate.of(2030, 1, 31))).thenReturn(List.of(present, absence));
     when(classes.findWithStudentsByTeacherIdOrderByName(teacherId)).thenReturn(List.of(classroom));
-    var report = new AttendanceSummaryController(classes, sessions, attendance).list(teacherId, YearMonth.of(2030, 1)).getFirst();
+    var report = new AttendanceSummaryController(classes, sessions, attendance, mock(TuitionPaymentRepository.class)).list(teacherId, YearMonth.of(2030, 1)).getFirst();
     assertEquals(3, report.students().size());
     var removed = report.students().stream().filter(item -> item.studentId().equals(an.getId())).findFirst().orElseThrow();
     assertTrue(removed.leftClass()); assertEquals(1, removed.attendedDays()); assertEquals(BigDecimal.valueOf(100000), removed.tuitionAmount());
@@ -86,6 +87,8 @@ class StudentRemovalHistoryTest {
     service.removeStudent(teacherId, classId, an.getId());
     User owner = classroom.getTeacher(); ReflectionTestUtils.setField(owner, "id", teacherId);
     when(users.findById(teacherId)).thenReturn(Optional.of(owner));
+    when(users.findForScheduleUpdate(teacherId)).thenReturn(Optional.of(owner));
+    when(students.scopeCandidates(null, teacherId, an.getFullName())).thenReturn(List.of(an));
     when(students.findByOwnerUserIdAndFullNameAndBirthDateAndParentPhoneNumber(teacherId, an.getFullName(), an.getBirthDate(), an.getParentPhoneNumber())).thenReturn(Optional.of(an));
     Student restored = service.addStudent(teacherId, classId, new ChessClassService.StudentCommand(an.getFullName(), an.getBirthDate(), an.getParentName(), an.getParentPhoneNumber()));
     assertSame(an, restored); assertEquals(2, classroom.getStudentCount()); assertEquals("PRESENT", present.getStatus());

@@ -19,7 +19,7 @@ export function AppPageHeader({ section, breadcrumbs = [], onNavigate, title, de
               }}><span>{item.label}</span></a>
             </li>)}</ol>
           </nav>}
-          <h1 className="dashboard-header__title">{typeof title === "string" ? title.replace(/\s+([·,:;!?])/g, "\u00a0$1") : title}</h1>
+          <h2 className="dashboard-header__title">{typeof title === "string" ? title.replace(/\s+([·,:;!?])/g, "\u00a0$1") : title}</h2>
           {description && <p className="dashboard-header__description">{description}</p>}
         </div>
       </div>

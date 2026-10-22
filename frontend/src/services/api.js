@@ -28,6 +28,43 @@ export const previewClassSchedule = (teacherId, classId, schedule) => classReque
 export const rescheduleClassSession = (teacherId, classId, sessionId, slot) => classRequest(teacherId, classId, `/sessions/${sessionId}`, "PATCH", slot);
 export const removeClassStudent = (teacherId, classId, studentId) => classRequest(teacherId, classId, `/students/${studentId}`, "DELETE");
 export const addExistingClassStudent = (teacherId, classId, studentId) => classRequest(teacherId, classId, `/students/${studentId}`, "POST");
+export const confirmClassScope = (teacherId, classId, centerId) => classRequest(teacherId, classId, '/scope', 'POST', { centerId });
+export const supplementClassStudent = (teacherId, classId, membershipId, input) => classRequest(teacherId, classId, `/memberships/${membershipId}`, 'PUT', input);
+const importPath = (teacherId, classId) => `${API_BASE_URL}/api/v1/teachers/${teacherId}/classes/${classId}/students/import`;
+const draftImportPath = teacherId => `${API_BASE_URL}/api/v1/teachers/${teacherId}/classes/students/import`;
+export async function readDraftStudentWorkbook(teacherId, centerId, file, sheet = 0) {
+  const data = new FormData(); data.append('file', file); data.append('sheet', sheet);
+  if (centerId) data.append('centerId', centerId);
+  const response = await apiFetch(`${draftImportPath(teacherId)}/read`, { method: 'POST', body: data });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.message ?? 'Không đọc được file Excel.');
+  return result;
+}
+export async function previewDraftStudentImport(teacherId, batch) {
+  const response = await apiFetch(`${draftImportPath(teacherId)}/preview`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(batch) });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.message ?? 'Chưa kiểm tra được danh sách. Hãy thử lại.');
+  return result;
+}
+export const downloadDraftStudentTemplate = (teacherId, centerId) => downloadExcel(`${draftImportPath(teacherId)}/template${centerId ? `?centerId=${encodeURIComponent(centerId)}` : ''}`, 'mau-hoc-sinh.xlsx');
+export async function readStudentWorkbook(teacherId, classId, file, sheet) {
+  const data = new FormData(); data.append('file', file); data.append('sheet', sheet);
+  const response = await apiFetch(`${importPath(teacherId, classId)}/read`, { method: 'POST', body: data });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.message ?? 'Không đọc được file Excel.');
+  return result;
+}
+export const previewStudentImport = (teacherId, classId, batch) => classRequest(teacherId, classId, '/students/import/preview', 'POST', batch);
+export const commitStudentImport = (teacherId, classId, batch) => classRequest(teacherId, classId, '/students/import/commit', 'POST', batch);
+async function downloadExcel(url, filename, payload) {
+  const response = await apiFetch(url, payload === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.message ?? 'Không tải được file Excel.'); }
+  const href = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a'); link.href = href; link.download = filename; document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 1000);
+}
+export const downloadStudentTemplate = (teacherId, classId) => downloadExcel(`${importPath(teacherId, classId)}/template`, 'mau-hoc-sinh.xlsx');
+export const downloadStudentImportErrors = (teacherId, classId, payload) => downloadExcel(`${importPath(teacherId, classId)}/errors`, 'hoc-sinh-can-sua.xlsx', payload);
 export const applyClassSchedule = (teacherId, classId, schedule) => classRequest(teacherId, classId, "/schedule", "PUT", schedule);
 
 async function materialRequest(teacherId, path, method = "GET", body) {
@@ -202,6 +239,18 @@ export async function getAttendanceSummary(teacherId, month) {
   if (!response.ok) throw new Error("Không thể tải tổng hợp điểm danh.");
   return response.json();
 }
+
+async function tuitionPaymentRequest(teacherId, classId, identityId, month, command) {
+  const path = `${API_BASE_URL}/api/v1/teachers/${teacherId}/classes/${classId}/tuition-payments/${identityId}?month=${encodeURIComponent(month)}`;
+  const response = await apiFetch(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(command) });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(body.message ?? body.detail ?? 'Chưa lưu được ghi nhận. Vui lòng thử lại.');
+    error.status = response.status; throw error;
+  }
+  return body;
+}
+export const saveTuitionPayment = (teacherId, classId, identityId, month, command) => tuitionPaymentRequest(teacherId, classId, identityId, month, command);
 
 export async function getTeacherClassDetail(teacherId, classId) {
   const response = await apiFetch(`${API_BASE_URL}/api/v1/teachers/${teacherId}/classes/${classId}`);

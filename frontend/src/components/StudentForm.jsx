@@ -27,9 +27,9 @@ export function StudentForm({ student, centerId, options, teacherId, onSaved, on
     finally { setBusy(false); }
   }
   return <form ref={formRef} className="students-form" onSubmit={submit}>
-    <p>{student ? "Thay đổi thông tin chung áp dụng cho mọi lớp đang sử dụng hồ sơ này." : "Tạo hồ sơ trước. Bạn có thể thêm học sinh vào lớp sau."}</p>
+    <p>{student ? "Thay đổi thông tin chung áp dụng cho mọi lớp đang sử dụng hồ sơ này." : "Tạo hồ sơ với tên và ít nhất một thông tin bổ sung. Nếu chỉ có tên, hãy thêm học sinh trực tiếp trong lớp."}</p>
     <fieldset className="students-form-fields" disabled={busy}>
-    <StudentEntryFields values={form} teacherId={teacherId} suggestionsEnabled={!student} onChange={change} onSelect={selected => { dirty.current = true; setForm(current => ({ ...current, ...studentSuggestionValues(selected) })); }} onComplete={() => confirmRef.current?.focus()} />
+    <StudentEntryFields values={form} teacherId={teacherId} scope={form.centerId || "personal"} suggestionsEnabled={!student} onChange={change} onSelect={selected => { dirty.current = true; setForm(current => ({ ...current, ...studentSuggestionValues(selected) })); }} onComplete={() => confirmRef.current?.focus()} />
     <label>Lưu vào<select disabled={Boolean(student)} value={form.centerId} onChange={e => change("centerId", e.target.value)}><option value="">Cá nhân</option>{options.centers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
     </fieldset>
     {form.centerId && !student && <p className="students-muted">Hồ sơ dùng chung trong trung tâm. Sau khi tạo, chỉ chủ trung tâm được sửa thông tin.</p>}

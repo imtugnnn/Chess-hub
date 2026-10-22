@@ -52,15 +52,16 @@ public class UserService {
     jdbc.update("delete from tournament_tie_breaks where tournament_id in (" + ownedTournaments + ")", parameters);
     jdbc.update("delete from tournament_rounds where tournament_id in (" + ownedTournaments + ")", parameters);
     jdbc.update("delete from tournaments where id in (" + ownedTournaments + ")", parameters);
-    jdbc.update("delete from session_attendance where session_id in (" + ownedSessions + ") or student_id in (" + ownedStudents + ")", parameters);
+    jdbc.update("delete from session_attendance where session_id in (" + ownedSessions + ") or membership_id in (select id from chess_class_students where student_id in (" + ownedStudents + "))", parameters);
     jdbc.update("delete from class_sessions where id in (" + ownedSessions + ")", parameters);
-    jdbc.update("update chess_classes c set student_count = (select count(*) from chess_class_students cs where cs.chess_class_id = c.id and cs.student_id not in (" + ownedStudents + ")) where c.id not in (" + ownedClasses + ") and exists (select 1 from chess_class_students cs where cs.chess_class_id = c.id and cs.student_id in (" + ownedStudents + "))", parameters);
+    jdbc.update("update chess_classes c set student_count = (select count(*) from chess_class_students cs where cs.chess_class_id = c.id and cs.active and (cs.student_id is null or cs.student_id not in (" + ownedStudents + "))) where c.id not in (" + ownedClasses + ") and exists (select 1 from chess_class_students cs where cs.chess_class_id = c.id and cs.student_id in (" + ownedStudents + "))", parameters);
     jdbc.update("delete from chess_class_students where chess_class_id in (" + ownedClasses + ") or student_id in (" + ownedStudents + ")", parameters);
     jdbc.update("delete from chess_classes where id in (" + ownedClasses + ")", parameters);
     jdbc.update("delete from student where id in (" + ownedStudents + ")", parameters);
     jdbc.update("delete from center_invitations where invited_by_user_id = :userId or invited_user_id = :userId or center_id in (" + ownedCenters + ")", parameters);
     jdbc.update("delete from center_memberships where user_id = :userId or center_id in (" + ownedCenters + ")", parameters);
     jdbc.update("update users set center_id = null where center_id in (" + ownedCenters + ")", parameters);
+    jdbc.update("update chess_classes set center_id = null, scope_confirmed = false where center_id in (" + ownedCenters + ")", parameters);
     jdbc.update("delete from centers where id in (" + ownedCenters + ")", parameters);
     jdbc.update("delete from users where id = :userId", parameters);
   }
