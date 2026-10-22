@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ChessHub — Phụ thuộc các package",
+    "locale": "vi",
+    "output": "agent/design/packages.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/ducleviet2004/ChessHub.git",
+      "revision": "b7fab523739b79af2e26fba0e92e533fa7cd3b6e"
+    }
+  },
+  "components": [
+    {
+      "id": "pages",
+      "type": "frontend",
+      "label": "pages / components",
+      "sublabel": "Màn hình và form React",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        210,
+        70
+      ],
+      "sources": [
+        {
+          "path": "frontend/src/pages/ClassDetailPage.jsx",
+          "line": 1,
+          "end_line": 289
+        }
+      ]
+    },
+    {
+      "id": "client",
+      "type": "frontend",
+      "label": "services / hooks",
+      "sublabel": "HTTP và Stockfish",
+      "pos": [
+        430,
+        40
+      ],
+      "size": [
+        210,
+        70
+      ],
+      "sources": [
+        {
+          "path": "frontend/src/services/api.js",
+          "line": 1,
+          "end_line": 295
+        },
+        {
+          "path": "frontend/src/hooks/useChessAnalysis.js",
+          "line": 1,
+          "end_line": 32
+        }
+      ]
+    },
+    {
+      "id": "controller",
+      "type": "backend",
+      "label": "vn.chesshub.controller",
+      "sublabel": "REST và request records",
+      "pos": [
+        430,
+        240
+      ],
+      "size": [
+        210,
+        70
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/java/vn/chesshub/controller/ChessClassController.java",
+          "line": 1,
+          "end_line": 139
+        },
+        {
+          "path": "backend/src/main/java/vn/chesshub/controller/AttendanceController.java",
+          "line": 1,
+          "end_line": 85
+        }
+      ]
+    },
+    {
+      "id": "service",
+      "type": "backend",
+      "label": "vn.chesshub.service",
+      "sublabel": "Quy tắc và transaction",
+      "pos": [
+        40,
+        240
+      ],
+      "size": [
+        210,
+        70
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/java/vn/chesshub/service/ClassScheduleService.java",
+          "line": 1,
+          "end_line": 160
+        },
+        {
+          "path": "backend/src/main/java/vn/chesshub/service/TeachingMaterialService.java",
+          "line": 1,
+          "end_line": 260
+        }
+      ]
+    },
+    {
+      "id": "repo",
+      "type": "database",
+      "label": "vn.chesshub.repository",
+      "sublabel": "JpaRepository / EntityGraph",
+      "pos": [
+        430,
+        440
+      ],
+      "size": [
+        210,
+        70
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/java/vn/chesshub/repository/ChessClassRepository.java",
+          "line": 1,
+          "end_line": 24
+        }
+      ]
+    },
+    {
+      "id": "entity",
+      "type": "backend",
+      "label": "vn.chesshub.entity",
+      "sublabel": "Ánh xạ JPA",
+      "pos": [
+        40,
+        440
+      ],
+      "size": [
+        210,
+        70
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/java/vn/chesshub/entity/ChessClass.java",
+          "line": 1,
+          "end_line": 88
+        },
+        {
+          "path": "backend/src/main/java/vn/chesshub/entity/ClassSession.java",
+          "line": 1,
+          "end_line": 61
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "pages",
+      "to": "client",
+      "label": "import"
+    },
+    {
+      "from": "client",
+      "to": "controller",
+      "label": "HTTP"
+    },
+    {
+      "from": "controller",
+      "to": "service",
+      "label": "gọi nghiệp vụ"
+    },
+    {
+      "from": "controller",
+      "to": "repo",
+      "label": "một số truy vấn"
+    },
+    {
+      "from": "service",
+      "to": "repo",
+      "label": "JPA"
+    },
+    {
+      "from": "service",
+      "to": "entity",
+      "label": "cập nhật"
+    },
+    {
+      "from": "repo",
+      "to": "entity",
+      "label": "ánh xạ"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "Cách đọc",
+      "items": [
+        "Đây là package view dùng ký pháp thành phần; mũi tên là phụ thuộc/gọi, không phải triển khai riêng.",
+        "config thiết lập Spring Security trước controller; service trung tâm, học viên, tài liệu còn gọi JDBC trực tiếp.",
+        "Không giả định mọi controller đều đi qua service: điểm danh đang gọi repository trực tiếp."
+      ]
+    }
+  ]
+}

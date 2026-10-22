@@ -1,0 +1,1304 @@
+{
+  "schema_version": 1,
+  "diagram_type": "erd",
+  "meta": {
+    "title": "ChessHub — Lược đồ dữ liệu từ SQL và JPA",
+    "locale": "vi",
+    "output": "agent/design/database.html",
+    "quality_profile": "standard",
+    "repository": {
+      "url": "https://github.com/ducleviet2004/ChessHub.git",
+      "revision": "b7fab523739b79af2e26fba0e92e533fa7cd3b6e"
+    }
+  },
+  "layout": {
+    "mode": "grid",
+    "gapX": 80,
+    "gapY": 24,
+    "entityW": 300,
+    "rowH": 16
+  },
+  "entities": [
+    {
+      "id": "users",
+      "label": "users",
+      "tag": "Tài khoản",
+      "row": 0,
+      "col": 0,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "key": "pk"
+        },
+        {
+          "name": "center_id",
+          "type": "UUID"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(255)",
+          "key": "uk"
+        },
+        {
+          "name": "full_name",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "role",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "password_hash",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ"
+        },
+        {
+          "name": "google_subject",
+          "type": "VARCHAR(255)",
+          "key": "uk"
+        },
+        {
+          "name": "must_change_password",
+          "type": "BOOLEAN"
+        },
+        {
+          "name": "google_meet_url",
+          "type": "VARCHAR(512)"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V9__add_google_oauth_accounts.sql",
+          "line": 1,
+          "end_line": 3
+        },
+        {
+          "path": "backend/src/main/resources/db/migration/V11__require_initial_password_change.sql",
+          "line": 1,
+          "end_line": 1
+        },
+        {
+          "path": "backend/src/main/resources/db/migration/V14__add_account_google_meet_url.sql",
+          "line": 1,
+          "end_line": 1
+        }
+      ]
+    },
+    {
+      "id": "remember_login_tokens",
+      "label": "remember_login_tokens",
+      "tag": "Tài khoản",
+      "row": 1,
+      "col": 0,
+      "attributes": [
+        {
+          "name": "token_hash",
+          "type": "VARCHAR(64)",
+          "key": "pk"
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "users.id"
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V10__create_remember_login_tokens.sql",
+          "line": 1,
+          "end_line": 6
+        },
+        {
+          "path": "backend/src/main/resources/db/migration/V18__remember_login_until_revoked.sql",
+          "line": 1,
+          "end_line": 5
+        }
+      ]
+    },
+    {
+      "id": "password_reset_tokens",
+      "label": "password_reset_tokens",
+      "tag": "Tài khoản",
+      "row": 2,
+      "col": 0,
+      "attributes": [
+        {
+          "name": "token_hash",
+          "type": "VARCHAR(64)",
+          "key": "pk"
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "users.id"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "password_hash_at_request",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ"
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V19__create_password_reset_tokens.sql",
+          "line": 1,
+          "end_line": 9
+        }
+      ]
+    },
+    {
+      "id": "centers",
+      "label": "centers",
+      "tag": "Trung tâm",
+      "row": 0,
+      "col": 1,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "key": "pk"
+        },
+        {
+          "name": "owner_user_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "users.id"
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "subscription_status",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "subscription_plan_code",
+          "type": "VARCHAR(64)"
+        },
+        {
+          "name": "subscription_started_at",
+          "type": "TIMESTAMPTZ"
+        },
+        {
+          "name": "subscription_ends_at",
+          "type": "TIMESTAMPTZ"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+          "line": 1,
+          "end_line": 96
+        }
+      ]
+    },
+    {
+      "id": "center_memberships",
+      "label": "center_memberships",
+      "tag": "Trung tâm",
+      "row": 1,
+      "col": 1,
+      "attributes": [
+        {
+          "name": "center_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "pk"
+          ],
+          "references": "centers.id"
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "pk"
+          ],
+          "references": "users.id"
+        },
+        {
+          "name": "role",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "joined_at",
+          "type": "TIMESTAMPTZ"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+          "line": 1,
+          "end_line": 96
+        }
+      ]
+    },
+    {
+      "id": "center_invitations",
+      "label": "center_invitations",
+      "tag": "Trung tâm",
+      "row": 2,
+      "col": 1,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "key": "pk"
+        },
+        {
+          "name": "center_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "uk"
+          ],
+          "references": "centers.id"
+        },
+        {
+          "name": "invited_user_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "uk"
+          ],
+          "references": "users.id"
+        },
+        {
+          "name": "invited_by_user_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "users.id"
+        },
+        {
+          "name": "role",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ"
+        },
+        {
+          "name": "responded_at",
+          "type": "TIMESTAMPTZ"
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+          "line": 1,
+          "end_line": 96
+        }
+      ]
+    },
+    {
+      "id": "student",
+      "label": "student",
+      "tag": "Lớp học",
+      "row": 0,
+      "col": 2,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "key": "pk"
+        },
+        {
+          "name": "full_name",
+          "type": "VARCHAR(255)",
+          "key": "uk"
+        },
+        {
+          "name": "phone_number",
+          "type": "VARCHAR(15)"
+        },
+        {
+          "name": "parent_phone_number",
+          "type": "VARCHAR(15)",
+          "key": "uk"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ"
+        },
+        {
+          "name": "center_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "uk"
+          ],
+          "references": "centers.id"
+        },
+        {
+          "name": "owner_user_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "uk"
+          ],
+          "references": "users.id"
+        },
+        {
+          "name": "parent_name",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "birth_date",
+          "type": "DATE",
+          "key": "uk"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ"
+        },
+        {
+          "name": "notes",
+          "type": "VARCHAR(4000)"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V3__create_student_table.sql",
+          "line": 1,
+          "end_line": 9
+        },
+        {
+          "path": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+          "line": 1,
+          "end_line": 96
+        },
+        {
+          "path": "backend/src/main/resources/db/migration/V20__add_student_notes.sql",
+          "line": 1,
+          "end_line": 1
+        }
+      ]
+    },
+    {
+      "id": "chess_classes",
+      "label": "chess_classes",
+      "tag": "Lớp học",
+      "row": 1,
+      "col": 2,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "key": "pk"
+        },
+        {
+          "name": "teacher_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "users.id"
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "schedule",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "student_count",
+          "type": "INTEGER"
+        },
+        {
+          "name": "tone",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "fee_per_session",
+          "type": "NUMERIC(12, 0)"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V7_1__create_chess_classes_table.sql",
+          "line": 1,
+          "end_line": 9
+        },
+        {
+          "path": "backend/src/main/resources/db/migration/V8__add_class_fee_per_session.sql",
+          "line": 1,
+          "end_line": 5
+        }
+      ]
+    },
+    {
+      "id": "chess_class_students",
+      "label": "chess_class_students",
+      "tag": "Lớp học",
+      "row": 2,
+      "col": 2,
+      "attributes": [
+        {
+          "name": "chess_class_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "chess_classes.id"
+        },
+        {
+          "name": "student_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "student.id"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/java/vn/chesshub/entity/ChessClass.java",
+          "line": 1,
+          "end_line": 88
+        }
+      ]
+    },
+    {
+      "id": "class_sessions",
+      "label": "class_sessions",
+      "tag": "Lớp học",
+      "row": 3,
+      "col": 2,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "key": "pk"
+        },
+        {
+          "name": "class_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "chess_classes.id"
+        },
+        {
+          "name": "session_date",
+          "type": "DATE"
+        },
+        {
+          "name": "start_time",
+          "type": "TIME"
+        },
+        {
+          "name": "end_time",
+          "type": "TIME"
+        },
+        {
+          "name": "schedule_override",
+          "type": "BOOLEAN"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V4__create_class_sessions_table.sql",
+          "line": 1,
+          "end_line": 10
+        },
+        {
+          "path": "backend/src/main/resources/db/migration/V17__mark_session_schedule_overrides.sql",
+          "line": 1,
+          "end_line": 1
+        },
+        {
+          "path": "backend/src/main/java/vn/chesshub/entity/ClassSession.java",
+          "line": 21,
+          "end_line": 29
+        }
+      ]
+    },
+    {
+      "id": "session_attendance",
+      "label": "session_attendance",
+      "tag": "Lớp học",
+      "row": 4,
+      "col": 2,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "key": "pk"
+        },
+        {
+          "name": "session_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "uk"
+          ],
+          "references": "class_sessions.id"
+        },
+        {
+          "name": "student_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "uk"
+          ],
+          "references": "student.id"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(20)"
+        },
+        {
+          "name": "noted_at",
+          "type": "TIMESTAMPTZ"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V5__create_session_attendance.sql",
+          "line": 1,
+          "end_line": 11
+        }
+      ]
+    },
+    {
+      "id": "teaching_materials",
+      "label": "teaching_materials",
+      "tag": "Tài liệu",
+      "row": 0,
+      "col": 3,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "key": "pk"
+        },
+        {
+          "name": "owner_user_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "users.id"
+        },
+        {
+          "name": "center_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "centers.id"
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "description",
+          "type": "VARCHAR(4000)"
+        },
+        {
+          "name": "source_url",
+          "type": "VARCHAR(2048)"
+        },
+        {
+          "name": "file_name",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "content_type",
+          "type": "VARCHAR(128)"
+        },
+        {
+          "name": "file_data",
+          "type": "BYTEA"
+        },
+        {
+          "name": "deleted_at",
+          "type": "TIMESTAMPTZ"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+          "line": 1,
+          "end_line": 25
+        }
+      ]
+    },
+    {
+      "id": "session_materials",
+      "label": "session_materials",
+      "tag": "Tài liệu",
+      "row": 1,
+      "col": 3,
+      "attributes": [
+        {
+          "name": "session_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "pk"
+          ],
+          "references": "class_sessions.id"
+        },
+        {
+          "name": "material_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "pk"
+          ],
+          "references": "teaching_materials.id"
+        },
+        {
+          "name": "added_at",
+          "type": "TIMESTAMPTZ"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+          "line": 1,
+          "end_line": 25
+        }
+      ]
+    },
+    {
+      "id": "tournaments",
+      "label": "tournaments",
+      "tag": "Giải đấu",
+      "row": 0,
+      "col": 4,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "key": "pk"
+        },
+        {
+          "name": "session_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "class_sessions.id"
+        },
+        {
+          "name": "round_count",
+          "type": "INTEGER"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ"
+        },
+        {
+          "name": "teacher_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "users.id"
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "class_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "chess_classes.id"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+          "line": 1,
+          "end_line": 44
+        },
+        {
+          "path": "backend/src/main/resources/db/migration/V12__allow_standalone_open_ended_tournaments.sql",
+          "line": 1,
+          "end_line": 16
+        },
+        {
+          "path": "backend/src/main/resources/db/migration/V13__link_tournaments_directly_to_classes.sql",
+          "line": 1,
+          "end_line": 3
+        }
+      ]
+    },
+    {
+      "id": "tournament_participants",
+      "label": "tournament_participants",
+      "tag": "Giải đấu",
+      "row": 1,
+      "col": 4,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "key": "pk"
+        },
+        {
+          "name": "tournament_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "uk"
+          ],
+          "references": "tournaments.id"
+        },
+        {
+          "name": "student_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "uk"
+          ],
+          "references": "student.id"
+        },
+        {
+          "name": "initial_seed",
+          "type": "INTEGER"
+        },
+        {
+          "name": "full_name",
+          "type": "VARCHAR(255)"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+          "line": 1,
+          "end_line": 44
+        },
+        {
+          "path": "backend/src/main/resources/db/migration/V12__allow_standalone_open_ended_tournaments.sql",
+          "line": 1,
+          "end_line": 16
+        }
+      ]
+    },
+    {
+      "id": "tournament_tie_breaks",
+      "label": "tournament_tie_breaks",
+      "tag": "Giải đấu",
+      "row": 2,
+      "col": 4,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "key": "pk"
+        },
+        {
+          "name": "tournament_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "uk"
+          ],
+          "references": "tournaments.id"
+        },
+        {
+          "name": "tie_break_type",
+          "type": "VARCHAR(64)",
+          "key": "uk"
+        },
+        {
+          "name": "sort_order",
+          "type": "INTEGER"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+          "line": 1,
+          "end_line": 44
+        }
+      ]
+    },
+    {
+      "id": "tournament_rounds",
+      "label": "tournament_rounds",
+      "tag": "Giải đấu",
+      "row": 3,
+      "col": 4,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "key": "pk"
+        },
+        {
+          "name": "tournament_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "uk"
+          ],
+          "references": "tournaments.id"
+        },
+        {
+          "name": "round_number",
+          "type": "INTEGER",
+          "key": "uk"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "finalized_at",
+          "type": "TIMESTAMPTZ"
+        },
+        {
+          "name": "pairing_note",
+          "type": "VARCHAR(1000)"
+        },
+        {
+          "name": "pairing_search_limited",
+          "type": "BOOLEAN"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+          "line": 1,
+          "end_line": 44
+        },
+        {
+          "path": "backend/src/main/resources/db/migration/V15__add_swiss_pairing_notes.sql",
+          "line": 1,
+          "end_line": 2
+        }
+      ]
+    },
+    {
+      "id": "tournament_pairings",
+      "label": "tournament_pairings",
+      "tag": "Giải đấu",
+      "row": 4,
+      "col": 4,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "key": "pk"
+        },
+        {
+          "name": "round_id",
+          "type": "UUID",
+          "key": [
+            "fk",
+            "uk"
+          ],
+          "references": "tournament_rounds.id"
+        },
+        {
+          "name": "board_number",
+          "type": "INTEGER",
+          "key": "uk"
+        },
+        {
+          "name": "white_participant_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "tournament_participants.id"
+        },
+        {
+          "name": "black_participant_id",
+          "type": "UUID",
+          "key": "fk",
+          "references": "tournament_participants.id"
+        },
+        {
+          "name": "result",
+          "type": "VARCHAR(32)"
+        },
+        {
+          "name": "result_recorded_at",
+          "type": "TIMESTAMPTZ"
+        }
+      ],
+      "sources": [
+        {
+          "path": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+          "line": 1,
+          "end_line": 44
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "remember_login_tokens_user_id",
+      "from": "remember_login_tokens",
+      "to": "users",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "password_reset_tokens_user_id",
+      "from": "password_reset_tokens",
+      "to": "users",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "centers_owner_user_id",
+      "from": "centers",
+      "to": "users",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "center_memberships_center_id",
+      "from": "center_memberships",
+      "to": "centers",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "center_memberships_user_id",
+      "from": "center_memberships",
+      "to": "users",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "center_invitations_center_id",
+      "from": "center_invitations",
+      "to": "centers",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "center_invitations_invited_user_id",
+      "from": "center_invitations",
+      "to": "users",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "center_invitations_invited_by_user_id",
+      "from": "center_invitations",
+      "to": "users",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "student_center_id",
+      "from": "student",
+      "to": "centers",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": true
+    },
+    {
+      "id": "student_owner_user_id",
+      "from": "student",
+      "to": "users",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": true
+    },
+    {
+      "id": "chess_classes_teacher_id",
+      "from": "chess_classes",
+      "to": "users",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false,
+      "fromSide": "left",
+      "toSide": "top",
+      "via": [
+        [
+          750,
+          366
+        ],
+        [
+          750,
+          0
+        ],
+        [
+          182,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "chess_class_students_chess_class_id",
+      "from": "chess_class_students",
+      "to": "chess_classes",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "chess_class_students_student_id",
+      "from": "chess_class_students",
+      "to": "student",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "session_attendance_session_id",
+      "from": "session_attendance",
+      "to": "class_sessions",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "session_attendance_student_id",
+      "from": "session_attendance",
+      "to": "student",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "teaching_materials_owner_user_id",
+      "from": "teaching_materials",
+      "to": "users",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": true
+    },
+    {
+      "id": "teaching_materials_center_id",
+      "from": "teaching_materials",
+      "to": "centers",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": true
+    },
+    {
+      "id": "session_materials_session_id",
+      "from": "session_materials",
+      "to": "class_sessions",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "session_materials_material_id",
+      "from": "session_materials",
+      "to": "teaching_materials",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "tournaments_session_id",
+      "from": "tournaments",
+      "to": "class_sessions",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": true
+    },
+    {
+      "id": "tournaments_teacher_id",
+      "from": "tournaments",
+      "to": "users",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false,
+      "fromSide": "top",
+      "toSide": "top",
+      "via": [
+        [
+          1702,
+          8
+        ],
+        [
+          182,
+          8
+        ]
+      ]
+    },
+    {
+      "id": "tournaments_class_id",
+      "from": "tournaments",
+      "to": "chess_classes",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": true,
+      "fromSide": "top",
+      "toSide": "right",
+      "via": [
+        [
+          1702,
+          -12
+        ],
+        [
+          1130,
+          -12
+        ],
+        [
+          1130,
+          366
+        ]
+      ]
+    },
+    {
+      "id": "tournament_participants_tournament_id",
+      "from": "tournament_participants",
+      "to": "tournaments",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "tournament_participants_student_id",
+      "from": "tournament_participants",
+      "to": "student",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": true
+    },
+    {
+      "id": "tournament_tie_breaks_tournament_id",
+      "from": "tournament_tie_breaks",
+      "to": "tournaments",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "tournament_rounds_tournament_id",
+      "from": "tournament_rounds",
+      "to": "tournaments",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "tournament_pairings_round_id",
+      "from": "tournament_pairings",
+      "to": "tournament_rounds",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "tournament_pairings_white_participant_id",
+      "from": "tournament_pairings",
+      "to": "tournament_participants",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": false
+    },
+    {
+      "id": "tournament_pairings_black_participant_id",
+      "from": "tournament_pairings",
+      "to": "tournament_participants",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true,
+      "toOptional": true
+    },
+    {
+      "id": "class_sessions_class_id",
+      "from": "class_sessions",
+      "to": "chess_classes",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "Giới hạn bằng chứng",
+      "items": [
+        "Đầy đủ cột từ migration V1–V20 và bảng nối JPA; chưa đối chiếu một database đang chạy.",
+        "users.center_id chỉ là UUID trong SQL, không tự thêm FK tới centers.",
+        "PK / UK ghép được giải thích trong từ điển dữ liệu; NULL và CHECK xem báo cáo.",
+        "chess_class_students do Hibernate sinh; quan hệ lấy từ @JoinTable.",
+        "TIMESTAMPTZ là bí danh PostgreSQL của TIMESTAMP WITH TIME ZONE; từ điển giữ kiểu khai báo gốc.",
+        "class_sessions.class_id: quan hệ FK từ JPA; V4 chưa có FK SQL."
+      ]
+    }
+  ]
+}

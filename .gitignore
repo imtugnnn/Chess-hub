@@ -6,16 +6,16 @@ backend/.env
 .DS_Store
 
 # Impeccable local runtime and downloaded engine
-.impeccable/engine/
+agent/.impeccable/engine/
 **/skills/impeccable/scripts/bin/
-**/.impeccable/hook.cache.json
-**/.impeccable/hook.pending.json
-.impeccable/config.local.json
-.impeccable/*.log
-.impeccable/live/server.json
-.impeccable/live/sessions/
-.impeccable/live/previews/
-.impeccable/live/cache/
-.impeccable/live/locks/
-.impeccable/live/artifacts/
-.impeccable/live/annotations/
+**/agent/.impeccable/hook.cache.json
+**/agent/.impeccable/hook.pending.json
+agent/.impeccable/config.local.json
+agent/.impeccable/*.log
+agent/.impeccable/live/server.json
+agent/.impeccable/live/sessions/
+agent/.impeccable/live/previews/
+agent/.impeccable/live/cache/
+agent/.impeccable/live/locks/
+agent/.impeccable/live/artifacts/
+agent/.impeccable/live/annotations/

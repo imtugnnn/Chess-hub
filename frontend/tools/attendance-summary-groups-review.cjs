@@ -11,7 +11,7 @@ const classes = names.map((className, i) => ({ classId: `22222222-2222-2222-2222
 ] }));
 classes.push({ classId: '66666666-6666-6666-6666-666666666666', className: 'Lớp ngoài tháng', sessionCount: 0, feePerSession: 1000000, students: [{ studentId: '33333333-3333-3333-3333-333333333333', studentName: 'Nguyễn Minh An', attendedDays: 0, absentSessions: 0, tuitionAmount: 0 }] });
 (async () => {
-  fs.mkdirSync('../.impeccable/review/attendance-summary', { recursive: true });
+  fs.mkdirSync('../agent/.impeccable/review/attendance-summary', { recursive: true });
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = []; let fail = false, empty = false, onlyOutside = false;
@@ -32,7 +32,7 @@ classes.push({ classId: '66666666-6666-6666-6666-666666666666', className: 'Lớ
   assert.equal(await page.locator('.attendance-class-table tbody th').first().textContent(), names[7]);
   assert.equal(await page.getByText('Lớp ngoài tháng', { exact: true }).count(), 0);
   await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: '../.impeccable/review/attendance-summary/desktop.png' });
+  await page.screenshot({ path: '../agent/.impeccable/review/attendance-summary/desktop.png' });
   await page.getByRole('combobox', { name: /Lớp học/ }).click();
   assert.equal(await page.getByRole('option', { name: 'Lớp ngoài tháng' }).count(), 0);
   await page.keyboard.press('Escape');
@@ -50,7 +50,7 @@ classes.push({ classId: '66666666-6666-6666-6666-666666666666', className: 'Lớ
   assert((await first.locator('td').nth(1).textContent()).includes('200.000'));
   assert((await first.locator('td').nth(2).textContent()).includes('1.600.000'));
   assert((await page.locator('.attendance-group-total').textContent()).includes('2.650.000'));
-  await page.screenshot({ path: '../.impeccable/review/attendance-summary/search-desktop.png' });
+  await page.screenshot({ path: '../agent/.impeccable/review/attendance-summary/search-desktop.png' });
   await page.getByLabel('Tìm tên lớp', { exact: true }).fill('nang cao');
   assert.equal(await page.locator('.attendance-student-class-row').count(), 1);
   assert((await page.locator('.attendance-group-total').textContent()).includes('1.600.000'));
@@ -78,10 +78,10 @@ classes.push({ classId: '66666666-6666-6666-6666-666666666666', className: 'Lớ
   assert.deepEqual(await page.locator('.attendance-class-table tbody th').allTextContents(), [names[2], names[5]]);
   await page.getByRole('button', { name: 'Xóa bộ lọc', exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: '../.impeccable/review/attendance-summary/mobile.png', fullPage: true });
+  await page.screenshot({ path: '../agent/.impeccable/review/attendance-summary/mobile.png', fullPage: true });
   await page.getByLabel('Tìm học sinh', { exact: true }).fill('nguyen minh an');
   assert.equal(await page.locator('.attendance-result-name').count(), 1);
-  await page.screenshot({ path: '../.impeccable/review/attendance-summary/search-mobile.png', fullPage: true });
+  await page.screenshot({ path: '../agent/.impeccable/review/attendance-summary/search-mobile.png', fullPage: true });
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile overflow');
   const nameSize = await page.locator('.attendance-result-name').evaluate(el => parseFloat(getComputedStyle(el).fontSize));
   const classSize = await page.locator('.attendance-group-class-link').first().evaluate(el => parseFloat(getComputedStyle(el).fontSize));

@@ -9,6 +9,7 @@ const members = [
 ];
 const initial = { center: { name: 'Trung tâm cờ vua ChessHub', ownerUserId: user.id, ownerName: user.fullName }, members, incomingInvitations: [], outgoingInvitations: [{ id: 'invite-1', personName: 'Phạm Gia Huy', personEmail: 'giahuy@example.com' }] };
 (async () => {
+  require('node:fs').mkdirSync('../agent/.impeccable/review/center', { recursive: true });
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = [];
@@ -33,7 +34,7 @@ const initial = { center: { name: 'Trung tâm cờ vua ChessHub', ownerUserId: u
   await page.evaluate(() => document.fonts.ready);
   const before = process.argv.includes('--before');
   const capture = !process.argv.includes('--no-capture');
-  if (capture) await page.screenshot({ path: `../docs/center-${before ? 'before' : 'desktop'}.png`, fullPage: true });
+  if (capture) await page.screenshot({ path: `../agent/.impeccable/review/center/center-${before ? 'before' : 'desktop'}.png`, fullPage: true });
   if (!before) {
     const avatarSize = await page.locator('.center-avatar').first().boundingBox();
     assert.equal(avatarSize.width, 36);
@@ -61,7 +62,7 @@ const initial = { center: { name: 'Trung tâm cờ vua ChessHub', ownerUserId: u
     await page.reload();
     await page.getByText(initial.center.name, { exact: true }).waitFor();
     await page.setViewportSize({ width: 390, height: 844 });
-    if (capture) await page.screenshot({ path: '../docs/center-mobile.png', fullPage: true });
+    if (capture) await page.screenshot({ path: '../agent/.impeccable/review/center/center-mobile.png', fullPage: true });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile horizontal overflow');
     dashboard = { ...structuredClone(initial), center: { ...initial.center, ownerUserId: 'someone-else' } };
     await page.reload();
@@ -82,7 +83,7 @@ const initial = { center: { name: 'Trung tâm cờ vua ChessHub', ownerUserId: u
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('http://127.0.0.1:5174/homepage');
     await page.getByRole('heading', { name: 'Chào Anh, hôm nay dạy lớp nào?', exact: true }).waitFor();
-    if (capture) await page.screenshot({ path: '../docs/design-system-overview.png', fullPage: true });
+    if (capture) await page.screenshot({ path: '../agent/.impeccable/review/center/design-system-overview.png', fullPage: true });
     assert.deepEqual(errors, []);
     console.log('PASS: search/empty results, avatars, class details, invitation, cancel/confirm removal, mobile overflow, teacher permissions, no-center invitation, error/retry, overview, browser errors');
   }

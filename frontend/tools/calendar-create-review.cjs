@@ -15,7 +15,7 @@ const fs = require('node:fs');
     if (req.method() === 'POST') { writes.push(req.postDataJSON()); json = { id: 'class-review' }; }
     return route.fulfill({ json });
   });
-  fs.mkdirSync('../.impeccable/review/calendar-create', { recursive: true });
+  fs.mkdirSync('../agent/.impeccable/review/calendar-create', { recursive: true });
   try {
     for (let i = 0; i < 7; i++) {
       await page.goto('http://127.0.0.1:5179/calendar');
@@ -40,7 +40,7 @@ const fs = require('node:fs');
     }
     await page.goto('http://127.0.0.1:5179/calendar');
     await page.locator('.schedule-create-class').first().waitFor();
-    await page.screenshot({ path: '../.impeccable/review/calendar-create/desktop.png', fullPage: true });
+    await page.screenshot({ path: '../agent/.impeccable/review/calendar-create/desktop.png', fullPage: true });
     await page.getByRole('button', { name: 'Tuần sau', exact: true }).click();
     await page.locator('.schedule-week__header .schedule-create-class').last().click();
     assert.equal(await page.locator('.manual-date-picker [aria-pressed=true]').count(), 1);
@@ -51,7 +51,7 @@ const fs = require('node:fs');
     await page.locator('.schedule-day-picker button').first().click();
     assert.equal(await page.locator('.schedule-create-class:visible').count(), 1);
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-    await page.screenshot({ path: '../.impeccable/review/calendar-create/mobile.png', fullPage: true });
+    await page.screenshot({ path: '../agent/.impeccable/review/calendar-create/mobile.png', fullPage: true });
     await page.locator('.schedule-create-class:visible').click();
     assert.equal(await page.locator('.manual-date-picker [aria-pressed=true]').count(), 1);
     assert.deepEqual(errors, []);

@@ -3,7 +3,7 @@ const { chromium } = require('C:/Users/imtun/.cache/codex-runtimes/codex-primary
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const base = process.env.PALETTE_REVIEW_URL || 'http://localhost:5175';
-const output = '../.impeccable/review/soft-blue';
+const output = '../agent/.impeccable/review/soft-blue';
 (async () => {
   fs.mkdirSync(output, { recursive: true });
   const browser = await chromium.launch({ channel: 'msedge', headless: true });

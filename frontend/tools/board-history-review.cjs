@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 (async () => {
-  fs.mkdirSync('../.impeccable/review/board-history', { recursive: true });
+  fs.mkdirSync('../agent/.impeccable/review/board-history', { recursive: true });
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, hasTouch: true });
   async function toggleAnalysis(label, method = 'click') {
@@ -77,7 +77,7 @@ const fs = require('node:fs');
   assert.equal(await page.evaluate(() => scrollY), documentY);
   await pane.evaluate(node => { node.scrollTop = 0; });
   await page.evaluate(() => window.scrollTo(0, 0));
-  if (!process.argv.includes('--no-capture')) await page.screenshot({ path: '../.impeccable/review/board-history/desktop.png', fullPage: true });
+  if (!process.argv.includes('--no-capture')) await page.screenshot({ path: '../agent/.impeccable/review/board-history/desktop.png', fullPage: true });
   await addMoves(1);
   assert.equal(await pane.evaluate(node => node.scrollTop), 0); // Review older moves without a forced jump.
   await page.setViewportSize({ width: 390, height: 844 });
@@ -91,7 +91,7 @@ const fs = require('node:fs');
   assert.equal(await page.evaluate(() => scrollY), mobileY);
   await pane.evaluate(node => { node.scrollTop = 0; });
   await page.evaluate(() => window.scrollTo(0, 0));
-  if (!process.argv.includes('--no-capture')) await page.screenshot({ path: '../.impeccable/review/board-history/mobile.png', fullPage: true });
+  if (!process.argv.includes('--no-capture')) await page.screenshot({ path: '../agent/.impeccable/review/board-history/mobile.png', fullPage: true });
   assert.deepEqual(errors, []);
   console.log('PASS: slide/arrival effects, reduced motion, paired rows, bounded history, inner-only wheel scrolling, automatic follow and preserved manual review, desktop/mobile.');
   await browser.close();

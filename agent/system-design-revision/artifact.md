@@ -1,0 +1,10 @@
+# System Design template contract
+Reference: C:\Users\Lamtu\.codex\plugins\cache\openai-curated-remote\openai-templates\0.1.1\skills\artifact-template-system-design\assets\reference.docx
+SHA-256: 13504f6c221a42c1726460a9e865e563355539ff97d702d6c9b2267b4b261d76
+Seven rendered reference pages inspected at template-1.png through template-7.png.
+One Letter portrait section. Page margins and section properties retained from sectPr exactly.
+Cover paragraphs 0–19 preserve spacing and title roles; slots 8 and 9 become ChessHub and Đặc tả thiết kế phần mềm. Cover tables 20 and 22 retained, labels localized and known metadata filled. No author/reviewer identity invented.
+Body slots 23–97 replaced using cloned source paragraph and table patterns. Twelve numbered System Design sections, with Report 4 high-level/data/detailed/NFR content mapped into them. A TOC is added after the source cover. Main paragraphs clone 24; Heading1 clone 23; lower headings clone 38 and source heading styles. Four-column data tables clone 55, other tables clone 69; source navy header and alternating pale-blue row treatments retained. Table width ratios set per data shape; no fixed row heights. Header repeats and rows remain intact.
+User-authorized deviations: every visible text font Calibri; hierarchical labels use periods (3.1 etc); template illustration replaced by detailed, evidence-backed architecture; added full project data dictionary and diagrams; no unused instruction footnote. Existing footer text localized to ChessHub; PAGE field added. No document geometry deviation.
+Editable parts: document, relationships, settings, styles, theme, fontTable, headers and footers, content types; add diagram PNGs. Unrelated parts remain byte-identical. Font substitutions replace Helvetica declarations and font theme slots with Calibri; fontTable embedding links removed to avoid substituted fonts. Source reference remains unchanged.
+Field refresh uses Microsoft Word on a working copy. Cached TOC plus anchors return to the final package with page geometry and Calibri retained. Rendered pages must be inspected before delivery.

@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "ChessHub — Xem trước và áp dụng lịch lặp",
+    "locale": "vi",
+    "output": "agent/design/schedule-sequence.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/ducleviet2004/ChessHub.git",
+      "revision": "b7fab523739b79af2e26fba0e92e533fa7cd3b6e"
+    }
+  },
+  "participants": [
+    {
+      "id": "ui",
+      "type": "frontend",
+      "label": "React",
+      "sources": [
+        {
+          "path": "frontend/src/services/api.js",
+          "line": 18,
+          "end_line": 31
+        }
+      ]
+    },
+    {
+      "id": "ctrl",
+      "type": "backend",
+      "label": "Controller",
+      "sources": [
+        {
+          "path": "backend/src/main/java/vn/chesshub/controller/ChessClassController.java",
+          "line": 82,
+          "end_line": 94
+        }
+      ]
+    },
+    {
+      "id": "svc",
+      "type": "backend",
+      "label": "ScheduleService",
+      "sources": [
+        {
+          "path": "backend/src/main/java/vn/chesshub/service/ClassScheduleService.java",
+          "line": 1,
+          "end_line": 160
+        }
+      ]
+    },
+    {
+      "id": "repo",
+      "type": "database",
+      "label": "Repositories",
+      "sources": [
+        {
+          "path": "backend/src/main/java/vn/chesshub/repository/ClassSessionRepository.java",
+          "line": 1,
+          "end_line": 30
+        },
+        {
+          "path": "backend/src/main/java/vn/chesshub/repository/ChessClassRepository.java",
+          "line": 1,
+          "end_line": 24
+        },
+        {
+          "path": "backend/src/main/java/vn/chesshub/repository/UserRepository.java",
+          "line": 1,
+          "end_line": 33
+        }
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "from": "ui",
+      "to": "ctrl",
+      "y": 160,
+      "label": "POST schedule/preview"
+    },
+    {
+      "from": "ctrl",
+      "to": "svc",
+      "y": 200,
+      "label": "preview(request)"
+    },
+    {
+      "from": "svc",
+      "to": "repo",
+      "y": 240,
+      "label": "khóa user và class; đọc lịch"
+    },
+    {
+      "from": "repo",
+      "to": "svc",
+      "y": 280,
+      "label": "lịch và dữ liệu liên quan",
+      "variant": "return"
+    },
+    {
+      "from": "svc",
+      "to": "ctrl",
+      "y": 320,
+      "label": "kept / removed / added / token",
+      "variant": "return"
+    },
+    {
+      "from": "ctrl",
+      "to": "ui",
+      "y": 360,
+      "label": "hiển thị bản xem trước",
+      "variant": "return"
+    },
+    {
+      "from": "ui",
+      "to": "ctrl",
+      "y": 400,
+      "label": "PUT schedule + previewToken"
+    },
+    {
+      "from": "ctrl",
+      "to": "svc",
+      "y": 440,
+      "label": "apply(request)"
+    },
+    {
+      "from": "svc",
+      "to": "repo",
+      "y": 480,
+      "label": "khóa và đọc lại trạng thái"
+    },
+    {
+      "from": "repo",
+      "to": "svc",
+      "y": 520,
+      "label": "trạng thái hiện tại",
+      "variant": "return"
+    },
+    {
+      "from": "svc",
+      "to": "repo",
+      "y": 560,
+      "label": "token khớp: xóa, flush, thêm"
+    },
+    {
+      "from": "svc",
+      "to": "ctrl",
+      "y": 600,
+      "label": "cập nhật mô tả lịch lớp",
+      "variant": "return"
+    },
+    {
+      "from": "ctrl",
+      "to": "ui",
+      "y": 640,
+      "label": "kết quả thành công",
+      "variant": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Điều kiện và nhánh lỗi",
+      "items": [
+        "Mỗi request ghi có CSRF và phiên hợp lệ trước khi tới controller.",
+        "Token xem trước không khớp → 409, không áp dụng thay đổi.",
+        "Buổi đã bắt đầu, có điểm danh, sửa riêng, tài liệu hoặc giải đấu được giữ."
+      ]
+    }
+  ]
+}

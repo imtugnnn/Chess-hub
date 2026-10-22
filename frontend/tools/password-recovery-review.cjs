@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 (async () => {
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
-  const output = path.resolve(__dirname, '../../.impeccable/review/password-recovery');
+  const output = path.resolve(__dirname, '../../agent/.impeccable/review/password-recovery');
   fs.mkdirSync(output, { recursive: true });
   const errors = [];
   for (const [name, width, height] of [['desktop', 1440, 1000], ['mobile', 390, 844]]) {

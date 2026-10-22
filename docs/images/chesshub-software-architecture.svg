@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="1530" viewBox="0 0 1320 1530">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#486581"/></marker></defs>
+<style>text{font-family:Calibri,sans-serif;fill:#18354d} .edge{fill:none;stroke:#486581;stroke-width:2.5;stroke-linejoin:round;marker-end:url(#arrow)} .note{font-size:18px;fill:#40556a} .title{font-size:25px;font-weight:700} .sub{font-size:21px} .label{font-size:18px;paint-order:stroke;stroke:white;stroke-width:7px;stroke-linejoin:round}</style>
+<rect width="1320" height="1530" fill="white"/>
+
+<rect x="185" y="18" width="1100" height="330" rx="12" fill="#eef5ff" stroke="#8baad2" stroke-width="2"/>
+<path d="M185 60H1285" stroke="#8baad2" stroke-width="1.5"/>
+<text class="title" x="735.0" y="47" text-anchor="middle">CLIENT TIER  •  React 19 SPA / Vite 7</text>
+<rect x="215" y="83" width="270" height="105" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="350.0" y="114" text-anchor="middle">Page / UI</text>
+<text class="sub" x="350.0" y="143" text-anchor="middle">Pages · form · layout</text>
+<text class="sub" x="350.0" y="168" text-anchor="middle">Trạng thái tương tác</text>
+<rect x="590" y="83" width="270" height="105" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="725.0" y="114" text-anchor="middle">API functions</text>
+<text class="sub" x="725.0" y="143" text-anchor="middle">api.js · request helpers</text>
+<text class="sub" x="725.0" y="168" text-anchor="middle">classes · students · materials</text>
+<rect x="965" y="83" width="285" height="105" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="1107.5" y="114" text-anchor="middle">Shared HTTP client</text>
+<text class="sub" x="1107.5" y="143" text-anchor="middle">apiFetch · JSON / FormData</text>
+<text class="sub" x="1107.5" y="168" text-anchor="middle">credentials · CSRF token</text>
+<rect x="215" y="225" width="270" height="95" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="350.0" y="256" text-anchor="middle">Chess analysis</text>
+<text class="sub" x="350.0" y="285" text-anchor="middle">chess.js · Stockfish WASM</text>
+<text class="sub" x="350.0" y="310" text-anchor="middle">Web Worker · UCI</text>
+<rect x="25" y="87" width="105" height="112" rx="10" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<circle cx="77" cy="113" r="10" fill="none" stroke="#486581" stroke-width="2"/><path d="M77 123v34m-25-20h50m-25 20-18 25m18-25 18 25" fill="none" stroke="#486581" stroke-width="2"/>
+<text class="title" x="77" y="225" text-anchor="middle">Người dùng</text>
+<text class="note" x="77" y="251" text-anchor="middle">Trình duyệt</text>
+<path class="edge" d="M130 137 L215 137"/>
+<path class="edge" d="M485 137 L590 137"/>
+<text class="label" x="538" y="124" text-anchor="middle">gọi hàm</text>
+<path class="edge" d="M860 137 L965 137"/>
+<text class="label" x="912" y="124" text-anchor="middle">request</text>
+<path class="edge" d="M350 188 L350 225"/>
+<text class="note" x="680" y="266" text-anchor="middle">Phân tích cờ chạy tại trình duyệt.</text>
+<text class="note" x="680" y="293" text-anchor="middle">Không gửi yêu cầu tính Stockfish tới API.</text>
+<rect x="965" y="385" width="285" height="93" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="1107.5" y="416" text-anchor="middle">Nginx</text>
+<text class="sub" x="1107.5" y="445" text-anchor="middle">SPA · static assets</text>
+<text class="sub" x="1107.5" y="470" text-anchor="middle">Proxy API / OAuth</text>
+<path class="edge" d="M1108 188 L1108 385"/>
+<text class="label" x="1192" y="366" text-anchor="middle">REST / JSON</text>
+<rect x="185" y="525" width="1100" height="762" rx="12" fill="#f4faf0" stroke="#9aba83" stroke-width="2"/>
+<path d="M185 567H1285" stroke="#9aba83" stroke-width="1.5"/>
+<text class="title" x="735.0" y="554" text-anchor="middle">BACKEND TIER  •  Java 21 / Spring Boot 3.5.6</text>
+<rect x="203" y="579" width="300" height="562" rx="12" fill="#fff6dc" stroke="#dfc679" stroke-width="2"/>
+<path d="M203 621H503" stroke="#dfc679" stroke-width="1.5"/>
+<text class="title" x="353.0" y="608" text-anchor="middle">API / Presentation</text>
+<rect x="578" y="579" width="300" height="640" rx="12" fill="#fff0ef" stroke="#d7a19d" stroke-width="2"/>
+<path d="M578 621H878" stroke="#d7a19d" stroke-width="1.5"/>
+<text class="title" x="728.0" y="608" text-anchor="middle">Application / Domain</text>
+<rect x="953" y="579" width="310" height="671" rx="12" fill="#f3effa" stroke="#b1a1c9" stroke-width="2"/>
+<path d="M953 621H1263" stroke="#b1a1c9" stroke-width="1.5"/>
+<text class="title" x="1108.0" y="608" text-anchor="middle">Persistence / Integration</text>
+<rect x="215" y="644" width="275" height="126" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="352.5" y="675" text-anchor="middle">Spring Security</text>
+<text class="sub" x="352.5" y="704" text-anchor="middle">CORS · CSRF · HttpSession</text>
+<text class="sub" x="352.5" y="729" text-anchor="middle">Remember / InitialPassword</text>
+<text class="sub" x="352.5" y="754" text-anchor="middle">Kiểm tra account path</text>
+<rect x="215" y="845" width="275" height="114" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="352.5" y="876" text-anchor="middle">REST Controllers</text>
+<text class="sub" x="352.5" y="905" text-anchor="middle">Request / response records</text>
+<text class="sub" x="352.5" y="930" text-anchor="middle">Kiểm tra quyền và dữ liệu</text>
+<rect x="215" y="1030" width="275" height="90" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="352.5" y="1061" text-anchor="middle">Exception handling</text>
+<text class="sub" x="352.5" y="1090" text-anchor="middle">ApiExceptionHandler · JSON</text>
+<rect x="590" y="644" width="275" height="152" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="727.5" y="675" text-anchor="middle">Business Services</text>
+<text class="sub" x="727.5" y="704" text-anchor="middle">Auth · Center · User</text>
+<text class="sub" x="727.5" y="729" text-anchor="middle">Class · Schedule · Student</text>
+<text class="sub" x="727.5" y="754" text-anchor="middle">Material · Tournament</text>
+<rect x="590" y="875" width="275" height="100" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="727.5" y="906" text-anchor="middle">SwissPairing</text>
+<text class="sub" x="727.5" y="935" text-anchor="middle">Tối ưu cặp trong bộ nhớ</text>
+<text class="sub" x="727.5" y="960" text-anchor="middle">Ngân sách 100.000</text>
+<rect x="590" y="1090" width="275" height="102" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="727.5" y="1121" text-anchor="middle">Domain Entities</text>
+<text class="sub" x="727.5" y="1150" text-anchor="middle">User · Student · ChessClass</text>
+<text class="sub" x="727.5" y="1175" text-anchor="middle">Session · Tournament</text>
+<rect x="965" y="644" width="285" height="110" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="1107.5" y="675" text-anchor="middle">JPA Repositories</text>
+<text class="sub" x="1107.5" y="704" text-anchor="middle">JpaRepository · EntityGraph</text>
+<text class="sub" x="1107.5" y="729" text-anchor="middle">Pessimistic lock</text>
+<rect x="965" y="842" width="285" height="110" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="1107.5" y="873" text-anchor="middle">JDBC access</text>
+<text class="sub" x="1107.5" y="902" text-anchor="middle">JdbcTemplate / Named</text>
+<text class="sub" x="1107.5" y="927" text-anchor="middle">Center · Student · Material</text>
+<rect x="965" y="1025" width="285" height="100" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="1107.5" y="1056" text-anchor="middle">Mail adapter</text>
+<text class="sub" x="1107.5" y="1085" text-anchor="middle">InvitationMailService</text>
+<text class="sub" x="1107.5" y="1110" text-anchor="middle">OAuth refresh · Gmail MIME</text>
+<rect x="965" y="1160" width="285" height="80" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="1107.5" y="1191" text-anchor="middle">Datasource</text>
+<text class="sub" x="1107.5" y="1220" text-anchor="middle">Hibernate · JDBC driver</text>
+<path class="edge" d="M1108 478 L1108 500 L352 500 L352 644"/>
+<text class="label" x="770" y="489" text-anchor="middle">forward API</text>
+<path class="edge" d="M352 770 L352 845"/>
+<text class="label" x="401" y="813" text-anchor="middle">qua filter</text>
+<path class="edge" d="M490 902 L540 902 L540 720 L590 720"/>
+<text class="label" x="536" y="785" text-anchor="middle">gọi service</text>
+<path class="edge" d="M865 700 L965 700"/>
+<text class="label" x="915" y="686" text-anchor="middle">JPA</text>
+<path class="edge" d="M865 755 L920 755 L920 897 L965 897"/>
+<text class="label" x="920" y="831" text-anchor="middle">SQL</text>
+<path class="edge" d="M728 796 L728 875"/>
+<text class="label" x="779" y="846" text-anchor="middle">ghép cặp</text>
+<path class="edge" d="M590 768 L558 768 L558 1140 L590 1140"/>
+<text class="label" x="550" y="1015" text-anchor="middle">entity</text>
+<path class="edge" d="M352 959 L352 1030"/>
+<text class="label" x="398" y="1000" text-anchor="middle">lỗi API</text>
+<path class="edge" d="M490 868 L525 868 L525 815 L940 815 L940 675 L965 675"/>
+<text class="label" x="746" y="807" text-anchor="middle">một số truy vấn trực tiếp</text>
+<path class="edge" d="M865 776 L900 776 L900 1075 L965 1075"/>
+<text class="label" x="895" y="1015" text-anchor="middle">gửi mail</text>
+<path class="edge" d="M1250 720 L1273 720 L1273 1195 L1250 1195"/>
+<path class="edge" d="M1250 920 L1260 920 L1260 1210 L1250 1210"/>
+<rect x="185" y="1340" width="695" height="150" rx="12" fill="#f6f8fb" stroke="#aebbc9" stroke-width="2"/>
+<path d="M185 1382H880" stroke="#aebbc9" stroke-width="1.5"/>
+<text class="title" x="532.5" y="1369" text-anchor="middle">EXTERNAL SERVICES</text>
+<rect x="215" y="1396" width="280" height="76" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="355.0" y="1427" text-anchor="middle">Google OAuth2</text>
+<text class="sub" x="355.0" y="1456" text-anchor="middle">Chỉ khi có cấu hình</text>
+<rect x="580" y="1396" width="275" height="76" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="717.5" y="1427" text-anchor="middle">Gmail API</text>
+<text class="sub" x="717.5" y="1456" text-anchor="middle">HTTPS · gửi lời mời / reset</text>
+<rect x="953" y="1340" width="310" height="150" rx="12" fill="#fff7e7" stroke="#d9ba76" stroke-width="2"/>
+<path d="M953 1382H1263" stroke="#d9ba76" stroke-width="1.5"/>
+<text class="title" x="1108.0" y="1369" text-anchor="middle">DATA TIER</text>
+<rect x="965" y="1396" width="285" height="76" rx="9" fill="white" stroke="#74889b" stroke-width="1.7"/>
+<text class="title" x="1107.5" y="1427" text-anchor="middle">PostgreSQL 17</text>
+<text class="sub" x="1107.5" y="1456" text-anchor="middle">18 bảng · BYTEA tài liệu</text>
+<path class="edge" d="M1108 1240 L1108 1396"/>
+<text class="label" x="1155" y="1320" text-anchor="middle">SQL</text>
+<path class="edge" d="M1020 1125 L1020 1143 L932 1143 L932 1310 L718 1310 L718 1396"/>
+<text class="label" x="823" y="1300" text-anchor="middle">HTTPS</text>
+<path class="edge" d="M215 1434 L160 1434 L160 704 L215 704" stroke-dasharray="8 5"/>
+<text class="label" x="108" y="573" text-anchor="middle">OAuth2 nếu bật</text>
+<text class="note" x="660" y="1520" text-anchor="middle">Phạm vi mã nguồn hiện tại • HTTP ở local; HTTPS cần được cấu hình khi triển khai.</text>
+</svg>

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "516468e5-96e3-40b9-b784-31653d857a6e",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "C:\\Users\\Lamtu\\OneDrive\\Documents\\Github\\ChessHub\\docs\\design\\schedule-sequence.json",
+  "output": "C:\\Users\\Lamtu\\OneDrive\\Documents\\Github\\ChessHub\\docs\\design\\schedule-sequence.html",
+  "specification": {
+    "sha256": "755c6d0fb9dd2f0ddb7e15f703799c927c4f30cc5f4eea1e5beaa03fa92abaa8",
+    "bytes": 4052
+  },
+  "artifact": {
+    "sha256": "8d54c457bf6f2e981341fd2b1030c029bb5e45f2d4f6d5992dd57285a1538c89",
+    "bytes": 814421
+  }
+}

@@ -3,7 +3,7 @@ const { chromium } = require('C:/Users/imtun/.cache/codex-runtimes/codex-primary
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 (async () => {
-  fs.mkdirSync('../.impeccable/review/board-editor', { recursive: true });
+  fs.mkdirSync('../agent/.impeccable/review/board-editor', { recursive: true });
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   let page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   async function toggleAnalysis(label, method = 'click') {
@@ -66,7 +66,7 @@ const fs = require('node:fs');
   await page.getByRole('button', { name: 'Lật bàn', exact: true }).click();
   await page.waitForFunction(() => document.querySelector('[data-square]').dataset.square === 'a8' && document.querySelector('.be-board').dataset.fen.startsWith('rnbqkbnr'));
   await page.evaluate(() => window.scrollTo(0, 0));
-  if (!process.argv.includes('--no-capture')) await page.screenshot({ path: '../.impeccable/review/board-editor/setup-desktop.png', fullPage: true });
+  if (!process.argv.includes('--no-capture')) await page.screenshot({ path: '../agent/.impeccable/review/board-editor/setup-desktop.png', fullPage: true });
   const confirmBounds = await page.getByRole('button', { name: 'Xác nhận thế cờ' }).boundingBox();
   const boardBounds = await page.locator('.be-board').boundingBox();
   assert.ok(confirmBounds.y >= boardBounds.y + boardBounds.height && confirmBounds.y - boardBounds.y - boardBounds.height <= 20);
@@ -101,7 +101,7 @@ const fs = require('node:fs');
   await page.waitForFunction(() => document.querySelector('.be-analysis-tools')?.dataset.status === 'done');
   assert.equal(await page.locator('.be-variations li').count(), 3);
   await page.evaluate(() => window.scrollTo(0, 0));
-  if (!process.argv.includes('--no-capture')) await page.screenshot({ path: '../.impeccable/review/board-editor/desktop.png', fullPage: true });
+  if (!process.argv.includes('--no-capture')) await page.screenshot({ path: '../agent/.impeccable/review/board-editor/desktop.png', fullPage: true });
   await toggleAnalysis('Mũi tên gợi ý', 'click');
   await page.waitForFunction(() => document.querySelectorAll('.be-board svg marker').length === 0);
   assert.equal(await page.locator('.be-eval-bar').count(), 1);
@@ -132,7 +132,7 @@ const fs = require('node:fs');
   await page.getByRole('heading', { name: 'Xếp thế cờ', exact: true }).waitFor();
   fen = ({ inputValue: () => page.locator('.be-board').getAttribute('data-fen') });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-  if (!process.argv.includes('--no-capture')) await page.screenshot({ path: '../.impeccable/review/board-editor/setup-mobile.png', fullPage: true });
+  if (!process.argv.includes('--no-capture')) await page.screenshot({ path: '../agent/.impeccable/review/board-editor/setup-mobile.png', fullPage: true });
   await page.getByRole('button', { name: 'Xóa bàn', exact: true }).click();
   await page.getByRole('button', { name: 'Chọn mã trắng' }).scrollIntoViewIfNeeded();
   await page.waitForTimeout(150);
@@ -151,7 +151,7 @@ const fs = require('node:fs');
   assert.equal(await page.locator('.be-board svg marker').count(), 0);
   assert.equal(await page.locator('.be-eval-bar').count(), 1);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-  if (!process.argv.includes('--no-capture')) await page.screenshot({ path: '../.impeccable/review/board-editor/mobile.png', fullPage: true });
+  if (!process.argv.includes('--no-capture')) await page.screenshot({ path: '../agent/.impeccable/review/board-editor/mobile.png', fullPage: true });
   assert.deepEqual(errors, []);
   // Force a failed engine download and verify retry creates a fresh worker.
   await toggleAnalysis('Đánh giá thế cờ', 'tap');

@@ -2,7 +2,7 @@ const { chromium } = require('C:/Users/imtun/.cache/codex-runtimes/codex-primary
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 (async () => {
-  fs.mkdirSync('../.impeccable/review/board-replay', { recursive: true });
+  fs.mkdirSync('../agent/.impeccable/review/board-replay', { recursive: true });
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   const errors = [];
   async function session(options) {
@@ -74,7 +74,7 @@ const fs = require('node:fs');
     assert.equal(geometry.overflow, false);
   }
   await centerCheck();
-  await page.screenshot({ path: '../.impeccable/review/board-replay/wide.png', fullPage: true });
+  await page.screenshot({ path: '../agent/.impeccable/review/board-replay/wide.png', fullPage: true });
   await page.getByRole('button', { name: 'Xem nước 2, Đen: exd4', exact: true }).click();
   await page.waitForTimeout(400);
   assert.equal(await page.locator('.be-board').getAttribute('data-fen'), liveFen);
@@ -85,7 +85,7 @@ const fs = require('node:fs');
   await move('g1', 'f3');
   await page.setViewportSize({ width: 1440, height: 1000 });
   await centerCheck();
-  await page.screenshot({ path: '../.impeccable/review/board-replay/desktop.png', fullPage: true });
+  await page.screenshot({ path: '../agent/.impeccable/review/board-replay/desktop.png', fullPage: true });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.getByRole('button', { name: 'Xem nước 1, Trắng: e4', exact: true }).focus(); await page.keyboard.press('Enter');
   await page.waitForTimeout(120);
@@ -99,7 +99,7 @@ const fs = require('node:fs');
   assert.equal(await phone.locator('.be-square--last-to').count(), 1);
   await phone.evaluate(() => window.scrollTo(0, 0));
   assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-  await phone.screenshot({ path: '../.impeccable/review/board-replay/mobile.png', fullPage: false });
+  await phone.screenshot({ path: '../agent/.impeccable/review/board-replay/mobile.png', fullPage: false });
   assert.deepEqual(errors, []);
   await browser.close();
   console.log('PASS: history replay motion/capture, return to untouched live game, continue playing, highlights, centered desktop/wide layout, mobile, keyboard and reduced motion.');

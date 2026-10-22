@@ -1,0 +1,1283 @@
+{
+  "tables": {
+    "users": {
+      "id": {
+        "name": "id",
+        "type": "UUID",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V1__merge_teacher_accounts_into_users.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "center_id": {
+        "name": "center_id",
+        "type": "UUID",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V1__merge_teacher_accounts_into_users.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "email": {
+        "name": "email",
+        "type": "VARCHAR(255)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V1__merge_teacher_accounts_into_users.sql",
+        "nullable": false,
+        "keys": [
+          "uk"
+        ]
+      },
+      "full_name": {
+        "name": "full_name",
+        "type": "VARCHAR(255)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V1__merge_teacher_accounts_into_users.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "role": {
+        "name": "role",
+        "type": "VARCHAR(255)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V1__merge_teacher_accounts_into_users.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "password_hash": {
+        "name": "password_hash",
+        "type": "VARCHAR(255)",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V1__merge_teacher_accounts_into_users.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "created_at": {
+        "name": "created_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": " NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V1__merge_teacher_accounts_into_users.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "google_subject": {
+        "name": "google_subject",
+        "type": "VARCHAR(255)",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V9__add_google_oauth_accounts.sql",
+        "nullable": true,
+        "keys": [
+          "uk"
+        ]
+      },
+      "must_change_password": {
+        "name": "must_change_password",
+        "type": "BOOLEAN",
+        "constraints": "NOT NULL DEFAULT FALSE",
+        "source": "backend/src/main/resources/db/migration/V11__require_initial_password_change.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "google_meet_url": {
+        "name": "google_meet_url",
+        "type": "VARCHAR(512)",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V14__add_account_google_meet_url.sql",
+        "nullable": true,
+        "keys": []
+      }
+    },
+    "student": {
+      "id": {
+        "name": "id",
+        "type": "UUID",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V3__create_student_table.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "full_name": {
+        "name": "full_name",
+        "type": "VARCHAR(255)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V3__create_student_table.sql",
+        "nullable": false,
+        "keys": [
+          "uk"
+        ]
+      },
+      "phone_number": {
+        "name": "phone_number",
+        "type": "VARCHAR(15)",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V3__create_student_table.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "parent_phone_number": {
+        "name": "parent_phone_number",
+        "type": "VARCHAR(15)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V3__create_student_table.sql",
+        "nullable": false,
+        "keys": [
+          "uk"
+        ]
+      },
+      "created_at": {
+        "name": "created_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "source": "backend/src/main/resources/db/migration/V3__create_student_table.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "center_id": {
+        "name": "center_id",
+        "type": "UUID",
+        "constraints": "REFERENCES centers(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": true,
+        "keys": [
+          "fk",
+          "uk"
+        ],
+        "references": "centers.id"
+      },
+      "owner_user_id": {
+        "name": "owner_user_id",
+        "type": "UUID",
+        "constraints": "REFERENCES users(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": true,
+        "keys": [
+          "fk",
+          "uk"
+        ],
+        "references": "users.id"
+      },
+      "parent_name": {
+        "name": "parent_name",
+        "type": "VARCHAR(255)",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "birth_date": {
+        "name": "birth_date",
+        "type": "DATE",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": true,
+        "keys": [
+          "uk"
+        ]
+      },
+      "updated_at": {
+        "name": "updated_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "notes": {
+        "name": "notes",
+        "type": "VARCHAR(4000)",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V20__add_student_notes.sql",
+        "nullable": true,
+        "keys": []
+      }
+    },
+    "class_sessions": {
+      "id": {
+        "name": "id",
+        "type": "UUID",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V4__create_class_sessions_table.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "class_id": {
+        "name": "class_id",
+        "type": "UUID",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V4__create_class_sessions_table.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "session_date": {
+        "name": "session_date",
+        "type": "DATE",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V4__create_class_sessions_table.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "start_time": {
+        "name": "start_time",
+        "type": "TIME",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V4__create_class_sessions_table.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "end_time": {
+        "name": "end_time",
+        "type": "TIME",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V4__create_class_sessions_table.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "schedule_override": {
+        "name": "schedule_override",
+        "type": "BOOLEAN",
+        "constraints": "NOT NULL DEFAULT FALSE",
+        "source": "backend/src/main/resources/db/migration/V17__mark_session_schedule_overrides.sql",
+        "nullable": false,
+        "keys": []
+      }
+    },
+    "session_attendance": {
+      "id": {
+        "name": "id",
+        "type": "UUID",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V5__create_session_attendance.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "session_id": {
+        "name": "session_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES class_sessions(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V5__create_session_attendance.sql",
+        "nullable": false,
+        "keys": [
+          "fk",
+          "uk"
+        ],
+        "references": "class_sessions.id"
+      },
+      "student_id": {
+        "name": "student_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES student(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V5__create_session_attendance.sql",
+        "nullable": false,
+        "keys": [
+          "fk",
+          "uk"
+        ],
+        "references": "student.id"
+      },
+      "status": {
+        "name": "status",
+        "type": "VARCHAR(20)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V5__create_session_attendance.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "noted_at": {
+        "name": "noted_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "source": "backend/src/main/resources/db/migration/V5__create_session_attendance.sql",
+        "nullable": false,
+        "keys": []
+      }
+    },
+    "tournaments": {
+      "id": {
+        "name": "id",
+        "type": "UUID",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "session_id": {
+        "name": "session_id",
+        "type": "UUID",
+        "constraints": "REFERENCES class_sessions(id)",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": true,
+        "keys": [
+          "fk"
+        ],
+        "references": "class_sessions.id"
+      },
+      "round_count": {
+        "name": "round_count",
+        "type": "INTEGER",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "status": {
+        "name": "status",
+        "type": "VARCHAR(32)",
+        "constraints": "NOT NULL DEFAULT 'ACTIVE'",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "created_at": {
+        "name": "created_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "teacher_id": {
+        "name": "teacher_id",
+        "type": "UUID",
+        "constraints": "REFERENCES users(id) NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V12__allow_standalone_open_ended_tournaments.sql",
+        "nullable": false,
+        "keys": [
+          "fk"
+        ],
+        "references": "users.id"
+      },
+      "name": {
+        "name": "name",
+        "type": "VARCHAR(255)",
+        "constraints": " NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V12__allow_standalone_open_ended_tournaments.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "class_id": {
+        "name": "class_id",
+        "type": "UUID",
+        "constraints": "REFERENCES chess_classes(id)",
+        "source": "backend/src/main/resources/db/migration/V13__link_tournaments_directly_to_classes.sql",
+        "nullable": true,
+        "keys": [
+          "fk"
+        ],
+        "references": "chess_classes.id"
+      }
+    },
+    "tournament_participants": {
+      "id": {
+        "name": "id",
+        "type": "UUID",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "tournament_id": {
+        "name": "tournament_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES tournaments(id)",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": [
+          "fk",
+          "uk"
+        ],
+        "references": "tournaments.id"
+      },
+      "student_id": {
+        "name": "student_id",
+        "type": "UUID",
+        "constraints": "REFERENCES student(id)",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": true,
+        "keys": [
+          "fk",
+          "uk"
+        ],
+        "references": "student.id"
+      },
+      "initial_seed": {
+        "name": "initial_seed",
+        "type": "INTEGER",
+        "constraints": "NOT NULL DEFAULT 0",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "full_name": {
+        "name": "full_name",
+        "type": "VARCHAR(255)",
+        "constraints": " NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V12__allow_standalone_open_ended_tournaments.sql",
+        "nullable": false,
+        "keys": []
+      }
+    },
+    "tournament_tie_breaks": {
+      "id": {
+        "name": "id",
+        "type": "UUID",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "tournament_id": {
+        "name": "tournament_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES tournaments(id)",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": [
+          "fk",
+          "uk"
+        ],
+        "references": "tournaments.id"
+      },
+      "tie_break_type": {
+        "name": "tie_break_type",
+        "type": "VARCHAR(64)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": [
+          "uk"
+        ]
+      },
+      "sort_order": {
+        "name": "sort_order",
+        "type": "INTEGER",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": []
+      }
+    },
+    "tournament_rounds": {
+      "id": {
+        "name": "id",
+        "type": "UUID",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "tournament_id": {
+        "name": "tournament_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES tournaments(id)",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": [
+          "fk",
+          "uk"
+        ],
+        "references": "tournaments.id"
+      },
+      "round_number": {
+        "name": "round_number",
+        "type": "INTEGER",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": [
+          "uk"
+        ]
+      },
+      "status": {
+        "name": "status",
+        "type": "VARCHAR(32)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "finalized_at": {
+        "name": "finalized_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "pairing_note": {
+        "name": "pairing_note",
+        "type": "VARCHAR(1000)",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V15__add_swiss_pairing_notes.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "pairing_search_limited": {
+        "name": "pairing_search_limited",
+        "type": "BOOLEAN",
+        "constraints": "NOT NULL DEFAULT FALSE",
+        "source": "backend/src/main/resources/db/migration/V15__add_swiss_pairing_notes.sql",
+        "nullable": false,
+        "keys": []
+      }
+    },
+    "tournament_pairings": {
+      "id": {
+        "name": "id",
+        "type": "UUID",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "round_id": {
+        "name": "round_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES tournament_rounds(id)",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": [
+          "fk",
+          "uk"
+        ],
+        "references": "tournament_rounds.id"
+      },
+      "board_number": {
+        "name": "board_number",
+        "type": "INTEGER",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": [
+          "uk"
+        ]
+      },
+      "white_participant_id": {
+        "name": "white_participant_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES tournament_participants(id)",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": [
+          "fk"
+        ],
+        "references": "tournament_participants.id"
+      },
+      "black_participant_id": {
+        "name": "black_participant_id",
+        "type": "UUID",
+        "constraints": "REFERENCES tournament_participants(id)",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": true,
+        "keys": [
+          "fk"
+        ],
+        "references": "tournament_participants.id"
+      },
+      "result": {
+        "name": "result",
+        "type": "VARCHAR(32)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "result_recorded_at": {
+        "name": "result_recorded_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+        "nullable": true,
+        "keys": []
+      }
+    },
+    "centers": {
+      "id": {
+        "name": "id",
+        "type": "UUID",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "owner_user_id": {
+        "name": "owner_user_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES users(id)",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": [
+          "fk"
+        ],
+        "references": "users.id"
+      },
+      "name": {
+        "name": "name",
+        "type": "VARCHAR(255)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "subscription_status": {
+        "name": "subscription_status",
+        "type": "VARCHAR(32)",
+        "constraints": "NOT NULL DEFAULT 'ACTIVE'",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "subscription_plan_code": {
+        "name": "subscription_plan_code",
+        "type": "VARCHAR(64)",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "subscription_started_at": {
+        "name": "subscription_started_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "subscription_ends_at": {
+        "name": "subscription_ends_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "created_at": {
+        "name": "created_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "updated_at": {
+        "name": "updated_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": []
+      }
+    },
+    "center_memberships": {
+      "center_id": {
+        "name": "center_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES centers(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": [
+          "fk",
+          "pk"
+        ],
+        "references": "centers.id"
+      },
+      "user_id": {
+        "name": "user_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES users(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": [
+          "fk",
+          "pk"
+        ],
+        "references": "users.id"
+      },
+      "role": {
+        "name": "role",
+        "type": "VARCHAR(32)",
+        "constraints": "NOT NULL DEFAULT 'TEACHER'",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "status": {
+        "name": "status",
+        "type": "VARCHAR(32)",
+        "constraints": "NOT NULL DEFAULT 'ACTIVE'",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "joined_at": {
+        "name": "joined_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": []
+      }
+    },
+    "center_invitations": {
+      "id": {
+        "name": "id",
+        "type": "UUID",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "center_id": {
+        "name": "center_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES centers(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": [
+          "fk",
+          "uk"
+        ],
+        "references": "centers.id"
+      },
+      "invited_user_id": {
+        "name": "invited_user_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES users(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": [
+          "fk",
+          "uk"
+        ],
+        "references": "users.id"
+      },
+      "invited_by_user_id": {
+        "name": "invited_by_user_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES users(id)",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": [
+          "fk"
+        ],
+        "references": "users.id"
+      },
+      "role": {
+        "name": "role",
+        "type": "VARCHAR(32)",
+        "constraints": "NOT NULL DEFAULT 'TEACHER'",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "status": {
+        "name": "status",
+        "type": "VARCHAR(32)",
+        "constraints": "NOT NULL DEFAULT 'PENDING'",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "created_at": {
+        "name": "created_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "responded_at": {
+        "name": "responded_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "expires_at": {
+        "name": "expires_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+        "nullable": true,
+        "keys": []
+      }
+    },
+    "chess_classes": {
+      "id": {
+        "name": "id",
+        "type": "UUID",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V7_1__create_chess_classes_table.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "teacher_id": {
+        "name": "teacher_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES users(id)",
+        "source": "backend/src/main/resources/db/migration/V7_1__create_chess_classes_table.sql",
+        "nullable": false,
+        "keys": [
+          "fk"
+        ],
+        "references": "users.id"
+      },
+      "name": {
+        "name": "name",
+        "type": "VARCHAR(255)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V7_1__create_chess_classes_table.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "schedule": {
+        "name": "schedule",
+        "type": "VARCHAR(255)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V7_1__create_chess_classes_table.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "student_count": {
+        "name": "student_count",
+        "type": "INTEGER",
+        "constraints": "NOT NULL DEFAULT 0",
+        "source": "backend/src/main/resources/db/migration/V7_1__create_chess_classes_table.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "tone": {
+        "name": "tone",
+        "type": "VARCHAR(255)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V7_1__create_chess_classes_table.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "fee_per_session": {
+        "name": "fee_per_session",
+        "type": "NUMERIC(12, 0)",
+        "constraints": "NOT NULL DEFAULT 0",
+        "source": "backend/src/main/resources/db/migration/V8__add_class_fee_per_session.sql",
+        "nullable": false,
+        "keys": []
+      }
+    },
+    "remember_login_tokens": {
+      "token_hash": {
+        "name": "token_hash",
+        "type": "VARCHAR(64)",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V10__create_remember_login_tokens.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "user_id": {
+        "name": "user_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES users(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V10__create_remember_login_tokens.sql",
+        "nullable": false,
+        "keys": [
+          "fk"
+        ],
+        "references": "users.id"
+      },
+      "expires_at": {
+        "name": "expires_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V10__create_remember_login_tokens.sql",
+        "nullable": true,
+        "keys": []
+      }
+    },
+    "teaching_materials": {
+      "id": {
+        "name": "id",
+        "type": "UUID",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "owner_user_id": {
+        "name": "owner_user_id",
+        "type": "UUID",
+        "constraints": "REFERENCES users(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": true,
+        "keys": [
+          "fk"
+        ],
+        "references": "users.id"
+      },
+      "center_id": {
+        "name": "center_id",
+        "type": "UUID",
+        "constraints": "REFERENCES centers(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": true,
+        "keys": [
+          "fk"
+        ],
+        "references": "centers.id"
+      },
+      "title": {
+        "name": "title",
+        "type": "VARCHAR(255)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "description": {
+        "name": "description",
+        "type": "VARCHAR(4000)",
+        "constraints": "NOT NULL DEFAULT ''",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "source_url": {
+        "name": "source_url",
+        "type": "VARCHAR(2048)",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "file_name": {
+        "name": "file_name",
+        "type": "VARCHAR(255)",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "content_type": {
+        "name": "content_type",
+        "type": "VARCHAR(128)",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "file_data": {
+        "name": "file_data",
+        "type": "BYTEA",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "deleted_at": {
+        "name": "deleted_at",
+        "type": "TIMESTAMPTZ",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "created_at": {
+        "name": "created_at",
+        "type": "TIMESTAMPTZ",
+        "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "updated_at": {
+        "name": "updated_at",
+        "type": "TIMESTAMPTZ",
+        "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": false,
+        "keys": []
+      }
+    },
+    "session_materials": {
+      "session_id": {
+        "name": "session_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES class_sessions(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": false,
+        "keys": [
+          "fk",
+          "pk"
+        ],
+        "references": "class_sessions.id"
+      },
+      "material_id": {
+        "name": "material_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES teaching_materials(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": false,
+        "keys": [
+          "fk",
+          "pk"
+        ],
+        "references": "teaching_materials.id"
+      },
+      "added_at": {
+        "name": "added_at",
+        "type": "TIMESTAMPTZ",
+        "constraints": "NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "source": "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql",
+        "nullable": false,
+        "keys": []
+      }
+    },
+    "password_reset_tokens": {
+      "token_hash": {
+        "name": "token_hash",
+        "type": "VARCHAR(64)",
+        "constraints": "PRIMARY KEY",
+        "source": "backend/src/main/resources/db/migration/V19__create_password_reset_tokens.sql",
+        "nullable": false,
+        "keys": [
+          "pk"
+        ]
+      },
+      "user_id": {
+        "name": "user_id",
+        "type": "UUID",
+        "constraints": "NOT NULL REFERENCES users(id) ON DELETE CASCADE",
+        "source": "backend/src/main/resources/db/migration/V19__create_password_reset_tokens.sql",
+        "nullable": false,
+        "keys": [
+          "fk"
+        ],
+        "references": "users.id"
+      },
+      "email": {
+        "name": "email",
+        "type": "VARCHAR(255)",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V19__create_password_reset_tokens.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "password_hash_at_request": {
+        "name": "password_hash_at_request",
+        "type": "VARCHAR(255)",
+        "constraints": "",
+        "source": "backend/src/main/resources/db/migration/V19__create_password_reset_tokens.sql",
+        "nullable": true,
+        "keys": []
+      },
+      "created_at": {
+        "name": "created_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V19__create_password_reset_tokens.sql",
+        "nullable": false,
+        "keys": []
+      },
+      "expires_at": {
+        "name": "expires_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "constraints": "NOT NULL",
+        "source": "backend/src/main/resources/db/migration/V19__create_password_reset_tokens.sql",
+        "nullable": false,
+        "keys": []
+      }
+    },
+    "chess_class_students": {
+      "chess_class_id": {
+        "name": "chess_class_id",
+        "type": "UUID",
+        "constraints": "NOT NULL; FK JPA → chess_classes(id)",
+        "source": "backend/src/main/java/vn/chesshub/entity/ChessClass.java",
+        "nullable": false,
+        "keys": [
+          "fk"
+        ],
+        "references": "chess_classes.id"
+      },
+      "student_id": {
+        "name": "student_id",
+        "type": "UUID",
+        "constraints": "NOT NULL; FK JPA → student(id)",
+        "source": "backend/src/main/java/vn/chesshub/entity/ChessClass.java",
+        "nullable": false,
+        "keys": [
+          "fk"
+        ],
+        "references": "student.id"
+      }
+    }
+  },
+  "constraints": {
+    "users": [
+      "CREATE UNIQUE INDEX IF NOT EXISTS users_email_key ON users(email);",
+      "CREATE UNIQUE INDEX IF NOT EXISTS users_google_subject_key ON users(google_subject);"
+    ],
+    "student": [
+      "CREATE INDEX student_center_idx ON student(center_id) WHERE center_id IS NOT NULL;",
+      "CREATE INDEX student_owner_user_idx ON student(owner_user_id) WHERE owner_user_id IS NOT NULL;",
+      "CREATE UNIQUE INDEX student_center_identity_unique_idx ON student(center_id, full_name, birth_date, parent_phone_number) WHERE center_id IS NOT NULL;",
+      "CREATE UNIQUE INDEX student_owner_identity_unique_idx ON student(owner_user_id, full_name, birth_date, parent_phone_number) WHERE owner_user_id IS NOT NULL;"
+    ],
+    "class_sessions": [
+      "CONSTRAINT class_sessions_time_range_check CHECK (end_time > start_time)",
+      "CREATE INDEX IF NOT EXISTS class_sessions_class_date_idx ON class_sessions(class_id, session_date);"
+    ],
+    "session_attendance": [
+      "CONSTRAINT session_attendance_status_check CHECK (status IN ('PRESENT', 'ABSENT', 'LATE'))",
+      "CONSTRAINT session_attendance_session_student_key UNIQUE (session_id, student_id)",
+      "CREATE INDEX IF NOT EXISTS session_attendance_session_idx ON session_attendance(session_id);"
+    ],
+    "tournaments": [
+      "CREATE INDEX ix_tournaments_teacher_created ON tournaments(teacher_id, created_at DESC);",
+      "CREATE INDEX ix_tournaments_class ON tournaments(class_id);"
+    ],
+    "tournament_participants": [
+      "CREATE UNIQUE INDEX IF NOT EXISTS uq_tournament_participants_tournament_student ON tournament_participants(tournament_id, student_id);"
+    ],
+    "tournament_tie_breaks": [
+      "CREATE UNIQUE INDEX IF NOT EXISTS uq_tournament_tie_breaks_tournament_type ON tournament_tie_breaks(tournament_id, tie_break_type);"
+    ],
+    "tournament_rounds": [
+      "CREATE UNIQUE INDEX IF NOT EXISTS uq_tournament_rounds_tournament_number ON tournament_rounds(tournament_id, round_number);"
+    ],
+    "tournament_pairings": [
+      "CREATE UNIQUE INDEX IF NOT EXISTS uq_tournament_pairings_round_board ON tournament_pairings(round_id, board_number);"
+    ],
+    "centers": [
+      "CONSTRAINT centers_subscription_status_check\n    CHECK (subscription_status IN ('ACTIVE', 'PAST_DUE', 'CANCELLED', 'EXPIRED'))",
+      "CREATE INDEX centers_owner_user_idx ON centers(owner_user_id);"
+    ],
+    "center_memberships": [
+      "PRIMARY KEY (center_id, user_id)",
+      "CONSTRAINT center_memberships_role_check\n    CHECK (role IN ('OWNER', 'ADMIN', 'TEACHER'))",
+      "CONSTRAINT center_memberships_status_check\n    CHECK (status IN ('ACTIVE', 'SUSPENDED', 'LEFT'))",
+      "CREATE INDEX center_memberships_user_idx ON center_memberships(user_id) WHERE status = 'ACTIVE';"
+    ],
+    "center_invitations": [
+      "CONSTRAINT center_invitations_role_check\n    CHECK (role IN ('ADMIN', 'TEACHER'))",
+      "CONSTRAINT center_invitations_status_check\n    CHECK (status IN ('PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED'))",
+      "CREATE UNIQUE INDEX center_invitations_pending_unique_idx ON center_invitations(center_id, invited_user_id) WHERE status = 'PENDING';",
+      "CREATE INDEX center_invitations_invited_user_idx ON center_invitations(invited_user_id) WHERE status = 'PENDING';"
+    ],
+    "chess_classes": [
+      "CONSTRAINT chess_classes_fee_per_session_check CHECK (fee_per_session >= 0)"
+    ],
+    "remember_login_tokens": [
+      "CREATE INDEX IF NOT EXISTS remember_login_tokens_expiry_idx ON remember_login_tokens(expires_at);"
+    ],
+    "teaching_materials": [
+      "CONSTRAINT material_owner_check CHECK ((owner_user_id IS NULL) <> (center_id IS NULL))",
+      "CONSTRAINT material_source_check CHECK ((source_url IS NULL) <> (file_data IS NULL))",
+      "CREATE INDEX teaching_materials_owner_idx ON teaching_materials(owner_user_id) WHERE deleted_at IS NULL;",
+      "CREATE INDEX teaching_materials_center_idx ON teaching_materials(center_id) WHERE deleted_at IS NULL;"
+    ],
+    "session_materials": [
+      "PRIMARY KEY (session_id, material_id)"
+    ],
+    "password_reset_tokens": [
+      "CREATE INDEX password_reset_tokens_user_idx ON password_reset_tokens(user_id);"
+    ],
+    "chess_class_students": [
+      "Bảng nối @ManyToMany từ Set<Student>; schema vật lý do Hibernate sinh, chưa có CREATE TABLE Flyway riêng. Không xác nhận tên constraint vật lý khi chưa introspect DB."
+    ]
+  },
+  "sources": {
+    "users": [
+      "backend/src/main/resources/db/migration/V1__merge_teacher_accounts_into_users.sql",
+      "backend/src/main/resources/db/migration/V9__add_google_oauth_accounts.sql",
+      "backend/src/main/resources/db/migration/V11__require_initial_password_change.sql",
+      "backend/src/main/resources/db/migration/V14__add_account_google_meet_url.sql",
+      "backend/src/main/resources/db/migration/V2__enforce_unique_user_emails.sql"
+    ],
+    "student": [
+      "backend/src/main/resources/db/migration/V3__create_student_table.sql",
+      "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql",
+      "backend/src/main/resources/db/migration/V20__add_student_notes.sql"
+    ],
+    "class_sessions": [
+      "backend/src/main/resources/db/migration/V4__create_class_sessions_table.sql",
+      "backend/src/main/resources/db/migration/V17__mark_session_schedule_overrides.sql"
+    ],
+    "session_attendance": [
+      "backend/src/main/resources/db/migration/V5__create_session_attendance.sql"
+    ],
+    "tournaments": [
+      "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+      "backend/src/main/resources/db/migration/V12__allow_standalone_open_ended_tournaments.sql",
+      "backend/src/main/resources/db/migration/V13__link_tournaments_directly_to_classes.sql"
+    ],
+    "tournament_participants": [
+      "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+      "backend/src/main/resources/db/migration/V12__allow_standalone_open_ended_tournaments.sql"
+    ],
+    "tournament_tie_breaks": [
+      "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql"
+    ],
+    "tournament_rounds": [
+      "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql",
+      "backend/src/main/resources/db/migration/V15__add_swiss_pairing_notes.sql"
+    ],
+    "tournament_pairings": [
+      "backend/src/main/resources/db/migration/V6__create_swiss_tournament_rounds.sql"
+    ],
+    "centers": [
+      "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql"
+    ],
+    "center_memberships": [
+      "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql"
+    ],
+    "center_invitations": [
+      "backend/src/main/resources/db/migration/V7__add_centers_and_scope_students.sql"
+    ],
+    "chess_classes": [
+      "backend/src/main/resources/db/migration/V7_1__create_chess_classes_table.sql",
+      "backend/src/main/resources/db/migration/V8__add_class_fee_per_session.sql"
+    ],
+    "remember_login_tokens": [
+      "backend/src/main/resources/db/migration/V10__create_remember_login_tokens.sql",
+      "backend/src/main/resources/db/migration/V18__remember_login_until_revoked.sql"
+    ],
+    "teaching_materials": [
+      "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql"
+    ],
+    "session_materials": [
+      "backend/src/main/resources/db/migration/V16__create_teaching_materials.sql"
+    ],
+    "password_reset_tokens": [
+      "backend/src/main/resources/db/migration/V19__create_password_reset_tokens.sql"
+    ],
+    "chess_class_students": [
+      "backend/src/main/java/vn/chesshub/entity/ChessClass.java"
+    ]
+  }
+}

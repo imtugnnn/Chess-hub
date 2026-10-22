@@ -8,7 +8,7 @@ const teacher = { id: '11111111-1111-1111-1111-111111111111', fullName: 'Nguyễ
 const existing = { id: '44444444-4444-4444-4444-444444444444', fullName: 'Nguyễn Minh An', birthDate: '2015-01-02', parentName: '', parentPhoneNumber: '', phoneNumber: '', notes: '', classes: [], canEdit: true };
 const classroom = { id: classId, name: 'Lớp cờ', feePerSession: 100000, studentCount: 0, schedule: '' };
 (async () => {
-  fs.mkdirSync('../.impeccable/review/student-entry', { recursive: true });
+  fs.mkdirSync('../agent/.impeccable/review/student-entry', { recursive: true });
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -56,7 +56,7 @@ const classroom = { id: classId, name: 'Lớp cờ', feePerSession: 100000, stud
     await page.locator('.student-draft--confirmed').waitFor();
     await page.waitForTimeout(250);
     assert(await page.locator('.student-draft__panel').evaluate(el => el.getBoundingClientRect().height < 1));
-    await page.screenshot({ path: '../.impeccable/review/student-entry/create-desktop.png', fullPage: true });
+    await page.screenshot({ path: '../agent/.impeccable/review/student-entry/create-desktop.png', fullPage: true });
     await page.getByRole('button', { name: 'Tạo lớp', exact: true }).click();
     await page.getByRole('heading', { name: /Chào Anh/ }).waitFor();
     const createWrite = writes.find(write => write.path.endsWith('/classes'));
@@ -89,11 +89,11 @@ const classroom = { id: classId, name: 'Lớp cờ', feePerSession: 100000, stud
     assert(writes.at(-1).path.endsWith('/students/' + existing.id));
     await fields().getByRole('combobox').fill('Nguyễn');
     await fields().getByRole('option').waitFor();
-    await page.screenshot({ path: '../.impeccable/review/student-entry/class-desktop.png', fullPage: true });
+    await page.screenshot({ path: '../agent/.impeccable/review/student-entry/class-desktop.png', fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     assert.equal(await page.locator('[placeholder]').count(), 0);
-    await page.screenshot({ path: '../.impeccable/review/student-entry/class-mobile.png', fullPage: true });
+    await page.screenshot({ path: '../agent/.impeccable/review/student-entry/class-mobile.png', fullPage: true });
     assert.deepEqual(errors, []);
     console.log('Passed: optional parents, Enter/Shift+Enter, confirmation focus, reuse by ID, class create/add, suggestions, no placeholders, mobile overflow.');
   } finally { await browser.close(); }

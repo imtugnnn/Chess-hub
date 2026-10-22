@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "72e9000b-177f-4eeb-ab0d-68cd12580667",
+  "status": "current",
+  "command": "deliver",
+  "type": "class",
+  "input": "C:\\Users\\Lamtu\\OneDrive\\Documents\\Github\\ChessHub\\docs\\design\\classes.json",
+  "output": "C:\\Users\\Lamtu\\OneDrive\\Documents\\Github\\ChessHub\\docs\\design\\classes.html",
+  "specification": {
+    "sha256": "cc9288f7b3c93a57bec266cd0cf91db156bb1430c398375522869ebbb5936f16",
+    "bytes": 4791
+  },
+  "artifact": {
+    "sha256": "e99c807d5724a4ddf557875d76210d1e4002df5cabb777befcc0298fdbda1ac7",
+    "bytes": 823906
+  }
+}
