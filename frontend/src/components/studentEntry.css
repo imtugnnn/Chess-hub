@@ -1,0 +1,17 @@
+.student-entry-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; min-width: 0; }
+.student-draft__panel[hidden] { display: none; }
+.student-entry-fields > label { display: grid; gap: 8px; min-width: 0; color: var(--ui-text); font-size: 13px; }
+.student-entry-fields .student-entry-name, .student-entry-help, .student-entry-fields .student-notes-field { grid-column: 1 / -1; }
+.student-name-autocomplete { position: relative; display: block; min-width: 0; }
+.student-name-autocomplete > input { width: 100%; }
+.student-name-status { position: absolute; inset: calc(100% + 4px) 0 auto; z-index: 31; padding: 10px 12px; border: 1px solid var(--ui-border); border-radius: 8px; background: var(--workspace-surface); color: var(--ui-muted); font-size: 12px; line-height: 1.6; }
+.student-entry-fields input { min-width: 0; width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--ui-border); border-radius: var(--ui-control-radius); color: var(--ui-text); background: var(--workspace-surface); font: inherit; }
+.student-entry-fields input[readonly], .student-entry-fields textarea[readonly] { background: var(--ui-soft); }
+.student-entry-help { margin: 0; color: var(--ui-muted); font-size: 12px; line-height: 1.7; }
+.student-name-suggestions { position: absolute; z-index: 30; inset: calc(100% + 4px) 0 auto; display: grid; max-height: 260px; overflow-y: auto; padding: 4px; border: 1px solid var(--ui-border); border-radius: 8px; background: var(--workspace-surface); }
+.student-name-suggestions[hidden] { display: none; }
+.student-name-suggestions > button { display: grid; gap: 4px; width: 100%; min-height: 48px; padding: 10px; border: 0; border-radius: 6px; text-align: left; color: var(--ui-text); background: transparent; font: inherit; }
+.student-name-suggestions > button:hover, .student-name-suggestions > button[aria-selected="true"] { background: var(--ui-selected); }
+.student-name-suggestions small { color: var(--ui-muted); font-size: 12px; }
+.students-form-fields > .student-entry-fields { grid-column: 1 / -1; }
+@media (max-width: 600px) { .student-entry-fields { grid-template-columns: minmax(0, 1fr); } }

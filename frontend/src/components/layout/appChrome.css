@@ -1,0 +1,89 @@
+/* Authenticated application shell. Every page opts in through AppChrome. */
+.app-shell:has(> .app-headbar) {
+  --ui-navy: #5d50df; --ui-primary-hover: #4b3dc4; --ui-selected: #f0ecff;
+  --ui-text: #24234b; --ui-muted: #666783;
+  --ui-sidebar: #f2f3f7;
+  display: grid; grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-rows: 92px minmax(0, 1fr); align-items: start;
+}
+.app-shell:has(> .app-headbar):has(> .sidebar--collapsed) { grid-template-columns: 76px minmax(0, 1fr); }
+.app-shell:has(> .app-headbar) > .sidebar { grid-column: 1; grid-row: 1 / 3; padding: 26px 16px 20px; border: 0; background: var(--ui-sidebar); }
+.app-shell:has(> .app-headbar) > main { grid-column: 2; grid-row: 2; }
+.app-headbar { grid-column: 2; grid-row: 1; display: flex; justify-content: space-between; align-items: center; gap: 24px; width: 100%; min-width: 0; min-height: 92px; padding: 20px 32px; background: #fff; color: var(--ui-text); }
+.app-headbar h1 { min-width: 0; margin: 0; font-size: 24px; line-height: 1.35; letter-spacing: -.025em; font-weight: 700; overflow-wrap: anywhere; }
+.app-headbar .home-account { position: relative; margin-left: auto; min-width: 0; flex-shrink: 0; }
+.app-headbar .home-account-trigger { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
+.app-headbar .home-avatar { display: grid; place-items: center; flex: 0 0 42px; height: 42px; border-radius: 12px; background: #ffecd3; color: #835229; font-size: 14px; font-weight: 700; }
+.app-headbar .home-account-name { display: grid; gap: 5px; min-width: 0; }
+.app-headbar .home-account-name strong { max-width: 180px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-headbar .home-account-name small { font-size: 11px; color: var(--ui-muted); }
+.app-headbar .home-account-trigger > svg { transform: rotate(90deg); }
+.app-headbar .home-account-actions { position: absolute; top: calc(100% + 12px); right: 0; width: 225px; max-width: calc(100vw - 32px); padding: 8px; border-radius: 12px; background: #fff; box-shadow: 0 12px 32px #24234b20; z-index: 45; }
+.app-headbar .home-account-actions button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 10px; border: 0; border-radius: 8px; background: transparent; color: var(--ui-text); text-align: left; font-size: 13px; }
+.app-headbar .home-account-actions button:hover { background: #f0ecff; }
+.app-headbar :is(button,a):focus-visible { outline: 2px solid #5d50df; outline-offset: 3px; }
+.app-headbar ::selection { background: #ddd5ff; color: #24234b; }
+/* Submenus keep their content height while the navigation owns scrolling. */
+.sidebar.sidebar--reference nav { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+.sidebar.sidebar--reference nav > * { flex-shrink: 0; }
+/* Reserve the scrollbar outside the menu's painted width, even before overflow. */
+@property --sidebar-scroll-thumb {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+.sidebar.sidebar--reference.sidebar--reference nav {
+  width: calc(100% + 10px);
+  margin-right: -10px;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  --sidebar-scroll-thumb: #b7c9dc;
+  scrollbar-color: var(--sidebar-scroll-thumb) transparent;
+  transition: --sidebar-scroll-thumb 400ms ease-out;
+}
+.sidebar.sidebar--reference.sidebar--reference nav::-webkit-scrollbar { width: 6px; }
+.sidebar.sidebar--reference.sidebar--reference nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar.sidebar--reference.sidebar--reference nav::-webkit-scrollbar-thumb { background: var(--sidebar-scroll-thumb); border-radius: 6px; }
+.sidebar.sidebar--reference.sidebar--reference nav::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+/* Let Chromium use the explicit 6px track rather than its native scrollbar sizing. */
+@supports selector(::-webkit-scrollbar) {
+  .sidebar.sidebar--reference.sidebar--reference nav { scrollbar-color: auto; }
+}
+@media (hover: hover) {
+  .sidebar.sidebar--reference.sidebar--reference:not(:hover) nav { --sidebar-scroll-thumb: transparent; }
+  .sidebar.sidebar--reference.sidebar--reference:focus-within nav { --sidebar-scroll-thumb: #b7c9dc; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar.sidebar--reference.sidebar--reference nav { transition: none; }
+}
+.sidebar.sidebar--reference .class-menu { display: block; }
+.sidebar.sidebar--reference .reference-sidebar-footer { flex-shrink: 0; }
+.sidebar.sidebar--reference .sidebar-menu-row--active :is(.class-menu__trigger, .sidebar-quick-create) { color: #fff; }
+.sidebar.sidebar--reference .sidebar-menu-row--active .sidebar-nav-label { color: #fff; }
+.sidebar-flyout { --ui-text: #24234b; --ui-muted: #666783; --ui-selected: #f0ecff; }
+.home-reference .home-date { display: flex; align-items: center; gap: 10px; color: #443a74; font-size: 16px; font-weight: 600; line-height: 1.5; }
+.home-reference .home-date svg { width: 21px; height: 21px; }
+.home-reference .home-class-search { padding: 0 22px 16px; }
+.home-reference .home-class-search label { display: block; margin-bottom: 8px; color: var(--home-muted); font-size: 12px; }
+.home-reference .home-class-search > div { display: flex; align-items: center; gap: 10px; padding-left: 12px; border: 1px solid #ded9f0; border-radius: 8px; color: var(--home-muted); }
+.home-reference .home-class-search input { min-width: 0; width: 100%; min-height: 44px; padding: 8px; border: 0; background: transparent; font: inherit; font-size: 14px; }
+.home-reference .home-class-search input::-webkit-search-cancel-button { display: none; }
+.home-reference .home-class-search button { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--home-muted); }
+@media (max-width: 1150px) { .app-headbar { padding-inline: 24px; } .app-headbar .home-account-name { display: none; } }
+@media (max-width: 760px) {
+  .app-shell:has(> .app-headbar) { display: flex; flex-direction: column; }
+  .app-shell:has(> .app-headbar) > .sidebar { width: 100%; height: auto; min-height: 72px; padding: 18px 70px 18px 20px; }
+  .app-shell:has(> .app-headbar) > main { width: 100%; }
+  .app-headbar { min-height: 76px; padding: 14px 20px; gap: 16px; }
+  .app-headbar h1 { font-size: 22px; }
+  .sidebar.sidebar--reference nav { display: none; }
+  .sidebar.sidebar--reference.sidebar--open nav { display: flex; }
+  .home-reference .home-welcome { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .home-reference .home-date { font-size: 14px; }
+  .home-reference .home-class-search { padding-inline: 16px; }
+  .home-reference .home-class-search input { font-size: 16px; }
+}
+.sidebar.sidebar--reference .nav-item--active:hover,
+.sidebar.sidebar--reference .sidebar-menu-row--active:hover { background: #4b3dc4; color: #fff; }
+.sidebar-flyout { --ui-navy: #5d50df; }

@@ -1,0 +1,194 @@
+// Isolated browser regression: all API traffic is mocked; no real data is read or written.
+const { chromium } = require('C:/Users/imtun/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const base = process.env.CREATE_CLASS_REVIEW_URL || 'http://127.0.0.1:5191';
+const output = '../agent/.impeccable/review/unified-student-entry';
+const teacher = { id: '11111111-1111-1111-1111-111111111111', fullName: 'Giáo viên minh họa' };
+const classId = '33333333-3333-3333-3333-333333333333';
+const profiles = [{ id: '22222222-2222-2222-2222-222222222222', fullName: 'Nguyễn Minh An', birthDate: '2017-03-12', parentPhoneNumber: '0901234567' }, { id: '44444444-4444-4444-4444-444444444444', fullName: 'Lê Khánh Linh', birthDate: '2018-09-08' }];
+(async () => {
+  fs.mkdirSync(output, { recursive: true });
+  const browser = await chromium.launch({ channel: 'msedge', headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1600, height: 1050 }, hasTouch: true });
+    const errors = [], creates = [], queries = [];
+    let failSearch = false, failCreate = false, releaseSlow, startSlow;
+    const slowStarted = new Promise(resolve => { startSlow = resolve; });
+    page.on('pageerror', error => { errors.push(error.message); console.error('PAGE ERROR:', error.message); });
+    await page.route('**/api/**', async route => {
+      const url = new URL(route.request().url()); const path = url.pathname;
+      let json = [], status = 200;
+      if (path.endsWith('/auth/me')) json = teacher;
+      else if (path.endsWith('/auth/csrf')) json = { headerName: 'X-CSRF-TOKEN', token: 'mock' };
+      else if (path.endsWith('/students/options')) json = { centers: [{ id: 'center-test', name: 'Trung tâm minh họa' }], classes: [] };
+      else if (path.endsWith('/students')) {
+        const search = url.searchParams.get('query') || '';
+        queries.push(url.searchParams.get('scope'));
+        const fold = text => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').toLowerCase();
+        const matches = search === 'Nhóm' ? Array.from({ length: 26 }, (_, i) => ({ id: `group-${i}`, fullName: `Nhóm ${i + 1}` })) : profiles.filter(row => fold(row.fullName).includes(fold(search)));
+        const pageNumber = Number(url.searchParams.get('page') || 0);
+        json = { items: matches.slice(pageNumber * 25, (pageNumber + 1) * 25), total: matches.length, page: pageNumber };
+        if (search === 'Chậm') { startSlow(); await new Promise(resolve => { releaseSlow = resolve; }); json = { items: [{ id: 'old', fullName: 'Kết quả cũ' }], total: 1, page: 0 }; }
+        if (failSearch) { status = 503; json = { message: 'Không thể tải danh sách thử nghiệm.' }; }
+      }
+      else if (path.endsWith('/classes') && route.request().method() === 'POST') { creates.push(route.request().postDataJSON()); json = { id: classId }; if (failCreate) { status = 409; json = { message: 'Lịch học bị trùng. Hãy kiểm tra lại.' }; } }
+      else if (path.endsWith(`/classes/${classId}`)) json = { chessClass: { id: classId, name: 'Cờ vua căn bản', scopeConfirmed: true, students: [] }, students: [], sessions: [] };
+      await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(json) });
+    });
+    await page.goto(`${base}/classes/new?date=2026-11-03`);
+    await page.getByRole('heading', { name: 'Tạo lớp mới', exact: true }).waitFor();
+    await page.getByLabel('Lớp thuộc').waitFor();
+    await page.getByLabel('Tên lớp', { exact: true }).fill('Cờ vua căn bản');
+    await page.getByLabel('Học phí mỗi buổi (VNĐ)', { exact: true }).fill('150000');
+    const name = () => page.getByRole('combobox', { name: 'Họ và tên học sinh', exact: true });
+    assert.equal(await page.getByRole('button', { name: 'Chọn từ danh sách', exact: true }).count(), 0);
+    assert(await page.getByRole('button', { name: 'Thêm vào danh sách', exact: true }).isDisabled());
+    await name().fill('T');
+    await page.getByText('Nhập ít nhất 2 ký tự để tìm hồ sơ có sẵn trước khi thêm.').waitFor();
+    failSearch = true;
+    await name().fill('Thử lỗi');
+    await page.getByRole('alert').filter({ hasText: 'Chưa kiểm tra được hồ sơ' }).waitFor();
+    assert.equal(await name().inputValue(), 'Thử lỗi');
+    assert.equal(await page.getByRole('button', { name: /Thêm học sinh mới:/ }).count(), 0);
+    failSearch = false;
+    await page.getByRole('button', { name: 'Thử lại', exact: true }).click();
+    await page.getByText('Chưa tìm thấy học sinh trong phạm vi này.', { exact: true }).waitFor();
+    await name().fill('Chậm');
+    await slowStarted;
+    await page.getByRole('status').filter({ hasText: 'Đang tìm học sinh' }).waitFor();
+    assert(await page.getByRole('button', { name: 'Thêm vào danh sách', exact: true }).isDisabled());
+    await name().fill('Nguyễn');
+    await page.getByRole('option', { name: /Nguyễn Minh An/ }).waitFor();
+    const slowResponse = page.waitForResponse(response => new URL(response.url()).searchParams.get('query') === 'Chậm');
+    releaseSlow();
+    await (await slowResponse).finished();
+    await page.getByRole('option', { name: /Nguyễn Minh An/ }).waitFor();
+    assert.equal(await page.getByRole('option', { name: /Kết quả cũ/ }).count(), 0);
+    await name().fill('Nhóm');
+    await page.getByRole('option', { name: /^Nhóm 1 / }).waitFor();
+    for (let step = 0; step < 6; step++) await name().press('ArrowDown');
+    await page.waitForFunction(() => {
+      const input = document.querySelector('.roster-editor input[role=combobox]');
+      const option = document.getElementById(input.getAttribute('aria-activedescendant'));
+      if (!option) return false;
+      const rect = option.getBoundingClientRect(), list = option.parentElement.getBoundingClientRect();
+      return rect.top >= list.top - 1 && rect.bottom <= list.bottom + 1;
+    });
+    await name().press('Escape');
+    await page.getByRole('button', { name: 'Sau', exact: true }).click();
+    await page.getByRole('option', { name: /Nhóm 26/ }).waitFor();
+    assert.equal(await page.getByText('Chưa tìm thấy học sinh trong phạm vi này.', { exact: true }).count(), 0);
+    await name().fill('Trần Gia Bảo');
+    await page.getByRole('button', { name: 'Bổ sung thông tin', exact: true }).click();
+    await page.getByLabel('Số điện thoại phụ huynh (không bắt buộc)', { exact: true }).fill('0987654321');
+    await page.getByRole('button', { name: /Thêm học sinh mới: Trần Gia Bảo/ }).click();
+    assert.equal(await page.getByLabel('Số điện thoại phụ huynh (không bắt buộc)', { exact: true }).inputValue(), '0987654321');
+    await page.getByRole('button', { name: 'Thêm vào danh sách', exact: true }).click();
+    await page.getByRole('table', { name: 'Danh sách học sinh chờ tạo lớp' }).waitFor();
+    assert.equal(await page.getByRole('row').count(), 2);
+    await name().fill('  trần  gia bảo ');
+    await page.getByRole('button', { name: /Thêm học sinh mới:/ }).click();
+    await page.getByRole('button', { name: 'Thêm vào danh sách', exact: true }).click();
+    await page.getByRole('alert').filter({ hasText: 'đã có trong danh sách' }).waitFor();
+    await name().fill('Nguyễn');
+    await page.getByRole('option', { name: /Nguyễn Minh An/ }).waitFor();
+    assert(await page.getByRole('button', { name: 'Thêm vào danh sách', exact: true }).isDisabled());
+    await name().press('ArrowDown');
+    await name().press('Enter');
+    await page.getByText('Đang dùng hồ sơ có sẵn.', { exact: false }).waitFor();
+    assert.equal(await name().inputValue(), profiles[0].fullName);
+    await page.getByRole('button', { name: 'Thêm vào danh sách', exact: true }).click();
+    await name().fill('Lê');
+    await page.getByRole('option', { name: /Lê Khánh Linh/ }).click();
+    await page.getByRole('button', { name: 'Thêm vào danh sách', exact: true }).click();
+    assert.equal(await page.getByRole('row').count(), 4);
+    assert.equal(await page.getByLabel('Lớp thuộc').isDisabled(), true);
+    assert(queries.every(scope => scope === 'personal'));
+    await name().fill('Nguyễn');
+    const used = page.getByRole('option', { name: /Nguyễn Minh An.*Đã thêm/ });
+    await used.waitFor();
+    assert(await used.isDisabled());
+    await name().dispatchEvent('keydown', { key: 'Enter', isComposing: true });
+    assert.equal(await name().inputValue(), 'Nguyễn');
+    assert.equal(creates.length, 0);
+    await name().press('Escape');
+    await name().fill('');
+    await page.getByRole('button', { name: 'Sửa Trần Gia Bảo', exact: true }).click();
+    await page.getByRole('button', { name: 'Bổ sung thông tin', exact: true }).click();
+    await page.getByLabel('Số điện thoại phụ huynh (không bắt buộc)', { exact: true }).fill('0987654321');
+    await page.getByRole('button', { name: 'Cập nhật danh sách', exact: true }).click();
+    await page.getByRole('radio', { name: 'Định kỳ hàng tuần', exact: true }).click();
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.schedule-mode-toggle button[aria-checked="true"]')).backgroundColor === 'rgb(78, 112, 152)');
+    await page.getByRole('button', { name: 'T3', exact: true }).click();
+    await page.getByRole('button', { name: 'T5', exact: true }).click();
+    await page.getByRole('button', { name: /Khoảng ngày/ }).click();
+    // Calendar navigation and selection use its actual buttons rather than fabricated state.
+    const calendar = page.locator('#recurring-date-popover');
+    for (let i = 0; i < 24 && !(await calendar.locator('.manual-date-picker__header strong').innerText()).includes('11 năm 2026'); i++) {
+      await calendar.getByRole('button', { name: 'Tháng sau', exact: true }).click();
+    }
+    await calendar.locator('.manual-date-picker__grid button').filter({ hasText: /^1$/ }).click();
+    await calendar.locator('.manual-date-picker__grid button').filter({ hasText: /^30$/ }).click();
+    await page.keyboard.press('Escape');
+    await page.getByLabel('Bắt đầu Thứ 3', { exact: true }).fill('17:30');
+    await page.getByLabel('Kết thúc Thứ 3', { exact: true }).fill('19:00');
+    await page.getByLabel('Bắt đầu Thứ 5', { exact: true }).fill('17:30');
+    await page.getByLabel('Kết thúc Thứ 5', { exact: true }).fill('19:00');
+    await page.getByText('Sẽ tạo 8 buổi học theo lịch này.', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Thêm học sinh', exact: true }).click();
+    await name().fill('Nguyễn');
+    await page.getByRole('option', { name: /Nguyễn Minh An.*Đã thêm/ }).waitFor();
+    for (const width of [1600, 1366, 390]) {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 1050 });
+      await page.evaluate(() => document.fonts.ready);
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Horizontal overflow at ${width}`);
+      await page.screenshot({ path: `${output}/${width === 390 ? 'mobile' : width === 1600 ? 'desktop' : 'laptop'}.png`, fullPage: true });
+    }
+    await page.setViewportSize({ width: 1600, height: 1050 });
+    await name().fill('');
+    await page.getByRole('button', { name: 'Nhập danh sách', exact: true }).click();
+    await page.getByRole('button', { name: 'Dán danh sách tên', exact: true }).click();
+    await page.getByLabel('Họ tên học sinh, mỗi dòng một tên', { exact: true }).fill('Đỗ Hải Nam\nPhạm Anh Thư');
+    await page.getByRole('button', { name: 'Thêm vào danh sách', exact: true }).click();
+    assert.equal(await page.getByRole('row').count(), 6);
+    await page.getByRole('button', { name: 'Bỏ Đỗ Hải Nam khỏi danh sách', exact: true }).click();
+    assert.equal(await page.getByRole('row').count(), 5);
+    await page.getByRole('button', { name: 'Thêm học sinh', exact: true }).click();
+    await name().fill('Chưa xác nhận');
+    // Finish in manual mode to verify the original calendar-prefill path and save payload.
+    await page.getByRole('radio', { name: 'Từng ngày', exact: true }).click();
+    await page.getByLabel('Bắt đầu', { exact: true }).fill('17:30');
+    await page.getByLabel('Kết thúc', { exact: true }).fill('19:00');
+    await page.getByRole('button', { name: 'Tạo lớp', exact: true }).click();
+    await page.getByRole('alert').filter({ hasText: 'nội dung học sinh đang nhập' }).waitFor();
+    assert.equal(creates.length, 0);
+    await page.getByRole('button', { name: 'Hủy', exact: true }).click();
+    failCreate = true;
+    await page.getByRole('button', { name: 'Tạo lớp', exact: true }).click();
+    await page.getByRole('alert').filter({ hasText: 'Lịch học bị trùng' }).waitFor();
+    assert.equal(await page.getByRole('row').count(), 5);
+    failCreate = false;
+    await page.getByRole('button', { name: 'Tạo lớp', exact: true }).click();
+    await page.waitForURL('**/homepage');
+    const payload = creates.at(-1);
+    assert.equal(payload.students.length, 4);
+    assert.equal(payload.students[0].parentPhoneNumber, '0987654321');
+    assert.equal(payload.students[1].studentId, profiles[0].id);
+    assert.equal(payload.students[0].birthDate, null);
+    assert.equal(payload.schedule.sessions[0].date, '2026-11-03');
+    await page.goto(`${base}/classes/new`);
+    await page.getByLabel('Lớp thuộc').selectOption('center-test');
+    await name().fill('Nguyễn');
+    await page.getByRole('option', { name: /Nguyễn Minh An/ }).waitFor();
+    assert.equal(queries.at(-1), 'center-test');
+    assert(await page.getByText('Phạm vi tìm kiếm:', { exact: false }).innerText().then(text => text.includes('Trung tâm minh họa')));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole('option', { name: /Nguyễn Minh An/ }).tap();
+    await page.getByRole('button', { name: 'Thêm vào danh sách', exact: true }).tap();
+    assert.equal(await page.getByRole('row').count(), 1); // Mobile hides the table header.
+    assert.equal(await name().inputValue(), '');
+    assert.deepEqual(errors, []);
+    console.log('PASS: unified search/new decision, existing IDs, retained optional input, loading/error/retry, stale search, pagination, keyboard/IME, staged duplicates, scope, add/edit/remove/paste, create retry/payload, direct create navigation and responsive overflow.');
+  } finally { await browser.close(); }
+})().catch(error => { console.error(error); process.exit(1); });

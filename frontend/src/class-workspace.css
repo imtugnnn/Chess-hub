@@ -1,0 +1,232 @@
+/* Direction A: a shared teaching workspace, using ChessHub's existing tokens. */
+:root { --workspace-radius: 12px; --workspace-surface: #ffffff; --workspace-success: #25735a; --workspace-danger: #a13f4b; --workspace-warning: #87491b; }
+.app-shell { background: var(--ui-soft); grid-template-columns: 232px minmax(0, 1fr); }
+.app-shell > main.dashboard { width: 100%; max-width: 1680px; padding: 32px clamp(24px, 3vw, 48px) 48px; }
+.app-shell > main.dashboard > .dashboard-header { min-height: 0; padding: 0 0 24px; margin-bottom: 24px; border: 0; border-bottom: 1px solid var(--ui-border); border-radius: 0; background: transparent; box-shadow: none; }
+.dashboard-header__icon { display: none; }
+.dashboard-header__title { color: var(--ui-text); font-size: 28px; line-height: 1.25; letter-spacing: -.6px; overflow-wrap: anywhere; text-wrap: balance; }
+.dashboard-header__description { max-width: 680px; margin-top: 10px; }
+.dashboard-header__breadcrumb { margin-bottom: 10px; }
+.header-actions { flex-shrink: 0; }
+.dashboard .primary-button, .dashboard .secondary-button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 40px; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; box-shadow: none; }
+.dashboard .primary-button { background: var(--ui-navy); color: #fff; }
+.dashboard .secondary-button { border: 1px solid var(--ui-border); background: var(--workspace-surface); color: var(--ui-text); }
+.dashboard .secondary-button:hover { background: #dfe6ef; }
+.dashboard :is(button, a) { transition: background-color .15s, color .15s; }
+.sidebar { padding: 28px 16px 20px; }
+.sidebar .brand { margin: 0 8px 32px; }
+.nav-group-label { margin: 12px 12px 8px; color: #b1c1da; font-size: 12px; letter-spacing: .09em; text-transform: uppercase; }
+.sidebar .nav-item { min-height: 44px; color: #c2cfe2; border: 0; background: transparent; }
+.sidebar .nav-item:hover { background: #203958; }
+.sidebar .nav-item--active { color: #fff; background: #30445f; box-shadow: none; }
+.sidebar .nav-item--active > span { color: #fff; }
+.sidebar .nav-item--active i { color: #c2cfe2; }
+.sidebar .class-menu__list { border-left: 1px solid #365172; margin: 4px 0 10px 21px; padding-left: 8px; }
+.sidebar .class-menu__list a { border-radius: 6px; padding: 10px; }
+.sidebar .class-menu__list a:hover { background: #203958; }
+.sidebar :is(nav, .class-menu__list) { scrollbar-width: thin; scrollbar-color: #365172 #152744; }
+.sidebar :is(nav, .class-menu__list)::-webkit-scrollbar { width: 6px; height: 6px; }
+.sidebar :is(nav, .class-menu__list)::-webkit-scrollbar-track { background: #152744; }
+.sidebar :is(nav, .class-menu__list)::-webkit-scrollbar-thumb { background: #365172; border-radius: 6px; }
+.sidebar :is(nav, .class-menu__list)::-webkit-scrollbar-thumb:hover { background: #52729e; }
+.sidebar :is(nav, .class-menu__list)::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+.overview-metrics { gap: 16px; }
+.overview-metric { padding: 16px 20px; gap: 12px; }
+.overview-metric strong { font-size: 24px; }
+.overview-metric p { margin-bottom: 4px; }
+.overview-metric-icon { width: 36px; height: 36px; border-radius: 8px; }
+.overview-columns { grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 24px; }
+.overview-panel > header { padding: 24px; border-bottom: 1px solid var(--ui-border); }
+.overview-panel header .eyebrow { margin: 0 0 8px; color: var(--ui-muted); font-size: 12px; }
+.overview-panel h2 { font-size: 20px; }
+.overview-list { padding: 0; max-height: 620px; }
+.overview-row { border-radius: 0; padding: 20px 24px; min-height: 92px; }
+.overview-row:first-child { border-top: 0; }
+.overview-row--next { background: #edf4ff; }
+.overview-row--next:hover { background: #e5eefc; }
+.overview-time { width: 60px; font-size: 18px; }
+.overview-row-text strong { font-size: 15px; }
+.overview-status--pending { background: #fff4df; color: var(--workspace-warning); }
+.workspace-search { padding: 16px 20px; border-bottom: 1px solid var(--ui-border); }
+.workspace-search label { display: block; margin-bottom: 8px; color: var(--ui-muted); font-size: 12px; }
+.workspace-search > div { position: relative; }
+.workspace-search input { width: 100%; min-height: 40px; border: 1px solid var(--ui-border); border-radius: 8px; padding: 10px 40px 10px 12px; background: #fff; color: var(--ui-text); font: inherit; font-size: 14px; }
+.workspace-search button { position: absolute; top: 4px; right: 4px; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; color: var(--ui-muted); }
+.workspace-search button:hover { background: var(--ui-soft); }
+.class-workspace-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--ui-border); padding-bottom: 12px; }
+.class-workspace-nav :is(a, button) { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; border: 0; border-radius: 8px; padding: 10px 16px; background: transparent; text-decoration: none; color: var(--ui-muted); font-size: 14px; }
+.class-workspace-nav :is(a, button):hover { background: #e8edf4; }
+.class-workspace-nav :is(a[aria-current="page"], button[aria-pressed="true"]) { background: #e0e7f0; color: var(--ui-text); font-weight: 600; }
+.class-workspace-nav small { font-size: 12px; font-variant-numeric: tabular-nums; }
+.workspace-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.workspace-section-heading h2 { margin: 0; font-size: 18px; color: var(--ui-text); line-height: 1.4; }
+.workspace-section-heading p { margin: 6px 0 0; color: var(--ui-muted); font-size: 13px; line-height: 1.6; }
+.workspace-card { min-width: 0; overflow: hidden; border: 1px solid var(--ui-border); border-radius: var(--workspace-radius); background: var(--workspace-surface); }
+.workspace-card > .workspace-section-heading { margin: 0; padding: 24px; border-bottom: 1px solid var(--ui-border); }
+.workspace-empty { display: grid; justify-items: center; gap: 12px; padding: 40px 24px; text-align: center; color: var(--ui-muted); }
+.workspace-empty h3 { margin: 0; font-size: 16px; color: var(--ui-text); }
+.workspace-empty p { max-width: 400px; margin: 0; font-size: 13px; line-height: 1.7; }
+.workspace-empty .secondary-button { margin-top: 4px; }
+.workspace-table-scroll { max-width: 100%; overflow-x: auto; }
+.workspace-table { width: 100%; border-collapse: collapse; color: var(--ui-text); font-size: 14px; }
+.workspace-table th { background: #f7f9fc; color: var(--ui-muted); text-align: left; font-size: 12px; font-weight: 600; }
+.workspace-table :is(th, td) { padding: 16px 24px; border-bottom: 1px solid var(--ui-border); line-height: 1.6; }
+.workspace-table tbody tr:last-child td { border-bottom: 0; }
+.workspace-table tbody tr:hover { background: #f7f9fc; }
+.workspace-table a { color: var(--ui-navy); text-decoration: none; }
+.workspace-person { display: flex; align-items: center; gap: 12px; min-width: 180px; }
+.workspace-table td:first-child { min-width: 230px; }
+.workspace-table td { overflow-wrap: anywhere; }
+.workspace-table td:last-child { min-width: 150px; }
+.workspace-tournament { display: flex; align-items: center; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--ui-border); color: var(--ui-text); text-decoration: none; }
+.workspace-tournament:last-child { border-bottom: 0; }
+.workspace-tournament:hover { background: #f7f9fc; }
+.workspace-tournament > span:nth-child(2) { display: grid; gap: 6px; flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
+.workspace-tournament small { color: var(--ui-muted); font-size: 12px; }
+.workspace-back { margin-bottom: 16px; }
+.class-detail-layout { grid-template-columns: 280px minmax(0, 1fr); gap: 24px; }
+.session-panel, .attendance-panel { border-color: var(--ui-border); border-radius: var(--workspace-radius); box-shadow: none; }
+.session-panel { position: sticky; top: 24px; }
+.session-timeline { max-height: 560px; }
+.session-timeline__item { min-height: 76px; padding: 12px 8px; }
+.session-timeline__item strong { overflow: visible; white-space: normal; font-size: 12px; line-height: 1.5; }
+.session-timeline__item small { font-size: 12px; color: var(--ui-muted); }
+.session-timeline__item--selected { color: var(--ui-text); background: #e0e7f0; box-shadow: none; }
+.session-timeline__item--selected:hover { background: #e0e7f0; }
+.session-timeline__item--selected :is(small, i) { color: var(--ui-muted); }
+.session-panel__heading { padding: 20px; }
+.session-panel__heading h2 { font-size: 16px; }
+.session-panel__heading .eyebrow { font-size: 12px; color: var(--ui-muted); }
+.session-timeline__item i, .session-number { color: var(--ui-muted); }
+.session-panel__heading > span { font-size: 12px; }
+.attendance-panel__head { flex-wrap: wrap; padding: 24px; }
+.attendance-panel__head .eyebrow { font-size: 12px; color: var(--ui-muted); }
+.attendance-panel__head p:last-child { color: var(--ui-muted); font-size: 13px; line-height: 1.6; }
+.attendance-panel__actions :is(button) { min-height: 40px; padding: 10px 12px; font-size: 12px; }
+.attendance-summary { padding: 16px 24px; gap: 8px; }
+.attendance-summary__item { flex-wrap: wrap; }
+.attendance-summary__item span { font-size: 12px; }
+.attendance-summary__item--late { color: var(--workspace-warning); }
+.attendance-summary__item--absent { color: var(--workspace-danger); }
+.attendance-summary__item--neutral { color: var(--ui-muted); }
+.attendance-list { padding: 0 24px; }
+.attendance-list__header { grid-template-columns: 34px minmax(100px, 1fr) 234px; gap: 12px; padding: 15px 0 8px; text-align: left; font-size: 12px; color: var(--ui-muted); }
+.attendance-list__header > :first-child { grid-column: 2; }
+.attendance-student { grid-template-columns: 34px minmax(100px, 1fr) 234px; gap: 12px; padding: 16px 0; min-height: 76px; min-width: 0; text-align: left; }
+.student-info strong { white-space: normal; overflow-wrap: anywhere; font-size: 14px; line-height: 1.5; }
+.student-info small { font-size: 12px; color: var(--ui-muted); }
+.student-avatar { font-size: 11px; }
+.student-order { display: none; }
+.status-button { min-height: 36px; font-size: 12px; color: var(--ui-muted); }
+.status-control { min-width: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.status-button--late.status-button--active, .status-button--late:hover { background: var(--workspace-warning); border-color: var(--workspace-warning); }
+.status-button--present.status-button--active { background: var(--workspace-success); border-color: var(--workspace-success); }
+.status-button--absent.status-button--active { background: var(--workspace-danger); border-color: var(--workspace-danger); }
+.status-button:not(.status-button--active):hover { color: var(--ui-text); border-color: #e1e7ec; background: #edf4ff; }
+.mark-all-button:hover { background: var(--workspace-success); }
+.create-tournament-button { background: #edf4ff; border-color: transparent; color: var(--ui-navy); }
+.create-tournament-button:hover { background: #dfe9f8; }
+.attendance-footer { padding: 20px 24px; }
+.attendance-footer > span { font-size: 13px; color: var(--ui-muted); }
+.attendance-message { margin: 12px 24px; font-size: 13px; }
+.dashboard .management-card { max-width: 900px; border-color: var(--ui-border); border-radius: var(--workspace-radius); box-shadow: none; padding: 28px; }
+.management-card > div:first-child h2 { font-size: 20px; }
+.management-card > div:first-child p:last-child { color: var(--ui-muted); font-size: 13px; line-height: 1.7; }
+.dashboard .management-card label { font-size: 13px; color: var(--ui-text); }
+.dashboard .management-card input { min-height: 42px; border-color: var(--ui-border); font-size: 14px; }
+.dashboard :is(.workspace-search input, .management-card input):focus { outline: 2px solid var(--ui-navy); outline-offset: 1px; }
+.create-class-card > :is(.eyebrow, h2, .create-class-lede) { display: none; }
+.create-class-card { border: 0; background: transparent; padding: 0; }
+.create-class-form { gap: 24px; }
+.create-class-column { min-width: 0; padding: 24px; border: 1px solid var(--ui-border); border-radius: var(--workspace-radius); background: var(--workspace-surface); }
+.create-class-form .form-section-heading { margin-bottom: 20px; }
+.create-class-form .form-section-heading > span { display: none; }
+.create-class-form .form-section-heading strong { font-size: 16px; }
+.create-class-column > .add-session { margin-bottom: 16px; }
+.dashboard :is(.calendar-panel, .attendance-class-card, .attendance-summary-toolbar, .center-card, .settings-card, .tournament-card, .tournament-match-card, .standing-card) { border-color: var(--ui-border); border-radius: var(--workspace-radius); box-shadow: none; }
+.dashboard :is(.settings-card, .tournament-card) { padding: 24px; }
+.dashboard .attendance-summary-toolbar { padding: 20px 24px; }
+.dashboard .attendance-table-wrap { overflow-x: auto; }
+.dashboard .attendance-table-wrap :is(th, td) { padding: 16px 24px; font-size: 14px; }
+.dashboard .attendance-class-card header { padding: 20px 24px; }
+.dashboard .attendance-class-card header p { color: var(--ui-muted); }
+.dashboard .tournament-detail-layout { grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); align-items: start; }
+.standing-card { position: sticky; top: 24px; }
+.dashboard .round-tabs button { min-height: 40px; }
+@media (max-width: 1200px) {
+  .overview-columns { grid-template-columns: minmax(0, 1.4fr) minmax(270px, 1fr); }
+  .class-detail-layout { grid-template-columns: 240px minmax(0, 1fr); gap: 16px; }
+  .attendance-student { grid-template-columns: 34px minmax(0, 1fr); }
+  .status-control { grid-column: 2; }
+  .attendance-list__header { display: none; }
+  .dashboard .tournament-detail-layout { grid-template-columns: minmax(0, 1fr); }
+  .standing-card { position: static; }
+}
+@media (max-width: 1000px) {
+  .overview-columns { grid-template-columns: minmax(0, 1fr); }
+  .create-class-form { grid-template-columns: minmax(0, 1fr); }
+  .app-shell > main.dashboard { padding-inline: 24px; }
+  .overview-metric { padding: 16px 12px; }
+  .overview-metric-icon { display: none; }
+}
+@media (max-width: 760px) {
+  .app-shell { display: block; }
+  .app-shell > main.dashboard { padding: 24px 16px 40px; }
+  .sidebar { padding: 20px 120px 20px 20px; }
+  .sidebar .brand { margin: 0; }
+  .app-shell > main.dashboard > .dashboard-header { padding: 0 0 20px; gap: 16px; }
+  .dashboard-header__title { font-size: 24px; }
+  .dashboard-header__description { font-size: 13px; }
+  .header-actions { flex-shrink: 1; }
+  .overview-metrics { grid-template-columns: 1fr; gap: 8px; }
+  .overview-metric { padding: 12px 16px; }
+  .overview-metric-icon { display: grid; }
+  .overview-panel > header { padding: 20px 16px; flex-wrap: wrap; }
+  .overview-panel h2 { font-size: 18px; }
+  .overview-row { padding: 16px; }
+  .overview-panel--schedule .overview-row { display: grid; grid-template-columns: 56px minmax(0, 1fr) 16px; }
+  .overview-panel--schedule .overview-status { grid-column: 2; grid-row: 2; justify-self: start; max-width: none; }
+  .overview-panel--schedule .overview-row > svg { grid-column: 3; grid-row: 1; }
+  .overview-time { width: auto; font-size: 16px; }
+  .class-workspace-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .class-workspace-nav :is(a, button) { padding: 10px; font-size: 13px; }
+  .workspace-section-heading { flex-wrap: wrap; gap: 12px; }
+  .workspace-card > .workspace-section-heading { padding: 20px 16px; }
+  .workspace-table :is(th, td) { padding: 12px 16px; }
+  .workspace-tournament { flex-wrap: wrap; gap: 12px; padding: 16px; }
+  .workspace-tournament > .overview-status { margin-left: 56px; }
+  .workspace-tournament > svg { display: none; }
+  .class-detail-layout { grid-template-columns: minmax(0, 1fr); }
+  .session-panel { position: static; }
+  .session-timeline { max-height: 240px; }
+  .attendance-panel { min-height: 0; }
+  .attendance-panel__head, .attendance-footer { padding: 20px 16px; }
+  .attendance-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 16px; }
+  .attendance-list { padding: 0 16px; }
+  .attendance-student { grid-template-columns: 34px minmax(0, 1fr); }
+  .status-control { grid-column: 1 / -1; width: 100%; }
+  .attendance-footer { flex-direction: column; align-items: stretch; }
+  .attendance-footer button { width: 100%; }
+  .attendance-message { margin: 12px 16px; }
+  .create-class-column, .dashboard .management-card, .dashboard :is(.settings-card, .tournament-card) { padding: 20px 16px; }
+  .dashboard .attendance-summary-toolbar, .dashboard .attendance-class-card header { padding: 20px 16px; }
+  .dashboard .attendance-table-wrap :is(th, td) { padding: 12px 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .dashboard :is(button, a) { transition: none; } }
+
+/* Separate dropdown and quick-create controls in the shared navigation. */
+.sidebar .sidebar-menu-row { display: flex; align-items: center; gap: 0; padding-right: 4px; border-radius: 7px; }
+.sidebar .sidebar-menu-row:hover, .sidebar .sidebar-menu-row--open { background: #203958; }
+.sidebar .sidebar-menu-row--active { background: #30445f; }
+.sidebar .sidebar-menu-row .class-menu__trigger, .sidebar .sidebar-menu-row .class-menu__trigger:hover { background: transparent; box-shadow: none; }
+.sidebar .sidebar-menu-row .class-menu__trigger { flex: 1; min-width: 0; width: auto; gap: 4px; padding-left: 10px; padding-right: 2px; font-size: 13px; white-space: nowrap; }
+.sidebar .sidebar-menu-row .class-menu__trigger > span:first-child { width: 20px; flex-shrink: 0; }
+.sidebar .sidebar-menu-row .class-menu__trigger svg { width: 20px; height: 20px; }
+.sidebar .sidebar-menu-row .class-menu__trigger b { margin-left: auto; }
+.sidebar .sidebar-quick-create, .sidebar .sidebar-menu-chevron { display: grid; place-items: center; flex: 0 0 40px; height: 40px; padding: 0; border: 0; border-radius: 5px; color: #dce6f5; background: transparent; cursor: pointer; }
+@media (pointer: coarse) { .sidebar .sidebar-quick-create, .sidebar .sidebar-menu-chevron { flex-basis: 44px; height: 44px; } }
+.sidebar .sidebar-quick-create:hover, .sidebar .sidebar-menu-chevron:hover { color: #f2c14e; background: #ffffff0d; }
+.sidebar .sidebar-menu-chevron svg { transform: rotate(90deg); transition: transform .2s ease; }
+.sidebar .sidebar-menu-chevron[aria-expanded="true"] svg { transform: rotate(-90deg); }
+.sidebar .sidebar-menu-chevron:focus-visible { outline: 2px solid #f2c14e; outline-offset: 2px; }
+.sidebar .sidebar-quick-create:focus-visible { outline: 2px solid #f2c14e; outline-offset: 2px; }

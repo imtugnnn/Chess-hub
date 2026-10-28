@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: chesshub
+      POSTGRES_USER: chesshub
+      POSTGRES_PASSWORD: chesshub
+    ports:
+      - "5432:5432"
+    volumes:
+      - chesshub_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chesshub -d chesshub"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    environment:
+      PORT: 3000
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/chesshub
+      SPRING_DATASOURCE_USERNAME: chesshub
+      SPRING_DATASOURCE_PASSWORD: chesshub
+      JWT_SECRET: ${JWT_SECRET:-local-only-change-this-secret-1234567890}
+      CORS_ORIGIN: http://localhost:4173
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:3000/login/oauth2/code/google}
+      GMAIL_OAUTH_CLIENT_ID: ${GMAIL_OAUTH_CLIENT_ID:-}
+      GMAIL_OAUTH_CLIENT_SECRET: ${GMAIL_OAUTH_CLIENT_SECRET:-}
+      GMAIL_OAUTH_REFRESH_TOKEN: ${GMAIL_OAUTH_REFRESH_TOKEN:-}
+      INVITATION_MAIL_FROM: ${INVITATION_MAIL_FROM:-}
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://127.0.0.1:3000/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build: ./frontend
+    ports:
+      - "4173:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  chesshub_data:

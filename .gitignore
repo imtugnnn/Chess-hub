@@ -1,0 +1,19 @@
+# Build output and local dependencies
+backend/target/
+frontend/node_modules/
+frontend/dist/
+
+# Local secrets and OS files
+.env
+backend/.env
+.DS_Store
+
+# One local workspace for all AI tools, documents and generated data
+/agent/
+
+# IDE configuration and legacy AI locations (do not recreate these)
+.idea/
+**/.agents/
+**/.codex/
+**/.specify/
+**/.impeccable/

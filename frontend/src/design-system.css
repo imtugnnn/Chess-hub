@@ -1,0 +1,97 @@
+/* Route files own composition; this foundation owns the shared UI vocabulary. */
+:root {
+  --ui-navy: #4e7098;
+  --ui-primary-hover: #3d5e84;
+  --ui-text: #293d50;
+  --ui-muted: #586e85;
+  --ui-border: #dfe8f1;
+  --ui-soft: #f8fafc;
+  --ui-sidebar: #f2f6fa;
+  --ui-selected: #e3ecf5;
+  --ui-hover: #eaf1f7;
+  --ui-control-radius: 8px;
+  --ui-page-gap: 24px;
+  --workspace-radius: 12px;
+  --workspace-surface: #fff;
+  --workspace-success: #25735a;
+  --workspace-danger: #a13f4b;
+  --workspace-warning: #87491b;
+  --ui-danger-soft: #fff1f3;
+  --ui-warning-soft: #fff4df;
+}
+.app-shell { color: var(--ui-text); background: var(--ui-soft); }
+.app-shell > main.dashboard { min-width: 0; }
+.app-shell .dashboard-header__title { font-size: 28px; font-weight: 600; line-height: 1.3; letter-spacing: -.02em; }
+.app-shell .dashboard-header__description { font-size: 14px; line-height: 1.7; color: var(--ui-muted); }
+.dashboard :is(.workspace-card, .overview-panel, .overview-metric, .settings-card, .create-class-card, .calendar-panel, .material-library, .tournament-match-card, .standing-card, .center-card) {
+  border-color: var(--ui-border); border-radius: var(--workspace-radius); background: var(--workspace-surface); box-shadow: none;
+}
+.dashboard :is(.primary-button, .secondary-button), .auth-page .primary-button {
+  min-height: 44px; border-radius: var(--ui-control-radius); font-size: 14px; font-weight: 600; box-shadow: none; transform: none;
+}
+.dashboard .primary-button, .auth-page .primary-button { background: var(--ui-navy); }
+.dashboard .primary-button:hover, .auth-page .primary-button:hover { background: var(--ui-primary-hover); }
+.dashboard :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea) { border-radius: var(--ui-control-radius); color: var(--ui-text); caret-color: var(--ui-navy); }
+.dashboard :is(input, textarea)::placeholder { color: var(--ui-muted); opacity: 1; }
+.dashboard :is(button, a, input, select, textarea):focus-visible, .sidebar :is(button, a):focus-visible { outline: 2px solid var(--ui-navy); outline-offset: 3px; }
+.sidebar :is(button, a):focus-visible { outline-color: var(--ui-navy); }
+.dashboard button:disabled { cursor: not-allowed; }
+.dashboard ::selection { color: #fff; background: var(--ui-navy); }
+/* Approved “Xanh dịu” palette: one light navigation rail across all routes. */
+.app-shell > .sidebar, .sidebar-flyout { color: var(--ui-text); background: var(--ui-sidebar); border-color: var(--ui-border); }
+.app-shell > .sidebar { border-right: 1px solid var(--ui-border); }
+.sidebar .brand { color: var(--ui-text); }
+.sidebar .nav-group-label { color: var(--ui-muted); font-size: 11px; letter-spacing: .06em; }
+.sidebar .nav-item, .sidebar .nav-item > span { color: var(--ui-text); }
+.sidebar .nav-item:hover, .sidebar .sidebar-menu-row:hover, .sidebar .sidebar-menu-row--open { color: var(--ui-text); background: var(--ui-hover); }
+.sidebar .nav-item--active, .sidebar .sidebar-menu-row--active { color: var(--ui-navy); background: var(--ui-selected); box-shadow: none; }
+.sidebar .nav-item--active > span, .sidebar .nav-item--active i { color: var(--ui-navy); }
+.sidebar .sidebar-menu-row .class-menu__trigger, .sidebar .sidebar-menu-row .class-menu__trigger:hover { background: transparent; }
+.sidebar .nav-item b { color: var(--ui-navy); background: var(--ui-selected); }
+.sidebar .sidebar-quick-create, .sidebar .sidebar-menu-chevron { color: var(--ui-muted); }
+.sidebar .sidebar-quick-create:hover, .sidebar .sidebar-menu-chevron:hover { color: var(--ui-navy); background: var(--ui-selected); }
+.sidebar .sidebar-collapse-toggle, .sidebar .mobile-nav-toggle { color: var(--ui-navy); background: var(--ui-sidebar); border-color: var(--ui-border); }
+.sidebar .sidebar-collapse-toggle:hover, .sidebar .mobile-nav-toggle:hover { color: var(--ui-text); background: var(--ui-selected); }
+.sidebar .nav-group-label::after { background: var(--ui-border); }
+.sidebar .class-menu__list { border-color: var(--ui-border); }
+.sidebar .class-menu__list :is(a, button), .sidebar-flyout .class-menu__list :is(a, button) { color: var(--ui-text); }
+.sidebar .class-menu__list :is(a, button):hover, .sidebar-flyout :is(a, button):hover { color: var(--ui-text); background: var(--ui-selected); }
+.sidebar .class-menu__list :is(small, p), .sidebar-flyout :is(small, p) { color: var(--ui-muted); }
+.sidebar .profile-card { color: var(--ui-text); background: transparent; border: 0; border-top: 1px solid var(--ui-border); border-radius: 0; }
+.sidebar .profile-card:hover { background: var(--ui-hover); }
+.sidebar .profile-card :is(small, i) { color: var(--ui-muted); }
+.sidebar .avatar { color: var(--ui-navy); background: var(--ui-selected); }
+.sidebar :is(nav, .class-menu__list), .sidebar-flyout { scrollbar-color: #b7c9dc var(--ui-sidebar); }
+.sidebar :is(nav, .class-menu__list)::-webkit-scrollbar-track { background: var(--ui-sidebar); }
+.sidebar :is(nav, .class-menu__list)::-webkit-scrollbar-thumb { background: #b7c9dc; }
+.sidebar :is(nav, .class-menu__list)::-webkit-scrollbar-thumb:hover { background: var(--ui-navy); }
+.sidebar-flyout :is(a, button):focus-visible, .sidebar :is(.sidebar-menu-chevron, .sidebar-quick-create):focus-visible { outline-color: var(--ui-navy); }
+.app-shell ::selection, .sidebar-flyout ::selection { color: var(--ui-text); background: var(--ui-selected); }
+.dashboard .secondary-button:hover, .dashboard .overview-row:hover { background: var(--ui-hover); }
+.dashboard :is(.overview-metric-icon, .overview-class-icon, .overview-status) { color: var(--ui-navy); background: var(--ui-selected); }
+.dashboard .overview-row--next { background: #f0f5fa; }
+.dashboard .overview-status--done { color: var(--workspace-success); background: #eaf5ef; }
+.dashboard .overview-status--pending { color: var(--workspace-warning); background: var(--ui-warning-soft); }
+.dashboard .overview-skeleton span { background: var(--ui-selected); }
+.auth-showcase { color: var(--ui-text); background: var(--ui-sidebar); }
+.auth-showcase::before { display: none; }
+.auth-showcase .brand, .auth-showcase h1 { color: var(--ui-text); }
+.auth-showcase .eyebrow { display: none; }
+.auth-showcase .auth-showcase__copy > p:last-child, .auth-showcase .benefit-list p, .auth-showcase .auth-showcase__note { color: var(--ui-muted); }
+.auth-showcase .benefit-list strong { color: var(--ui-text); }
+.overview-panel header .eyebrow { display: none; }
+.app-shell > main.overview-page > .dashboard-header { border-bottom: 0; }
+/* Management tables share one left edge for headings and values, including
+   row headings, amounts and actions. Keep chess move notation independent. */
+.dashboard :is(.students-table, .workspace-table, .excel-table, .attendance-class-table, .attendance-student-table, .standing-score-table) :is(th, td) {
+  text-align: left;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard .attendance-class-table .attendance-open { padding-left: 0; }
+
+@media (min-width: 761px) { .sidebar.sidebar--collapsed .nav-group-label { color: transparent; } }
+@media (min-width: 1101px) { .overview-columns { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); } }
+@media (max-width: 1100px) { .overview-columns { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) { .app-shell .dashboard-header__title { font-size: 24px; } }
+@media (prefers-reduced-motion: reduce) { .app-shell *, .app-shell *::before, .app-shell *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

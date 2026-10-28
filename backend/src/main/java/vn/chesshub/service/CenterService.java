@@ -1,0 +1,250 @@
+package vn.chesshub.service;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import vn.chesshub.entity.User;
+import vn.chesshub.repository.UserRepository;
+
+@Service
+public class CenterService {
+  private final JdbcTemplate db;
+  private final UserRepository users;
+  private final InvitationMailService mail;
+
+  public CenterService(JdbcTemplate db, UserRepository users, InvitationMailService mail) {
+    this.db = db;
+    this.users = users;
+    this.mail = mail;
+  }
+
+  @Transactional(readOnly = true)
+  public Dashboard dashboard(UUID userId) {
+    requireUser(userId);
+    UUID currentCenterId = db.queryForObject("select center_id from users where id = ?", UUID.class, userId);
+    Center center = activeCenter(userId, currentCenterId);
+    List<Invitation> incoming = db.query("""
+      select i.id, i.center_id, c.name as center_name, u.full_name as person_name,
+             u.email as person_email, i.created_at
+      from center_invitations i
+      join centers c on c.id = i.center_id
+      join users u on u.id = i.invited_by_user_id
+      where i.invited_user_id = ? and i.status = 'PENDING'
+      order by i.created_at desc
+      """, CenterService::invitation, userId);
+    if (center == null) return new Dashboard(null, List.of(), incoming, List.of());
+    List<Member> members = db.query("""
+      select u.id, u.full_name, u.email, m.role
+      from center_memberships m join users u on u.id = m.user_id
+      where m.center_id = ? and m.status = 'ACTIVE'
+      order by case when m.role = 'OWNER' then 0 else 1 end, u.full_name
+      """, (rs, row) -> new Member(uuid(rs, "id"), rs.getString("full_name"), rs.getString("email"), rs.getString("role")), center.id());
+    List<Invitation> outgoing = center.ownerUserId().equals(userId) ? db.query("""
+      select i.id, i.center_id, c.name as center_name, u.full_name as person_name,
+             u.email as person_email, i.created_at
+      from center_invitations i
+      join centers c on c.id = i.center_id
+      join users u on u.id = i.invited_user_id
+      where i.center_id = ? and i.status = 'PENDING'
+      order by i.created_at desc
+      """, CenterService::invitation, center.id()) : List.of();
+    return new Dashboard(center, members, incoming, outgoing);
+  }
+
+  @Transactional
+  public Dashboard create(UUID userId, String name) {
+    requireUser(userId);
+    lockUser(userId);
+    User user = requireUser(userId);
+    if (activeCenter(userId, user.getCenterId()) != null || hasActiveMembership(userId)) {
+      throw error(HttpStatus.CONFLICT, "Bạn đã thuộc một trung tâm.");
+    }
+    List<UUID> owned = db.query("select id from centers where owner_user_id = ? order by created_at limit 1",
+      (rs, row) -> uuid(rs, "id"), userId);
+    UUID centerId;
+    if (owned.isEmpty()) {
+      String centerName = name == null ? "" : name.trim();
+      if (centerName.isEmpty() || centerName.length() > 255) {
+        throw error(HttpStatus.BAD_REQUEST, "Tên trung tâm phải có từ 1 đến 255 ký tự.");
+      }
+      centerId = UUID.randomUUID();
+      db.update("insert into centers (id, owner_user_id, name) values (?, ?, ?)", centerId, userId, centerName);
+    } else {
+      centerId = owned.getFirst();
+    }
+    db.update("""
+      insert into center_memberships (center_id, user_id, role, status)
+      values (?, ?, 'OWNER', 'ACTIVE')
+      on conflict (center_id, user_id) do update set role = 'OWNER', status = 'ACTIVE'
+      """, centerId, userId);
+    db.update("update users set center_id = ? where id = ?", centerId, userId);
+    db.update("update center_invitations set status = 'CANCELLED', responded_at = current_timestamp where invited_user_id = ? and status = 'PENDING'", userId);
+    return dashboard(userId);
+  }
+
+  @Transactional
+  public InviteResult invite(UUID ownerId, String email) {
+    requireUser(ownerId);
+    String normalizedEmail = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+    if (!normalizedEmail.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+      throw error(HttpStatus.BAD_REQUEST, "Email không hợp lệ.");
+    }
+    lockUser(ownerId);
+    Center center = activeCenter(ownerId, requireUser(ownerId).getCenterId());
+    if (center == null || !center.ownerUserId().equals(ownerId)) {
+      throw error(HttpStatus.FORBIDDEN, "Chỉ chủ trung tâm mới có thể gửi lời mời.");
+    }
+    User invitee = users.findByEmail(normalizedEmail).orElse(null);
+    String temporaryPassword = null;
+    if (invitee == null) {
+      mail.requireConfigured();
+      byte[] secret = new byte[18];
+      new java.security.SecureRandom().nextBytes(secret);
+      temporaryPassword = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(secret);
+      invitee = new User(normalizedEmail.split("@", 2)[0], normalizedEmail,
+        new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode(temporaryPassword));
+      invitee.requirePasswordChange();
+      try { invitee = users.saveAndFlush(invitee); }
+      catch (DataIntegrityViolationException exception) {
+        throw error(HttpStatus.CONFLICT, "Email vừa được đăng ký. Vui lòng gửi lời mời lại.");
+      }
+    }
+    if (invitee.getId().equals(ownerId)) throw error(HttpStatus.BAD_REQUEST, "Bạn không thể mời chính mình.");
+    if (hasActiveMembership(invitee.getId()) || users.ownsCenter(invitee.getId())) {
+      throw error(HttpStatus.CONFLICT, "Người dùng này đã thuộc một trung tâm.");
+    }
+    Integer pending = db.queryForObject("""
+      select count(*) from center_invitations
+      where center_id = ? and invited_user_id = ? and status = 'PENDING'
+      """, Integer.class, center.id(), invitee.getId());
+    if (pending != null && pending > 0) throw error(HttpStatus.CONFLICT, "Lời mời đang chờ phản hồi.");
+    try {
+      db.update("""
+        insert into center_invitations (id, center_id, invited_user_id, invited_by_user_id)
+        values (?, ?, ?, ?)
+        """, UUID.randomUUID(), center.id(), invitee.getId(), ownerId);
+    } catch (DataIntegrityViolationException exception) {
+      throw error(HttpStatus.CONFLICT, "Lời mời đang chờ phản hồi.");
+    }
+    if (temporaryPassword != null) mail.send(normalizedEmail, temporaryPassword, center.name());
+    return new InviteResult(dashboard(ownerId), temporaryPassword != null ? "EMAIL" : "IN_APP");
+  }
+
+  @Transactional(readOnly = true)
+  public List<MemberClass> memberClasses(UUID ownerId, UUID memberId) {
+    User owner = requireUser(ownerId);
+    Center center = activeCenter(ownerId, owner.getCenterId());
+    if (center == null || !center.ownerUserId().equals(ownerId))
+      throw error(HttpStatus.FORBIDDEN, "Chỉ chủ trung tâm mới có thể xem lớp của thành viên.");
+    if (!users.hasActiveCenterMembershipInCenter(memberId, center.id()))
+      throw error(HttpStatus.NOT_FOUND, "Người dùng không phải thành viên của trung tâm.");
+    return db.query("select id, name, schedule, student_count from chess_classes where teacher_id = ? order by name, id",
+      (rs, row) -> new MemberClass(uuid(rs, "id"), rs.getString("name"), rs.getString("schedule"), rs.getInt("student_count")), memberId);
+  }
+
+  @Transactional
+  public Dashboard respond(UUID userId, UUID invitationId, boolean accept) {
+    requireUser(userId);
+    lockUser(userId);
+    List<UUID> centers = db.query("""
+      select center_id from center_invitations
+      where id = ? and invited_user_id = ? and status = 'PENDING'
+      for update
+      """, (rs, row) -> uuid(rs, "center_id"), invitationId, userId);
+    if (centers.isEmpty()) throw error(HttpStatus.NOT_FOUND, "Lời mời không còn hiệu lực.");
+    UUID centerId = centers.getFirst();
+    if (accept) {
+      if (hasActiveMembership(userId) || users.ownsCenter(userId)) {
+        throw error(HttpStatus.CONFLICT, "Bạn đã thuộc một trung tâm.");
+      }
+      db.update("""
+        insert into center_memberships (center_id, user_id, role, status)
+        values (?, ?, 'TEACHER', 'ACTIVE')
+        on conflict (center_id, user_id) do update set role = 'TEACHER', status = 'ACTIVE', joined_at = current_timestamp
+        """, centerId, userId);
+      db.update("update users set center_id = ? where id = ?", centerId, userId);
+      db.update("update center_invitations set status = 'CANCELLED', responded_at = current_timestamp where invited_user_id = ? and id <> ? and status = 'PENDING'", userId, invitationId);
+    }
+    db.update("update center_invitations set status = ?, responded_at = current_timestamp where id = ?",
+      accept ? "ACCEPTED" : "DECLINED", invitationId);
+    return dashboard(userId);
+  }
+
+  @Transactional
+  public Dashboard removeMember(UUID ownerId, UUID memberId) {
+    requireUser(ownerId);
+    lockUser(ownerId);
+    UUID centerId = db.queryForObject("select center_id from users where id = ?", UUID.class, ownerId);
+    Center center = activeCenter(ownerId, centerId);
+    if (center == null || !center.ownerUserId().equals(ownerId)) {
+      throw error(HttpStatus.FORBIDDEN, "Chỉ chủ trung tâm mới có thể xóa thành viên.");
+    }
+    if (ownerId.equals(memberId)) {
+      throw error(HttpStatus.BAD_REQUEST, "Không thể xóa chủ trung tâm khỏi trung tâm.");
+    }
+    // Serialize membership changes with invitation acceptance and account deletion.
+    requireUser(memberId);
+    lockUser(memberId);
+    int removed = db.update("""
+      update center_memberships set status = 'LEFT'
+      where center_id = ? and user_id = ? and status = 'ACTIVE' and role <> 'OWNER'
+      """, centerId, memberId);
+    if (removed == 0) {
+      throw error(HttpStatus.NOT_FOUND, "Người dùng không phải thành viên của trung tâm.");
+    }
+    db.update("update users set center_id = null where id = ? and center_id = ?", memberId, centerId);
+    return dashboard(ownerId);
+  }
+
+  private Center activeCenter(UUID userId, UUID centerId) {
+    if (centerId == null) return null;
+    List<Center> centers = db.query("""
+      select c.id, c.name, c.owner_user_id, owner.full_name as owner_name
+      from centers c
+      join users owner on owner.id = c.owner_user_id
+      join center_memberships m on m.center_id = c.id and m.user_id = ? and m.status = 'ACTIVE'
+      where c.id = ?
+      """, (rs, row) -> new Center(uuid(rs, "id"), rs.getString("name"),
+        uuid(rs, "owner_user_id"), rs.getString("owner_name")), userId, centerId);
+    return centers.isEmpty() ? null : centers.getFirst();
+  }
+
+  private boolean hasActiveMembership(UUID userId) {
+    Integer count = db.queryForObject("select count(*) from center_memberships where user_id = ? and status = 'ACTIVE'",
+      Integer.class, userId);
+    return count != null && count > 0;
+  }
+
+  private void lockUser(UUID userId) { db.queryForObject("select id from users where id = ? for update", UUID.class, userId); }
+
+  private User requireUser(UUID userId) {
+    return users.findById(userId).orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Không tìm thấy tài khoản."));
+  }
+
+  private static UUID uuid(ResultSet rs, String column) throws SQLException { return rs.getObject(column, UUID.class); }
+
+  private static Invitation invitation(ResultSet rs, int row) throws SQLException {
+    return new Invitation(uuid(rs, "id"), uuid(rs, "center_id"), rs.getString("center_name"),
+      rs.getString("person_name"), rs.getString("person_email"), rs.getTimestamp("created_at").toInstant());
+  }
+
+  private static ResponseStatusException error(HttpStatus status, String message) {
+    return new ResponseStatusException(status, message);
+  }
+
+  public record Center(UUID id, String name, UUID ownerUserId, String ownerName) { }
+  public record MemberClass(UUID id, String name, String schedule, int studentCount) { }
+  public record InviteResult(Dashboard dashboard, String delivery) { }
+  public record Member(UUID id, String fullName, String email, String role) { }
+  public record Invitation(UUID id, UUID centerId, String centerName, String personName, String personEmail, Instant createdAt) { }
+  public record Dashboard(Center center, List<Member> members, List<Invitation> incomingInvitations, List<Invitation> outgoingInvitations) { }
+}

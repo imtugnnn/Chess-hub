@@ -1,0 +1,28 @@
+server:
+  port: ${PORT:3000}
+  servlet:
+    session:
+      timeout: 8h
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false}
+spring:
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
+  application:
+    name: chesshub-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/chesshub}
+    username: ${SPRING_DATASOURCE_USERNAME:chesshub}
+    password: ${SPRING_DATASOURCE_PASSWORD:chesshub}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
+    out-of-order: true

@@ -1,0 +1,24 @@
+.overview-page .overview-panel-error { padding: 24px; }
+.overview-page .overview-panel-error p { margin: 0 0 16px; color: var(--workspace-danger); line-height: 1.6; }
+.overview-page .header-actions { flex-wrap: wrap; }
+.overview-page .overview-status { max-width: 140px; }
+.overview-page .overview-link { min-height: 44px; }
+.overview-page .workspace-search input { min-height: 44px; padding-inline-end: 52px; }
+.overview-page .workspace-search button { top: 0; right: 0; width: 44px; height: 44px; }
+@media (min-width: 1101px) {
+  .overview-page .overview-metrics,
+  .overview-page .overview-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+  .overview-page .overview-panel--schedule { grid-column: span 2; }
+}
+@media (max-width: 760px) {
+  .app-shell > main.overview-page > .dashboard-header { margin-bottom: 16px; padding-bottom: 0; gap: 12px; }
+  .overview-page .dashboard-header__description { margin-top: 8px; }
+  .overview-page .overview-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .overview-page .overview-metric { min-width: 0; padding: 12px 8px; }
+  .overview-page .overview-metric-icon { display: none; }
+  .overview-page .overview-metric > div { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .overview-page .overview-metric p { font-size: 12px; }
+  .overview-page .overview-metric strong { font-size: 22px; }
+  .overview-page .workspace-search input { font-size: 16px; }
+  .overview-page .overview-list { max-height: none; }
+}

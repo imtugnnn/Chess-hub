@@ -1,0 +1,12 @@
+target
+# Local workspace, IDE settings and legacy AI locations
+**/agent
+**/.idea
+**/.agents
+**/.codex
+**/.specify
+**/.impeccable
+**/AGENTS.md
+**/.git
+**/.env
+**/.env.*

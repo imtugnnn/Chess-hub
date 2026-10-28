@@ -1,0 +1,60 @@
+.material-library { padding: 24px; border: 1px solid var(--ui-border); border-radius: 12px; background: #fff; }
+.material-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.material-tabs button { min-height: 40px; padding: 9px 14px; border: 1px solid var(--ui-border); border-radius: 8px; background: #fff; color: var(--ui-text); font: inherit; font-size: 13px; cursor: pointer; }
+.material-tabs button[aria-pressed="true"] { background: var(--ui-navy); border-color: var(--ui-navy); color: #fff; }
+.material-search, .material-form label { display: grid; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ui-text); }
+.material-search { margin-bottom: 16px; }
+.material-search input, .material-form input, .material-form textarea { box-sizing: border-box; min-height: 42px; width: 100%; padding: 11px 12px; border: 1px solid var(--ui-border); border-radius: 8px; background: #fff; color: var(--ui-text); font: inherit; font-size: 14px; }
+.material-search input:focus, .material-form input:focus, .material-form textarea:focus { outline: 2px solid var(--ui-navy); outline-offset: 2px; }
+.material-help, .material-form small, .material-meta { color: var(--ui-muted); font-size: 12px; line-height: 1.7; font-weight: 400; }
+.material-help { margin: 0 0 16px; }
+.material-list { display: grid; }
+.material-row { display: flex; align-items: center; gap: 14px; padding: 18px 0; border-top: 1px solid var(--ui-border); }
+.material-source-icon { display: grid; place-items: center; flex: 0 0 40px; height: 40px; border-radius: 8px; background: var(--ui-soft); color: var(--ui-navy); }
+.material-row__content { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.material-row__content strong { display: block; font-size: 14px; color: var(--ui-text); }
+.material-meta { display: block; margin-top: 5px; }
+.material-row__content p { font-size: 13px; line-height: 1.6; margin: 6px 0 0; color: var(--ui-muted); white-space: pre-wrap; }
+.material-row__actions, .material-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.material-row__actions { flex-shrink: 0; }
+.material-row__actions a { text-decoration: none; }
+.material-actions { justify-content: flex-end; margin-top: 24px; }
+.material-empty { margin: 0; padding: 28px 12px; text-align: center; color: var(--ui-muted); font-size: 13px; line-height: 1.7; }
+.material-error { padding: 12px; margin: 12px 0; color: var(--workspace-danger); background: #fff1f2; border-radius: 8px; font-size: 13px; line-height: 1.6; }
+.material-danger { color: var(--workspace-danger); }
+.material-dialog { box-sizing: border-box; width: min(820px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); padding: 24px; border: 1px solid var(--ui-border); border-radius: 12px; color: var(--ui-text); background: #fff; overflow-y: auto; }
+.material-dialog::backdrop { background: #14223880; }
+.material-dialog__heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.material-dialog__heading h2 { margin: 0; font-size: 20px; }
+.material-icon-button { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--ui-border); border-radius: 8px; background: #fff; cursor: pointer; }
+.material-form fieldset { display: grid; gap: 18px; padding: 0; border: 0; margin: 0; min-width: 0; }
+.material-form .material-tabs { margin-bottom: 0; }
+.material-dialog .primary-button, .material-dialog .secondary-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 10px 16px; border: 1px solid var(--ui-border); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
+.material-dialog .primary-button { background: var(--ui-navy); color: #fff; border-color: var(--ui-navy); }
+.material-dialog .secondary-button { background: #fff; color: var(--ui-text); }
+.material-dialog button:disabled, .session-materials button:disabled { opacity: .55; cursor: wait; }
+.session-materials { margin: 24px 0; padding: 20px; border: 1px solid var(--ui-border); border-radius: 12px; background: #fff; }
+.material-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.material-section-heading h3 { margin: 0; font-size: 16px; }
+.material-section-heading p { margin: 6px 0 12px; color: var(--ui-muted); font-size: 12px; }
+.class-detail-page .session-materials { margin: 0; padding: 0; border: 0; border-bottom: 1px solid var(--ui-border); border-radius: 0; }
+.session-materials__title { margin: 0; }
+.session-materials__toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 48px; padding: 14px 24px; border: 0; background: transparent; color: var(--ui-text); font-size: 13px; font-weight: 500; text-align: left; }
+.session-materials__toggle > span { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.session-materials__toggle small { color: var(--ui-muted); font-size: 12px; font-weight: 400; }
+.session-materials__toggle > svg { flex-shrink: 0; transition: rotate .2s; }
+.session-materials__toggle[aria-expanded="true"] > svg { rotate: 90deg; }
+.session-materials__toggle:hover { background: var(--ui-soft); }
+.session-materials__panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .2s ease-out; }
+.session-materials__panel--open { grid-template-rows: 1fr; }
+.session-materials__clip { min-height: 0; overflow: hidden; }
+.session-materials__content { padding: 0 24px 20px; }
+@media (max-width: 700px) { .session-materials__toggle { padding: 14px 16px; } .session-materials__content { padding: 0 16px 16px; } }
+@media (prefers-reduced-motion: reduce) { .session-materials__panel, .session-materials__toggle > svg { transition: none; } }
+@media (max-width: 700px) {
+  .material-library, .material-dialog, .session-materials { padding: 16px; }
+  .material-row { flex-wrap: wrap; align-items: flex-start; }
+  .material-row__actions { width: 100%; padding-left: 54px; }
+  .material-row__content { flex-basis: calc(100% - 54px); }
+  .material-section-heading { align-items: flex-start; flex-direction: column; }
+}

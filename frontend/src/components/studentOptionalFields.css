@@ -1,0 +1,5 @@
+.student-optional-label { color: var(--ui-muted); font-size: 12px; font-weight: 400; }
+.student-notes-field { grid-column: 1 / -1; min-width: 0; }
+.student-notes-field textarea { width: 100%; min-width: 0; min-height: 96px; padding: 12px; border: 1px solid var(--ui-border); border-radius: 8px; background: var(--workspace-surface); color: var(--ui-text); font: inherit; font-size: 14px; line-height: 1.6; resize: vertical; }
+.student-notes-field textarea::placeholder { color: var(--ui-muted); opacity: 1; }
+.student-notes-field textarea:focus-visible { outline: 2px solid var(--ui-navy); outline-offset: 2px; }

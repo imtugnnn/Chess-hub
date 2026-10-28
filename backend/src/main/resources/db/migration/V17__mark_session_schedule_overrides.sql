@@ -1,0 +1,1 @@
+ALTER TABLE class_sessions ADD COLUMN schedule_override BOOLEAN NOT NULL DEFAULT FALSE;

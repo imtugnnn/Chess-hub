@@ -1,0 +1,206 @@
+package vn.chesshub.controller;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import vn.chesshub.config.SecurityConfig;
+import vn.chesshub.entity.User;
+import vn.chesshub.repository.UserRepository;
+import vn.chesshub.service.AuthService;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(AuthController.class)
+@Import(SecurityConfig.class)
+class AuthSessionTest {
+  @Autowired MockMvc mvc;
+  @Autowired ObjectMapper json;
+  @MockitoBean AuthService auth;
+  @MockitoBean vn.chesshub.service.RememberLoginService remember;
+  @MockitoBean UserRepository users;
+
+  @Test
+  void accountSettingsRequireAuthenticationAndCsrfAndUseSessionIdentity() throws Exception {
+    UUID userId = UUID.randomUUID();
+    User account = mock(User.class);
+    when(account.getId()).thenReturn(userId);
+    when(account.getPasswordHash()).thenReturn("hash");
+    when(account.getGoogleMeetUrl()).thenReturn("https://meet.google.com/abc-defg-hij");
+    when(users.findById(userId)).thenReturn(Optional.of(account));
+    when(auth.updateGoogleMeet(userId, "https://meet.google.com/abc-defg-hij")).thenReturn(account);
+    when(auth.updatePassword(userId, "Current123", "NewPassword456")).thenReturn(account);
+    when(auth.updateEmail(userId, "new@example.com")).thenReturn(account);
+    String payload = "{\"googleMeetUrl\":\"https://meet.google.com/abc-defg-hij\"}";
+    mvc.perform(post("/api/v1/auth/google-meet")
+        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+        .contentType(MediaType.APPLICATION_JSON).content(payload)).andExpect(status().isUnauthorized());
+    var identity = org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user(userId.toString());
+    mvc.perform(post("/api/v1/auth/google-meet").with(identity)
+        .contentType(MediaType.APPLICATION_JSON).content(payload)).andExpect(status().isForbidden());
+    mvc.perform(post("/api/v1/auth/google-meet").with(identity)
+        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+        .contentType(MediaType.APPLICATION_JSON).content(payload)).andExpect(status().isOk())
+      .andExpect(jsonPath("$.googleMeetUrl").value("https://meet.google.com/abc-defg-hij"))
+      .andExpect(jsonPath("$.hasPassword").value(true)).andExpect(jsonPath("$.passwordHash").doesNotExist());
+    mvc.perform(post("/api/v1/auth/email").with(identity)
+        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+        .contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"new@example.com\"}"))
+      .andExpect(status().isOk());
+    mvc.perform(post("/api/v1/auth/password").with(identity)
+        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+        .contentType(MediaType.APPLICATION_JSON).content("{\"currentPassword\":\"Current123\",\"newPassword\":\"NewPassword456\"}"))
+      .andExpect(status().isOk());
+    verify(auth).updateEmail(userId, "new@example.com");
+    verify(auth).updateGoogleMeet(userId, "https://meet.google.com/abc-defg-hij");
+    verify(auth).updatePassword(userId, "Current123", "NewPassword456");
+    verify(remember).revokeAll(userId);
+  }
+
+  @Test
+  void loginPersistsSessionAndScopesUserRoutes() throws Exception {
+    UUID userId = UUID.randomUUID();
+    User account = mock(User.class);
+    when(account.getId()).thenReturn(userId);
+    when(account.getEmail()).thenReturn("owner@example.com");
+    when(account.getFullName()).thenReturn("Owner");
+    when(auth.login("owner@example.com", "password123")).thenReturn(account);
+    when(users.findById(userId)).thenReturn(Optional.of(account));
+
+    mvc.perform(get("/api/v1/auth/me")).andExpect(status().isUnauthorized());
+    MvcResult csrfResult = mvc.perform(get("/api/v1/auth/csrf"))
+      .andExpect(status().isOk()).andReturn();
+    JsonNode csrf = json.readTree(csrfResult.getResponse().getContentAsString());
+    MockHttpSession session = (MockHttpSession) csrfResult.getRequest().getSession(false);
+
+    MvcResult login = mvc.perform(post("/api/v1/auth/login").session(session)
+        .header(csrf.get("headerName").asText(), csrf.get("token").asText())
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"email\":\"owner@example.com\",\"password\":\"password123\"}"))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(userId.toString())).andReturn();
+    MockHttpSession signedIn = (MockHttpSession) login.getRequest().getSession(false);
+
+    mvc.perform(get("/api/v1/auth/me").session(signedIn))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.email").value("owner@example.com"));
+    mvc.perform(get("/api/v1/teachers/" + UUID.randomUUID() + "/classes").session(signedIn))
+      .andExpect(status().isForbidden());
+    mvc.perform(post("/api/v1/auth/logout").session(signedIn))
+      .andExpect(status().isForbidden());
+    mvc.perform(post("/api/v1/auth/logout").session(signedIn)
+        .header(csrf.get("headerName").asText(), csrf.get("token").asText()))
+      .andExpect(status().isNoContent());
+    assertTrue(signedIn.isInvalid());
+    verify(remember).issue(eq(userId), any(), any());
+    verify(remember).revoke(any(), any());
+  }
+
+  @Test
+  void rememberedIdentityRestoresSessionWithoutPasswordAndStillScopesRoutes() throws Exception {
+    UUID userId = UUID.randomUUID();
+    User account = mock(User.class);
+    when(account.getId()).thenReturn(userId);
+    when(users.findById(userId)).thenReturn(Optional.of(account));
+    when(remember.restore(any(), any())).thenReturn(Optional.of(userId));
+    MvcResult restored = mvc.perform(get("/api/v1/auth/me"))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(userId.toString())).andReturn();
+    MockHttpSession session = (MockHttpSession) restored.getRequest().getSession(false);
+    org.junit.jupiter.api.Assertions.assertNotNull(session);
+    mvc.perform(get("/api/v1/teachers/" + UUID.randomUUID() + "/classes").session(session))
+      .andExpect(status().isForbidden());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", ",\"rememberMe\":true", ",\"rememberMe\":false"})
+  void passwordLoginHonorsRememberChoiceAndDefaultsToRemembering(String rememberField) throws Exception {
+    UUID userId = UUID.randomUUID();
+    User account = mock(User.class);
+    when(account.getId()).thenReturn(userId);
+    when(auth.login("owner@example.com", "password123")).thenReturn(account);
+    MvcResult csrfResult = mvc.perform(get("/api/v1/auth/csrf")).andReturn();
+    JsonNode csrf = json.readTree(csrfResult.getResponse().getContentAsString());
+    mvc.perform(post("/api/v1/auth/login").session((MockHttpSession) csrfResult.getRequest().getSession(false))
+      .header(csrf.get("headerName").asText(), csrf.get("token").asText())
+      .contentType(MediaType.APPLICATION_JSON)
+      .content("{\"email\":\"owner@example.com\",\"password\":\"password123\"" + rememberField + "}"))
+      .andExpect(status().isOk());
+    if (rememberField.contains("false")) {
+      verify(remember, org.mockito.Mockito.never()).issue(any(), any(), any());
+      verify(remember).revoke(any(), any());
+    } else {
+      verify(remember).issue(eq(userId), any(), any());
+      verify(remember, org.mockito.Mockito.never()).revoke(any(), any());
+    }
+  }
+
+  @Test
+  void temporaryPasswordLoginDoesNotIssueRememberToken() throws Exception {
+    User account = mock(User.class);
+    when(account.getId()).thenReturn(UUID.randomUUID());
+    when(account.isMustChangePassword()).thenReturn(true);
+    when(auth.login("owner@example.com", "temporary123")).thenReturn(account);
+    mvc.perform(post("/api/v1/auth/login")
+      .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+      .contentType(MediaType.APPLICATION_JSON)
+      .content("{\"email\":\"owner@example.com\",\"password\":\"temporary123\"}"))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.mustChangePassword").value(true));
+    verify(remember, org.mockito.Mockito.never()).issue(any(), any(), any());
+    verify(remember).revoke(any(), any());
+  }
+
+  @Test
+  void completingInitialPasswordAutomaticallyIssuesRememberToken() throws Exception {
+    UUID userId = UUID.randomUUID();
+    User account = mock(User.class);
+    when(account.getId()).thenReturn(userId);
+    when(auth.completeInitialPassword(userId, "NewPassword456")).thenReturn(account);
+    mvc.perform(post("/api/v1/auth/initial-password")
+      .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user(userId.toString()))
+      .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+      .contentType(MediaType.APPLICATION_JSON)
+      .content("{\"password\":\"NewPassword456\"}"))
+      .andExpect(status().isOk());
+    verify(remember).issue(eq(userId), any(), any());
+  }
+
+  @Test
+  void temporaryPasswordSessionCannotBypassPasswordChange() throws Exception {
+    UUID userId = UUID.randomUUID();
+    User account = mock(User.class);
+    when(account.getId()).thenReturn(userId);
+    when(account.isMustChangePassword()).thenReturn(true);
+    when(users.findById(userId)).thenReturn(Optional.of(account));
+    when(remember.restore(any(), any())).thenReturn(Optional.of(userId));
+    MvcResult restored = mvc.perform(get("/api/v1/auth/me"))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.mustChangePassword").value(true)).andReturn();
+    mvc.perform(get("/api/v1/teachers/" + userId + "/classes")
+      .session((MockHttpSession) restored.getRequest().getSession(false)))
+      .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
+  }
+
+  @Test
+  void googleProviderIsHiddenWhenCredentialsAreNotConfigured() throws Exception {
+    mvc.perform(get("/api/v1/auth/providers"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.google").value(false));
+  }
+}

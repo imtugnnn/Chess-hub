@@ -1,0 +1,184 @@
+# ChessHub
+
+Ứng dụng quản lý trung tâm cờ vua cho giáo viên và chủ trung tâm: quản lý lớp, học sinh, lịch học, chuyên cần/học phí, bài giảng, giải Swiss và bàn cờ phân tích.
+
+## Tech stack
+
+- Frontend: React + Vite, tách component, page, service và hook.
+- Backend: Java 21 / Spring Boot 3, controller → service → repository / Spring Data JPA.
+- Database local: PostgreSQL 17 + PostGIS 3.5; Flyway chạy migration khi API khởi động, Hibernate dùng `ddl-auto=update` theo cấu hình hiện tại.
+
+Tài liệu tính năng và bảo trì ở [docs/md/README.md](docs/md/README.md). Quy ước thư mục cho agent/skill ở [AGENTS.md](AGENTS.md). Toàn bộ workspace AI nằm trong `agent/`, không đưa vào Git hoặc Docker image. `.idea/` là cấu hình IDE cục bộ và cũng được bỏ qua.
+
+## Chạy toàn bộ bằng Docker
+
+Docker chạy ba container: `web` (React), `api` (Spring Boot) và `db` (PostgreSQL/PostGIS). Máy chỉ cần cài Java 21 và Node.js khi chạy từng phần ngoài Docker, hoặc chỉ cần mở Docker Desktop khi chạy toàn bộ hệ thống.
+
+Tại thư mục `ChessHub`, chạy:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build -d
+docker compose ps
+```
+
+Chỉ cần copy `.env.example` khi chưa có `.env`. File mẫu được lưu trong Git để người khác có thể cấu hình sau khi clone; `.env` riêng của mỗi máy được bỏ qua bởi Git. Cấu hình mặc định đủ để chạy local. Hai biến `GOOGLE_OAUTH_CLIENT_ID` và `GOOGLE_OAUTH_CLIENT_SECRET` có thể để trống nếu chưa dùng đăng nhập Google. `JWT_SECRET` mẫu chỉ dành cho local; khi triển khai, thay bằng giá trị bí mật riêng.
+
+Sau khi cả ba dịch vụ ở trạng thái `healthy` hoặc `running`:
+
+- Giao diện: `http://localhost:4173`
+- API health check: `http://localhost:3000/health`
+- PostgreSQL: `localhost:5432`
+
+Xem log API:
+
+```powershell
+docker compose logs -f api
+```
+
+Dừng dự án nhưng giữ nguyên dữ liệu:
+
+```powershell
+docker compose down
+```
+
+Chỉ dùng lệnh sau khi muốn xóa toàn bộ database và tạo lại từ đầu:
+
+```powershell
+docker compose down -v
+```
+
+Flyway chạy các migration trong `backend/src/main/resources/db/migration/` khi API khởi động. Hibernate tiếp tục đồng bộ các entity qua `ddl-auto=update`.
+
+## Chạy backend trực tiếp để phát triển
+
+Giữ database Docker đang chạy, sau đó:
+
+```powershell
+docker compose up -d db
+cd backend
+mvn spring-boot:run
+```
+
+Chạy frontend React ngoài Docker ở một terminal khác:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+### Đăng nhập bằng Google (OAuth 2.0)
+
+Trong [Google Auth Platform → Clients](https://console.cloud.google.com/auth/clients), tạo hoặc chọn dự án, hoàn tất thông tin ứng dụng nếu được yêu cầu, rồi chọn **Create client → Web application**. Thêm **Authorized redirect URI** chính xác là `http://localhost:3000/login/oauth2/code/google`. Sao lưu **Client ID** và **Client Secret** khi tạo client; Google có thể chỉ hiển thị secret lúc này. Nếu ứng dụng đang ở chế độ **Testing**, thêm tài khoản Gmail cần thử vào **Audience → Test users**.
+
+Cấu hình hai biến môi trường sau trước khi chạy API hoặc `docker compose up`:
+
+```powershell
+$env:GOOGLE_OAUTH_CLIENT_ID = "<client-id>"
+$env:GOOGLE_OAUTH_CLIENT_SECRET = "<client-secret>"
+```
+
+Nếu dùng Docker Compose thường xuyên, có thể tạo file `.env` tại thư mục gốc với hai dòng `GOOGLE_OAUTH_CLIENT_ID=<client-id>` và `GOOGLE_OAUTH_CLIENT_SECRET=<client-secret>`. File `.env` đã được thêm vào `.gitignore`; không đưa secret vào mã nguồn hoặc gửi công khai.
+
+Docker Compose mặc định cố định callback Google ở `http://localhost:3000/login/oauth2/code/google`, kể cả khi bắt đầu đăng nhập qua frontend `http://localhost:4173`. Đăng ký URL này trong **Authorized redirect URIs** của OAuth client. Có thể ghi đè bằng `GOOGLE_OAUTH_REDIRECT_URI` trong `.env`; không dùng hostname nội bộ Docker `api` làm callback.
+
+Sau khi cấu hình, chạy `docker compose up -d --force-recreate api` để API nhận biến môi trường mới. Nút **Đăng nhập bằng Google** luôn hiển thị tại `http://localhost:4173/login` và chỉ bật khi API đã được cấu hình. Google phải trả về email đã xác minh. Nếu email trùng tài khoản hiện có, tài khoản đó được liên kết với Google và giữ nguyên dữ liệu; tài khoản mới dùng Google sẽ không có mật khẩu. Khi triển khai ở tên miền khác, đăng ký redirect URI tương ứng với API (`https://<api-domain>/login/oauth2/code/google`), đặt `CORS_ORIGIN` bằng origin của frontend và bật `SESSION_COOKIE_SECURE=true` trên HTTPS.
+
+## API chính
+
+- `GET /health`
+- `GET /api/v1/users`
+- `GET /api/v1/users/{userId}/deletion-eligibility`
+- `DELETE /api/v1/users/{userId}` — chỉ xóa cứng tài khoản không còn lớp học, học viên riêng, trung tâm sở hữu hoặc lời mời trung tâm đã tạo.
+
+## Dọn dẹp dữ liệu
+
+Người dùng có thể vào **Cài đặt → Tài khoản & dữ liệu** để kiểm tra trước khi xóa vĩnh viễn tài khoản rỗng. Các tài khoản còn dữ liệu nghiệp vụ sẽ bị chặn để tránh mất lịch sử lớp học, học viên và trung tâm.
+
+Sau một đợt xóa số lượng lớn, PostgreSQL sẽ tự thu hồi vùng trống qua autovacuum. Nếu cần cập nhật thống kê ngay, quản trị viên có thể chạy lệnh bảo trì không phá hủy dữ liệu sau (không chạy `VACUUM FULL` trong giờ hoạt động):
+
+```powershell
+docker compose exec db psql -U chesshub -d chesshub -c "VACUUM (ANALYZE) users;"
+```
+
+## Cấu trúc
+
+```text
+ChessHub/
+├── backend/                    # Maven / Spring Boot API
+│   ├── pom.xml
+│   ├── src/main/java/vn/chesshub/
+│   │   ├── config/
+│   │   ├── controller/
+│   │   ├── service/
+│   │   ├── repository/
+│   │   └── entity/
+│   ├── src/main/resources/db/migration/
+│   ├── src/test/
+│   └── tools/                  # Kiểm tra migration
+├── frontend/                   # npm / React / Vite
+│   ├── src/                    # pages, components, services, hooks, CSS
+│   ├── public/                 # Asset được phục vụ cho người dùng
+│   ├── tests/fixtures/          # Dữ liệu và entry kiểm tra UI
+│   └── tools/                  # Script review / chụp ảnh
+├── docs/                       # Tài liệu dự án
+├── agent/                      # Toàn bộ công cụ và tài liệu AI cục bộ (Git/Docker ignore)
+├── AGENTS.md                   # Quy ước cho agent/skill
+└── docker-compose.yml
+```
+
+### Mời giáo viên vào trung tâm và xem lớp
+
+Chủ trung tâm nhập email để mời. Email đã có tài khoản nhận lời mời trong ứng dụng như trước; không thay đổi mật khẩu của tài khoản đó. Email chưa có tài khoản được tạo tài khoản với mật khẩu tạm ngẫu nhiên, lưu bằng BCrypt và gửi thông tin đăng nhập qua Gmail API. Sau khi đăng nhập bằng mật khẩu tạm, người dùng phải tạo mật khẩu khác (ít nhất 8 ký tự, tối đa 72 byte UTF-8) trước khi gọi các API nghiệp vụ. Sau đó người dùng chấp nhận hoặc từ chối lời mời tại trang Trung tâm. Chức năng ghi nhớ 30 ngày chỉ được cấp sau khi hoàn tất tạo mật khẩu mới.
+
+Chủ trung tâm có nút **Xem lớp học** cạnh từng thành viên đang hoạt động: tên lớp, lịch học và số học sinh. Đây là danh sách lớp của thành viên, bao gồm lớp có trước khi gia nhập; không cấp quyền sửa lớp. Backend kiểm tra quyền chủ trung tâm và tư cách thành viên trên mỗi yêu cầu.
+
+Email sử dụng OAuth của tài khoản Gmail gửi thư. Cấu hình trên backend/Cloud Run (local Docker Compose đọc từ `.env`):
+
+```env
+GMAIL_OAUTH_CLIENT_ID=<OAuth client ID của tài khoản gửi>
+GMAIL_OAUTH_CLIENT_SECRET=<OAuth client secret>
+GMAIL_OAUTH_REFRESH_TOKEN=<refresh token có quyền gmail.send>
+INVITATION_MAIL_FROM=<email của tài khoản gửi hoặc alias đã được Gmail cho phép>
+```
+
+Không cần thay scope đăng nhập Google của người dùng. Để lấy refresh token gửi mail:
+
+1. Bật Gmail API trong project của OAuth client gửi thư.
+2. Thêm scope `https://www.googleapis.com/auth/gmail.send` trong Google Auth Platform → Data Access.
+3. Thêm `https://developers.google.com/oauthplayground` vào Authorized redirect URIs của client gửi thư.
+4. Mở [OAuth Playground](https://developers.google.com/oauthplayground/), chọn Settings → Use your own OAuth credentials, nhập client ID/secret của bạn. Chọn quyền `gmail.send`, quyền truy cập Offline, rồi Authorize bằng tài khoản gửi thư.
+5. Exchange authorization code for tokens, lưu refresh token vào `GMAIL_OAUTH_REFRESH_TOKEN` bằng Cloud Run Secret Manager. Nếu app External còn ở Testing, refresh token dùng scope Gmail có thể hết hạn sau 7 ngày; chuẩn bị trạng thái Production phù hợp trước khi chạy gửi thư lâu dài.
+
+Nếu chưa cấu hình gửi mail hoặc Gmail trả lỗi, request mời người mới thất bại và transaction tạo tài khoản/lời mời được rollback; mời tài khoản hiện có vẫn hoạt động. Không ghi mật khẩu tạm/token vào log hay trả về API. Email được gửi đồng bộ trong transaction; Gmail và database không có transaction chung, nên khi Gmail nhận thư nhưng database commit thất bại, cần gửi lời mời lại. Migration `V11__require_initial_password_change.sql` bổ sung trạng thái bắt buộc đổi mật khẩu. Kiểm thử Gmail dùng HTTP mock, chưa gửi thư thật hoặc chạy migration production.
+
+Tham khảo [Gmail API gửi thư](https://developers.google.com/workspace/gmail/api/guides/sending) và [OAuth refresh token](https://developers.google.com/identity/protocols/oauth2).
+
+### Quên mật khẩu và đặt lại qua email
+
+Màn `/login` có nút **Quên mật khẩu?**, dòng **Thay đổi mật khẩu** và biểu tượng hiện/ẩn trong ô mật khẩu. Hai nút đổi/quên mật khẩu mở biểu mẫu nhập email tại `/forgot-password`; email chứa link `/reset-password#token=...` để nhập và xác nhận mật khẩu mới. Đặt lại thành công yêu cầu đăng nhập lại.
+
+Dùng lại bốn biến Gmail OAuth ở phần trên; `CORS_ORIGIN` phải trỏ đến frontend công khai để email chứa đúng địa chỉ. Không cần cấu hình SMTP riêng. Nếu chưa cấu hình Gmail hoặc gửi thư thất bại, giao diện hiển thị lỗi và không báo đã gửi thành công.
+
+Migration `V19__create_password_reset_tokens.sql` lưu SHA-256 của token ngẫu nhiên, thời điểm tạo/hết hạn và thông tin tài khoản lúc yêu cầu. Link có hiệu lực 30 phút, dùng một lần, mất hiệu lực sau khi email/mật khẩu đổi hoặc có yêu cầu mới sau khoảng chờ 60 giây. Reset thu hồi tất cả token lưu đăng nhập của tài khoản và đăng xuất trình duyệt thực hiện reset; các phiên đăng nhập đang mở trên trình duyệt khác vẫn theo thời hạn phiên hiện tại. Phản hồi yêu cầu giống nhau cho email tồn tại và không tồn tại. Token nằm trong fragment để không gửi trong URL request và được xóa khỏi thanh địa chỉ sau khi màn hình mở; tải lại trang cần mở lại link trong email.
+
+Kiểm thử backend dùng H2 và mock gửi thư; kiểm thử giao diện dùng dữ liệu mô phỏng ở desktop/mobile, không gửi email thật. Việc gửi thư đồng bộ cùng transaction có giới hạn tương tự email lời mời: Gmail đã nhận thư nhưng database commit thất bại thì cần yêu cầu lại.
+
+### Google OAuth trên Cloud Run
+
+Backend hỗ trợ biến `GOOGLE_OAUTH_REDIRECT_URI` để cố định callback công khai, tránh dùng địa chỉ nội bộ của reverse proxy. Với frontend Cloud Run hiện tại, đặt:
+
+```env
+GOOGLE_OAUTH_REDIRECT_URI=https://chesshub-web-881466446251.asia-southeast1.run.app/login/oauth2/code/google
+```
+
+Đăng ký chính xác URL này trong **Authorized redirect URIs** của OAuth client có Client ID đang dùng trên backend. Build và deploy image backend có cấu hình này trước khi sử dụng biến mới. Nếu không đặt biến, backend tiếp tục dùng callback mặc định theo URL của request để hỗ trợ local.
+
+### Tự động giữ đăng nhập đến khi đăng xuất
+
+Đăng nhập bằng email/mật khẩu và Google đều tự động giữ đăng nhập. Trường `rememberMe` của API được giữ để tương thích nhưng không còn quyết định việc lưu phiên. Tài khoản dùng mật khẩu tạm chỉ nhận cookie ghi nhớ sau khi hoàn thành đổi mật khẩu.
+
+Backend cấp token ngẫu nhiên 256 bit trong cookie `CHESSHUB_REMEMBER` có `HttpOnly`, `SameSite=Lax`, thời hạn cookie 365 ngày và chỉ lưu SHA-256 của token trong database. Token trên server không có ngày hết hạn; cookie được gia hạn khi khôi phục phiên. Khi session mất hoặc backend restart, request tiếp theo dùng token hợp lệ để tạo session mới, kể cả tài khoản Google không có mật khẩu. Đăng xuất thu hồi token của trình duyệt hiện tại và xóa cookie. Token của tài khoản bị xóa được xóa theo khóa ngoại. Trình duyệt xóa cookie hoặc cookie hết hạn vẫn yêu cầu đăng nhập lại.
+
+Triển khai cả frontend và backend, để Flyway chạy migration `V10__create_remember_login_tokens.sql` và `V18__remember_login_until_revoked.sql`, và đặt `SESSION_COOKIE_SECURE=true` trên HTTPS. Sau khi nâng cấp, người đang dùng phiên cũ cần đăng nhập lại một lần để nhận cookie ghi nhớ mới. Kiểm thử gồm luồng OAuth, cấp token, khôi phục tài khoản Google không có mật khẩu và thu hồi token khi đăng xuất.
